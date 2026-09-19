@@ -20,6 +20,7 @@ import uz.electro.remote.ConnectStatus
 import uz.electro.remote.R
 import uz.electro.remote.ui.components.*
 import uz.electro.remote.ui.components.BrandLockup
+import uz.electro.remote.ui.components.CarArt
 import uz.electro.remote.ui.theme.*
 
 /**
@@ -104,9 +105,9 @@ fun ConnectScreen(vm: CarViewModel, status: ConnectStatus) {
         }
         Spacer(Modifier.height(Space.x6))
 
-        // Рендер машины идёт с тёмной подложкой, «вшитой» в PNG. На светлой теме
-        // голым он читался бы как тёмный прямоугольник — оформляем hero-карточкой
-        // со скруглением, и подложка выглядит намеренной в обеих темах.
+        // Рендер — студийная вырезка с прозрачным фоном по модели и цвету кузова,
+        // лежит на обычной карточке темы: никакой «вшитой» тёмной подложки.
+        val paint by vm.paint.collectAsState()
         Surface(
             color = ElectroColors.SurfaceRaised,
             shape = Radius.Lg,
@@ -114,8 +115,8 @@ fun ConnectScreen(vm: CarViewModel, status: ConnectStatus) {
         ) {
             Box {
                 Image(
-                    painterResource(R.drawable.car_01), null,
-                    modifier = Modifier.fillMaxWidth().height(200.dp),
+                    painterResource(CarArt.image(chosen?.model, paint)), null,
+                    modifier = Modifier.fillMaxWidth().height(200.dp).padding(horizontal = Space.x2, vertical = Space.x2),
                     contentScale = ContentScale.Fit,
                 )
                 // статус подключения плашкой в углу hero — как на панели машины

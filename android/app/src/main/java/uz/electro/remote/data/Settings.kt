@@ -50,6 +50,15 @@ class Settings(ctx: Context) {
         }.apply()
     }
 
+    /** Цвет кузова для рендера — локально, сервер его не знает. */
+    fun vehiclePaint(id: String): String? = sp.getString(K_PAINT_PREFIX + id, null)
+
+    fun setVehiclePaint(id: String, paint: String?) {
+        sp.edit().apply {
+            if (paint.isNullOrBlank()) remove(K_PAINT_PREFIX + id) else putString(K_PAINT_PREFIX + id, paint)
+        }.apply()
+    }
+
     /** Разрешено ли ходить в backend. */
     var cloudEnabled: Boolean
         get() = sp.getBoolean(K_CLOUD_ON, true)
@@ -89,6 +98,7 @@ class Settings(ctx: Context) {
         private const val K_VEHICLE = "vehicleId"
         private const val K_CLOUD_ON = "cloudEnabled"
         private const val K_NICK_PREFIX = "nick_"
+        private const val K_PAINT_PREFIX = "paint_"
         private const val K_SEAT_PRESET = "seatPreset"
         private const val K_NEWS_READ = "newsRead"
         private const val K_PUSH_TOKEN = "pushToken"

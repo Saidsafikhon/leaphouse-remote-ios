@@ -779,6 +779,7 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun selectVehicle(vehicleId: String) {
+        _paint.value = settings.vehiclePaint(vehicleId)
         repo.selectVehicle(vehicleId)
         _vehicleId.value = vehicleId
         refreshNow()
@@ -804,6 +805,18 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
     fun setVehicleNick(id: String, name: String?) {
         settings.setVehicleNick(id, name)
         // перечитывать не нужно: имя локальное, но дёрнем список, чтобы UI обновился
+        _vehicles.value = _vehicles.value.toList()
+    }
+
+    /** Цвет кузова выбранной машины (локально). */
+    private val _paint = MutableStateFlow(settings.vehicleId?.let { settings.vehiclePaint(it) })
+    val paint: StateFlow<String?> = _paint.asStateFlow()
+
+    fun vehiclePaint(id: String): String? = settings.vehiclePaint(id)
+
+    fun setVehiclePaint(id: String, paint: String?) {
+        settings.setVehiclePaint(id, paint)
+        if (id == settings.vehicleId) _paint.value = paint
         _vehicles.value = _vehicles.value.toList()
     }
 

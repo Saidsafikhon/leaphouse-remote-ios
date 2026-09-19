@@ -3,6 +3,11 @@ package uz.electro.remote.ui
 import uz.electro.remote.ui.components.Lx
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import uz.electro.remote.ui.components.CarArt
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -100,6 +105,14 @@ fun SettingsScreen(vm: CarViewModel, onClose: () -> Unit) {
                         onRename = { renaming = vehicle },
                         onDrop = { confirmDrop = vehicle },
                     )
+                    // цвет кузова — только у выбранной машины, чтобы список не разрастался
+                    if (vehicle.vehicle_id == vehicleId) {
+                        PaintPicker(
+                            model = vehicle.model,
+                            current = vm.vehiclePaint(vehicle.vehicle_id),
+                            onPick = { vm.setVehiclePaint(vehicle.vehicle_id, it) },
+                        )
+                    }
                 }
                 TextButton(
                     onClick = {
@@ -267,6 +280,29 @@ private fun fieldColors() = OutlinedTextFieldDefaults.colors(
     unfocusedLabelColor = ElectroColors.TextSecondary,
     cursorColor = ElectroColors.Accent,
 )
+
+/** Кружки цветов кузова, на которые есть рендер модели; выбранный — с обводкой акцентом. */
+@Composable
+private fun PaintPicker(model: String?, current: String?, onPick: (String) -> Unit) {
+    val paints = CarArt.paints(model)
+    if (paints.size < 2) return
+    val chosen = current?.takeIf { c -> paints.any { it.code == c } } ?: paints.first().code
+    Column(Modifier.fillMaxWidth().padding(start = 48.dp, top = 2.dp, bottom = 8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+            paints.forEach { p ->
+                val sel = p.code == chosen
+                Box(
+                    Modifier.size(26.dp)
+                        .border(if (sel) 2.dp else 1.dp, if (sel) ElectroColors.Accent else ElectroColors.Outline, CircleShape)
+                        .padding(3.dp).clip(CircleShape).background(p.swatch)
+                        .clickable { onPick(p.code) },
+                )
+            }
+        }
+        Text("Цвет кузова: " + paints.first { it.code == chosen }.label,
+            color = ElectroColors.TextMuted, fontSize = 11.sp, modifier = Modifier.padding(top = 6.dp))
+    }
+}
 
 /** Строка машины: выбор радиокнопкой, имя (локальное поверх серверного), правка и отвязка. */
 @Composable

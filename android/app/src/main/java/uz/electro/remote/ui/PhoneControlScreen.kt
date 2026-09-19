@@ -35,6 +35,7 @@ import uz.electro.remote.R
 import uz.electro.remote.data.*
 import uz.electro.remote.ui.components.*
 import uz.electro.remote.ui.components.BrandLockup
+import uz.electro.remote.ui.components.CarArt
 import uz.electro.remote.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -63,6 +64,7 @@ fun PhoneControlScreen(vm: CarViewModel = viewModel()) {
     val pending by vm.pending.collectAsState()
     val chosen by vm.selectedVehicle.collectAsState()
     val support by vm.support.collectAsState()
+    val paint by vm.paint.collectAsState()
     val caps by vm.capabilities.collectAsState()
     val scenes by vm.scenes.collectAsState()
     val schedules by vm.schedules.collectAsState()
@@ -151,6 +153,7 @@ fun PhoneControlScreen(vm: CarViewModel = viewModel()) {
                 else -> HomeTab(
                     car = car,
                     model = chosen?.model ?: "C16",
+                    paint = paint,
                     support = support,
                     caps = caps,
                     onDisconnect = { vm.disconnect() },
@@ -197,6 +200,7 @@ fun PhoneControlScreen(vm: CarViewModel = viewModel()) {
 private fun HomeTab(
     car: CarState,
     model: String,
+    paint: String?,
     support: SupportDto?,
     caps: CapabilitiesDto?,
     onDisconnect: () -> Unit,
@@ -230,7 +234,7 @@ private fun HomeTab(
         HeaderLockup(car, model, unreadNews,
             onHelp = { showHelp = true }, onNews = { onOpen("news") },
             onRefresh = onRefresh, onDisconnect = onDisconnect)
-        Hero(car)
+        Hero(model, paint)
         CarStatusStrip(car)
 
         SectionTitle("Панель быстрого доступа")
@@ -478,10 +482,12 @@ private fun updatedText(car: CarState): String = when {
 }
 
 @Composable
-private fun Hero(car: CarState) {
+private fun Hero(model: String?, paint: String?) {
+    // Состояние дверей/багажника рисует полоса статуса ниже; сам рендер —
+    // студийная вырезка модели в цвете кузова, без тёмной подложки.
     Image(
-        painterResource(heroRes(car.doors, car.trunkOpen == true, car.hoodOpen)), null,
-        modifier = Modifier.fillMaxWidth().height(190.dp),
+        painterResource(CarArt.image(model, paint)), null,
+        modifier = Modifier.fillMaxWidth().height(190.dp).padding(horizontal = Space.x2),
         contentScale = ContentScale.Fit,
     )
 }
@@ -864,31 +870,6 @@ private fun SeatGlyphs(controls: Map<Int, String>) {
             }
         }
     }
-}
-
-/** Картинка машины по состоянию дверей/багажника/капота (25 вариаций). */
-private fun heroRes(d: Doors, trunk: Boolean, hood: Boolean): Int = when {
-    hood && trunk && d.anyOpen -> R.drawable.car_25
-    hood && trunk -> R.drawable.car_24
-    hood && d.frontRight -> R.drawable.car_23
-    hood && d.frontLeft -> R.drawable.car_22
-    hood -> R.drawable.car_21
-    trunk && d.frontLeft && d.frontRight && d.rearLeft && d.rearRight -> R.drawable.car_20
-    trunk && d.frontRight && d.rearRight -> R.drawable.car_19
-    trunk && d.frontLeft && d.rearLeft -> R.drawable.car_18
-    trunk && d.rearRight -> R.drawable.car_17
-    trunk && d.rearLeft -> R.drawable.car_16
-    trunk && d.frontRight -> R.drawable.car_15
-    trunk && d.frontLeft -> R.drawable.car_14
-    trunk -> R.drawable.car_13
-    d.frontLeft && d.frontRight && d.rearLeft && d.rearRight -> R.drawable.car_12
-    d.frontRight && d.rearRight -> R.drawable.car_11
-    d.frontLeft && d.rearLeft -> R.drawable.car_10
-    d.rearRight -> R.drawable.car_09
-    d.rearLeft -> R.drawable.car_08
-    d.frontRight -> R.drawable.car_07
-    d.frontLeft -> R.drawable.car_06
-    else -> R.drawable.car_01
 }
 
 @Composable
