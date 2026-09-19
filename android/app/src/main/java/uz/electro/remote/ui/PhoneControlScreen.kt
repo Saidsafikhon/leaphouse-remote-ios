@@ -362,11 +362,12 @@ internal fun seatSummary(controls: Map<Int, String>): String {
         Cmd.SEAT_VENT_DRIVER, Cmd.SEAT_VENT_PASSENGER,
         Cmd.SEAT_VENT_REAR_L, Cmd.SEAT_VENT_REAR_R,
     ))
+    // коротко — подпись живёт в узкой плитке на главной, ей нельзя переноситься
     return when {
-        heat == 0 && vent == 0 -> "Обогрев и вентиляция выключены"
-        vent == 0 -> "Обогрев: $heat из 4"
-        heat == 0 -> "Вентиляция: $vent из 4"
-        else -> "Обогрев $heat · вентиляция $vent"
+        heat == 0 && vent == 0 -> "Выключены"
+        vent == 0 -> "Обогрев · $heat"
+        heat == 0 -> "Обдув · $vent"
+        else -> "Обогрев $heat · обдув $vent"
     }
 }
 
