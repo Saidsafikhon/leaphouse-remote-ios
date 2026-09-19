@@ -26,6 +26,11 @@ class AppLock(ctx: Context) {
         get() = enabled && sp.getBoolean(K_BIO, false)
         set(v) { sp.edit().putBoolean(K_BIO, v).apply() }
 
+    /** Предлагали ли уже поставить код после входа; «не сейчас» запоминаем, чтобы не докучать. */
+    var offerDeclined: Boolean
+        get() = sp.getBoolean(K_OFFER_DECLINED, false)
+        set(v) { sp.edit().putBoolean(K_OFFER_DECLINED, v).apply() }
+
     fun setPin(pin: String) {
         val salt = ByteArray(16).also { SecureRandom().nextBytes(it) }.joinToString("") { "%02x".format(it) }
         sp.edit().putString(K_SALT, salt).putString(K_HASH, hash(salt, pin)).apply()
@@ -81,6 +86,7 @@ class AppLock(ctx: Context) {
         const val K_SALT = "lock_pin_salt"
         const val K_BIO = "lock_biometric"
         const val K_FAILS = "lock_fails"
+        const val K_OFFER_DECLINED = "lock_offer_declined"
         const val K_LOCK_UNTIL = "lock_until"
         const val MAX_FAILS = 5
         const val COOLDOWN_MS = 30_000L

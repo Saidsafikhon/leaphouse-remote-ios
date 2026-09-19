@@ -16,6 +16,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import uz.electro.remote.security.AppLock
 import uz.electro.remote.ui.LockScreen
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.*
 import androidx.lifecycle.viewmodel.compose.viewModel
 import uz.electro.remote.ui.ForgotPasswordScreen
@@ -97,6 +98,36 @@ class MainActivity : FragmentActivity() {
                     owner.lifecycle.addObserver(obs)
                     onDispose { owner.lifecycle.removeObserver(obs) }
                 }
+                // После входа один раз предлагаем поставить код; «Не сейчас» —
+                // больше не спрашиваем, включить можно в настройках.
+                var offer by remember { mutableStateOf(false) }
+                var offerSetup by remember { mutableStateOf(false) }
+                var wasLoggedIn by remember { mutableStateOf(loggedIn) }
+                LaunchedEffect(loggedIn) {
+                    if (loggedIn && !wasLoggedIn && !lock.enabled && !lock.offerDeclined) offer = true
+                    wasLoggedIn = loggedIn
+                }
+                if (offer) {
+                    androidx.compose.material3.AlertDialog(
+                        onDismissRequest = { offer = false; lock.offerDeclined = true },
+                        containerColor = uz.electro.remote.ui.theme.ElectroColors.SurfaceElevated, tonalElevation = 0.dp,
+                        title = { androidx.compose.material3.Text("Защитить вход?", color = uz.electro.remote.ui.theme.ElectroColors.TextPrimary) },
+                        text = { androidx.compose.material3.Text("Код из 4 цифр (и отпечаток или лицо, если есть) будет запрашиваться при запуске и возврате в приложение. Можно включить позже в настройках.",
+                            color = uz.electro.remote.ui.theme.ElectroColors.TextSecondary) },
+                        confirmButton = { androidx.compose.material3.TextButton(onClick = { offer = false; offerSetup = true }) {
+                            androidx.compose.material3.Text("Установить код", color = uz.electro.remote.ui.theme.ElectroColors.Accent) } },
+                        dismissButton = { androidx.compose.material3.TextButton(onClick = { offer = false; lock.offerDeclined = true }) {
+                            androidx.compose.material3.Text("Не сейчас", color = uz.electro.remote.ui.theme.ElectroColors.TextSecondary) } },
+                    )
+                }
+                if (offerSetup) {
+                    uz.electro.remote.ui.PinSetupDialog(
+                        lock = lock, verifyFirst = false, title = "Код входа",
+                        onDone = { pin -> if (pin != null) lock.setPin(pin); offerSetup = false },
+                        onDismiss = { offerSetup = false; lock.offerDeclined = true },
+                    )
+                }
+
                 if (locked.value && loggedIn && lock.enabled) {
                     LockScreen(
                         lock = lock,

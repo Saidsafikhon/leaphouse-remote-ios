@@ -31,6 +31,12 @@ final class AppLock: ObservableObject {
         locked = enabled && Settings.shared.loggedIn
     }
 
+    /// Предлагали ли уже поставить код после входа; «не сейчас» запоминаем.
+    var offerDeclined: Bool {
+        get { d.bool(forKey: "lock_offer_declined") }
+        set { d.set(newValue, forKey: "lock_offer_declined") }
+    }
+
     func setPin(_ pin: String) {
         var bytes = [UInt8](repeating: 0, count: 16)
         _ = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)

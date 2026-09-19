@@ -23,6 +23,8 @@ struct RootView: View {
 
     private enum Branch { case register, forgot }
     @State private var branch: Branch? = nil
+    @State private var offerLock = false
+    @State private var offerSetup = false
 
     var body: some View {
         let palette: ElectroPalette = scheme == .dark ? .dark : .light
@@ -53,7 +55,24 @@ struct RootView: View {
         .environment(\.palette, palette)
         .background(palette.background.ignoresSafeArea())
         .preferredColorScheme(nil)
-        .onChange(of: vm.loggedIn) { _, on in if on { branch = nil } }
+        .onChange(of: vm.loggedIn) { _, on in
+            if on {
+                branch = nil
+                // после входа один раз предлагаем поставить код
+                if !lock.enabled && !lock.offerDeclined { offerLock = true }
+            }
+        }
+        .alert("Защитить вход?", isPresented: $offerLock) {
+            Button("Установить код") { offerSetup = true }
+            Button("Не сейчас", role: .cancel) { lock.offerDeclined = true }
+        } message: {
+            Text("Код из 4 цифр (и Face ID / Touch ID, если есть) будет запрашиваться при запуске и возврате в приложение. Можно включить позже в настройках.")
+        }
+        .sheet(isPresented: $offerSetup) {
+            PinSetupSheet(lock: lock, title: "Код входа") { pin in if let pin { lock.setPin(pin) } }
+                .presentationDetents([.large]).presentationDragIndicator(.visible)
+                .onDisappear { if !lock.enabled { lock.offerDeclined = true } }
+        }
         .onChange(of: scenePhase) { _, phase in
             if phase == .background && vm.loggedIn && lock.enabled { lock.locked = true }
         }
