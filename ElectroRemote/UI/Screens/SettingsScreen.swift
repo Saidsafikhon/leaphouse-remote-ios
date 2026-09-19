@@ -94,6 +94,10 @@ struct SettingsScreen: View {
             }
 
             if vm.loggedIn {
+                LockSection()
+            }
+
+            if vm.loggedIn {
                 SectionCard(title: "Отзыв") {
                     Text("Замечания, идеи и предложения по приложению — разработчикам напрямую.")
                         .font(.system(size: 13)).foregroundStyle(p.textSecondary)
@@ -160,6 +164,50 @@ struct SettingsScreen: View {
 }
 
 /// Строка машины: выбор радиокнопкой, имя (локальное поверх серверного), правка и отвязка.
+/// Защита входа: код из 4 цифр и, поверх него, Face ID / Touch ID.
+private struct LockSection: View {
+    @Environment(\.palette) private var p
+    @ObservedObject private var lock = AppLock.shared
+    private enum Mode: String, Identifiable { case on, change, off; var id: String { rawValue } }
+    @State private var mode: Mode? = nil
+
+    var body: some View {
+        let bioAvailable = lock.biometricAvailable()
+        SectionCard(title: "Защита входа") {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Код при входе").font(.system(size: 14)).foregroundStyle(p.textPrimary)
+                    Text("4 цифры при запуске и возврате в приложение").font(.system(size: 11)).foregroundStyle(p.textMuted)
+                }
+                Spacer()
+                ElectroToggle(isOn: lock.enabled) { on in mode = on ? .on : .off }
+            }
+            if lock.enabled {
+                Button { mode = .change } label: { Text("Сменить код").font(ElectroType.body).foregroundStyle(p.accent) }.buttonStyle(.plain)
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(lock.biometricName).font(.system(size: 14)).foregroundStyle(bioAvailable ? p.textPrimary : p.textMuted)
+                        Text(bioAvailable ? "Вместо кода, код остаётся запасным" : "На этом устройстве биометрия не настроена")
+                            .font(.system(size: 11)).foregroundStyle(p.textMuted)
+                    }
+                    Spacer()
+                    ElectroToggle(isOn: lock.biometricEnabled, enabled: bioAvailable) { on in lock.biometricEnabled = on }
+                }
+            }
+        }
+        .sheet(item: $mode) { m in
+            PinSetupSheet(
+                lock: lock,
+                title: m == .on ? "Код входа" : (m == .change ? "Новый код" : "Отключить код"),
+                verifyFirst: m != .on, verifyOnly: m == .off
+            ) { pin in
+                if m == .off { lock.clear() } else if let pin { lock.setPin(pin) }
+            }
+            .presentationDetents([.large]).presentationDragIndicator(.visible)
+        }
+    }
+}
+
 /// Кружки цветов кузова, на которые есть рендер модели; выбранный — крупнее,
 /// с толстым акцентным кольцом и галочкой.
 private struct PaintPicker: View {

@@ -22,6 +22,8 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Face ID нужен, чтобы открывать приложение без ввода кода.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Камера нужна, чтобы отсканировать QR-код с экрана машины и привязать её к аккаунту.</string>
 	<key>NSAppTransportSecurity</key>

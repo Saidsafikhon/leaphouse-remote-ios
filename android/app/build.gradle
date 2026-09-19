@@ -32,7 +32,7 @@ android {
         //          включил и выключаешь той же плиткой даже после перезахода.
         // 0.39.0: LeapRemote — название и иконка, удаление аккаунта (App Store 5.1.1 /
         //         Google Play), политика и поддержка, лента «Новости», push через FCM.
-        versionCode 95; versionName "0.41.0"
+        versionCode 96; versionName "0.42.0"
         // Адреса backend здесь больше нет: он правится в самом приложении
         // (Настройки → «Адрес сервера»), значение по умолчанию и подмена
         // устаревших адресов живут в data/Settings.kt. Зашитый на сборке адрес
@@ -70,6 +70,8 @@ dependencies {
     implementation 'androidx.compose.material:material-icons-extended'
     implementation 'androidx.activity:activity-compose:1.8.2'
     implementation 'androidx.core:core-ktx:1.12.0'
+    implementation 'androidx.biometric:biometric:1.1.0'              // отпечаток / лицо на экране блокировки
+    implementation 'androidx.fragment:fragment-ktx:1.6.2'            // BiometricPrompt требует FragmentActivity
     implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0'
     implementation 'com.squareup.retrofit2:retrofit:2.9.0'
     implementation 'com.squareup.retrofit2:converter-moshi:2.9.0'

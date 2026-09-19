@@ -9,8 +9,13 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.result.contract.ActivityResultContracts
 import uz.electro.remote.push.Push
-import androidx.activity.ComponentActivity
+import androidx.fragment.app.FragmentActivity
 import androidx.activity.compose.setContent
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import uz.electro.remote.security.AppLock
+import uz.electro.remote.ui.LockScreen
 import androidx.compose.runtime.*
 import androidx.lifecycle.viewmodel.compose.viewModel
 import uz.electro.remote.ui.ForgotPasswordScreen
@@ -21,7 +26,10 @@ import uz.electro.remote.ui.PhoneControlScreen
 import uz.electro.remote.ui.RegisterScreen
 import uz.electro.remote.ui.theme.ElectroTheme
 
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
+
+    /** Заблокировано ли приложение кодом; снимается кодом или биометрией. */
+    private val locked = mutableStateOf(false)
 
     /** Где мы до того, как попали в приложение: вход, его ответвления и привязка. */
     private enum class Gate { LOGIN, REGISTER, FORGOT, LOADING, PAIR, READY }
@@ -76,6 +84,27 @@ class MainActivity : ComponentActivity() {
 
                 // Выйдя из ответвления, не оставляем его висеть на следующий вход.
                 LaunchedEffect(loggedIn) { if (loggedIn) branch = null }
+
+                // Защита входа: код/биометрия при запуске и при каждом возврате
+                // из фона. Только для вошедшего — экран логина сам себя защищает.
+                val lock = remember { AppLock(this@MainActivity) }
+                val owner = LocalLifecycleOwner.current
+                DisposableEffect(owner, loggedIn) {
+                    val obs = LifecycleEventObserver { _, e ->
+                        if (e == Lifecycle.Event.ON_STOP && loggedIn && lock.enabled) locked.value = true
+                    }
+                    if (loggedIn && lock.enabled) locked.value = true
+                    owner.lifecycle.addObserver(obs)
+                    onDispose { owner.lifecycle.removeObserver(obs) }
+                }
+                if (locked.value && loggedIn && lock.enabled) {
+                    LockScreen(
+                        lock = lock,
+                        onBiometric = { cb -> lock.promptBiometric(this@MainActivity, cb) },
+                        onUnlocked = { locked.value = false },
+                    )
+                    return@ElectroTheme
+                }
 
                 when (gate) {
                     Gate.LOGIN -> LoginScreen(

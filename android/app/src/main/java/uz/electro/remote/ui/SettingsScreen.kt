@@ -165,6 +165,10 @@ fun SettingsScreen(vm: CarViewModel, onClose: () -> Unit) {
                 modifier = Modifier.clickable { runCatching { uriHandler.openUri(Settings.SUPPORT_URL) } })
         }
         if (loggedIn) {
+            LockSection()
+        }
+
+        if (loggedIn) {
             SectionCard("Отзыв") {
                 Text("Замечания, идеи и предложения по приложению — разработчикам напрямую.",
                     color = ElectroColors.TextSecondary, fontSize = 13.sp)
@@ -285,6 +289,58 @@ private fun fieldColors() = OutlinedTextFieldDefaults.colors(
     unfocusedLabelColor = ElectroColors.TextSecondary,
     cursorColor = ElectroColors.Accent,
 )
+
+/** Защита входа: код из 4 цифр и, поверх него, отпечаток / лицо. */
+@Composable
+private fun LockSection() {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val lock = remember { uz.electro.remote.security.AppLock(ctx) }
+    var enabled by remember { mutableStateOf(lock.enabled) }
+    var bio by remember { mutableStateOf(lock.biometricEnabled) }
+    var setup by remember { mutableStateOf<String?>(null) } // "on" | "change" | "off"
+    val bioAvailable = remember { lock.biometricAvailable() }
+
+    SectionCard("Защита входа") {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Код при входе", color = ElectroColors.TextPrimary, fontSize = 14.sp)
+                Text("4 цифры при запуске и возврате в приложение", color = ElectroColors.TextMuted, fontSize = 11.sp)
+            }
+            Switch(checked = enabled, onCheckedChange = { on -> setup = if (on) "on" else "off" },
+                colors = SwitchDefaults.colors(checkedTrackColor = ElectroColors.Accent, checkedThumbColor = ElectroColors.OnAccent))
+        }
+        if (enabled) {
+            TextButton(onClick = { setup = "change" }, contentPadding = PaddingValues(0.dp)) {
+                Text("Сменить код", color = ElectroColors.Accent)
+            }
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Отпечаток или лицо", color = if (bioAvailable) ElectroColors.TextPrimary else ElectroColors.TextMuted, fontSize = 14.sp)
+                    Text(if (bioAvailable) "Вместо кода, код остаётся запасным" else "На этом телефоне биометрия не настроена",
+                        color = ElectroColors.TextMuted, fontSize = 11.sp)
+                }
+                Switch(checked = bio, enabled = bioAvailable, onCheckedChange = { on -> lock.biometricEnabled = on; bio = on },
+                    colors = SwitchDefaults.colors(checkedTrackColor = ElectroColors.Accent, checkedThumbColor = ElectroColors.OnAccent))
+            }
+        }
+    }
+    setup?.let { mode ->
+        PinSetupDialog(
+            lock = lock,
+            verifyFirst = mode != "on",
+            verifyOnly = mode == "off",
+            title = when (mode) { "on" -> "Код входа"; "change" -> "Новый код"; else -> "Отключить код" },
+            onDone = { pin ->
+                when (mode) {
+                    "off" -> { lock.clear(); enabled = false; bio = false }
+                    else -> { if (pin != null) lock.setPin(pin); enabled = true }
+                }
+                setup = null
+            },
+            onDismiss = { setup = null },
+        )
+    }
+}
 
 /** Кружки цветов кузова, на которые есть рендер модели; выбранный — с обводкой акцентом. */
 @Composable
