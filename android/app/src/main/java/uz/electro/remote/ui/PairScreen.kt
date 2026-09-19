@@ -21,6 +21,7 @@ import com.journeyapps.barcodescanner.ScanOptions
 import kotlinx.coroutines.launch
 import uz.electro.remote.CarViewModel
 import uz.electro.remote.ui.components.BadgeKind
+import uz.electro.remote.ui.components.ButtonStyle
 import uz.electro.remote.ui.components.ElectroButton
 import uz.electro.remote.ui.components.ElectroToast
 import uz.electro.remote.ui.theme.*
@@ -96,5 +97,14 @@ fun PairScreen(vm: CarViewModel, onPaired: () -> Unit) {
                     .setBeepEnabled(false).setOrientationLocked(false)
             )
         }
+        // Выход отсюда же: зашли не в тот аккаунт или QR пока негде взять —
+        // иначе с этого экрана некуда деться, кроме как переустанавливать.
+        Spacer(Modifier.height(Space.x2))
+        ElectroButton(
+            text = "Выйти из аккаунта",
+            style = ButtonStyle.Ghost,
+            enabled = !busy,
+            modifier = Modifier.fillMaxWidth(),
+        ) { vm.logout() }
     }
 }

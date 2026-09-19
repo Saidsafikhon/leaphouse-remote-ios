@@ -375,6 +375,9 @@ struct PairScreen: View {
             ElectroButton(text: busy ? "Привязываем…" : "Сканировать QR машины", enabled: !busy, loading: busy) {
                 scanning = true
             }
+            // Выход отсюда же: зашли не в тот аккаунт или QR пока негде взять.
+            Spacer().frame(height: Space.x2)
+            ElectroButton(text: "Выйти из аккаунта", style: .ghost, enabled: !busy) { vm.logout() }
         }
         .padding(Space.x6)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
