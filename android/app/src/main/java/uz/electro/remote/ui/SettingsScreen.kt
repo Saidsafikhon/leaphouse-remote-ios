@@ -7,6 +7,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import uz.electro.remote.ui.components.CarArt
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -291,12 +293,21 @@ private fun PaintPicker(model: String?, current: String?, onPick: (String) -> Un
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
             paints.forEach { p ->
                 val sel = p.code == chosen
+                // выбранный — крупнее, с толстым акцентным кольцом и галочкой,
+                // остальные — просто кружки с тонкой обводкой
                 Box(
-                    Modifier.size(26.dp)
-                        .border(if (sel) 2.dp else 1.dp, if (sel) ElectroColors.Accent else ElectroColors.Outline, CircleShape)
-                        .padding(3.dp).clip(CircleShape).background(p.swatch)
+                    Modifier.size(if (sel) 34.dp else 26.dp)
+                        .border(if (sel) 3.dp else 1.dp, if (sel) ElectroColors.Accent else ElectroColors.Outline, CircleShape)
+                        .padding(if (sel) 5.dp else 3.dp).clip(CircleShape).background(p.swatch)
                         .clickable { onPick(p.code) },
-                )
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (sel) Text(
+                        "✓", fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                        // галочка контрастная к кузову: на светлом — тёмная, на тёмном — белая
+                        color = if (p.swatch.luminance() > 0.4f) Color(0xFF111111) else Color.White,
+                    )
+                }
             }
         }
         Text("Цвет кузова: " + paints.first { it.code == chosen }.label,

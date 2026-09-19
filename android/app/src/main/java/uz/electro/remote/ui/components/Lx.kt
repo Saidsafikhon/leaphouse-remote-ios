@@ -47,6 +47,6 @@ object Lx {
     val Directions: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.lx_route)
     val Dashboard: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.lx_layout_grid)
     val CheckCircle: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.lx_circle_check)
-    val AirlineSeatReclineNormal: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.lx_armchair)
+    val AirlineSeatReclineNormal: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.lx_car_seat)
     val AddCircleOutline: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.lx_circle_plus)
 }

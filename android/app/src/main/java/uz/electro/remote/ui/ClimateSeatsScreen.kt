@@ -33,6 +33,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import uz.electro.remote.R
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -598,29 +600,30 @@ private fun SeatTile(
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Text(name, style = ElectroType.Caption, color = ElectroColors.TextSecondary, maxLines = 1)
         Spacer(Modifier.height(6.dp))
-        // фигура сиденья (спинка+подушка) как подложка
+        // автомобильное кресло (вид сверху): подголовник, спинка, подушка.
+        // Выбранное — обведено акцентом, активное — окрашено в цвет режима.
         Box(
-            Modifier.fillMaxWidth().height(120.dp).clip(RoundedCornerShape(20.dp))
-                .background(ElectroColors.SurfaceElevated)
-                .border(
-                    2.dp,
-                    if (selected) accent else Color.Transparent,
-                    RoundedCornerShape(20.dp),
-                )
+            Modifier.fillMaxWidth().height(150.dp).clip(RoundedCornerShape(20.dp))
+                .border(2.dp, if (selected) accent else Color.Transparent, RoundedCornerShape(20.dp))
                 .clickable(onClick = onClick),
             contentAlignment = Alignment.Center,
         ) {
-            // белая плитка иконки, как у GWM
+            Icon(
+                painterResource(R.drawable.ic_car_seat_top), null,
+                tint = if (active) accent.copy(alpha = 0.28f) else ElectroColors.SurfaceElevated,
+                modifier = Modifier.fillMaxHeight().padding(vertical = 8.dp),
+            )
+            // плитка режима — на спинке кресла
             Surface(
-                color = if (active) accent.copy(alpha = 0.14f) else ElectroColors.Surface,
+                color = if (active) accent.copy(alpha = 0.16f) else ElectroColors.Surface,
                 shape = Radius.Md,
                 border = if (active) androidx.compose.foundation.BorderStroke(1.5.dp, accent) else null,
-                modifier = Modifier.size(64.dp),
+                modifier = Modifier.size(52.dp).offset(y = (-8).dp),
             ) {
                 Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center) {
                     Icon(icon, null, tint = if (active) accent else ElectroColors.TextMuted,
-                        modifier = Modifier.size(24.dp))
+                        modifier = Modifier.size(22.dp))
                     if (active) Text("$level", style = ElectroType.Label, color = accent)
                 }
             }
