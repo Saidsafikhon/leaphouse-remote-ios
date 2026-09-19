@@ -12,6 +12,7 @@ import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -26,6 +27,7 @@ import uz.electro.remote.CarViewModel
 import uz.electro.remote.ui.components.BadgeKind
 import uz.electro.remote.ui.components.ElectroButton
 import uz.electro.remote.ui.components.ElectroToast
+import uz.electro.remote.ui.components.BrandLockup
 import uz.electro.remote.ui.theme.*
 
 /** Экран входа. Отсюда же уходят на регистрацию и восстановление пароля. */
@@ -54,9 +56,9 @@ fun LoginScreen(
         Spacer(Modifier.height(Space.x8))
         Spacer(Modifier.height(Space.x8))
 
-        Text("LEAPREMOTE", color = ElectroColors.Accent, fontSize = 28.sp,
-            fontWeight = FontWeight.Bold, textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth())
+        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            BrandLockup(markSize = 44.dp)
+        }
         Spacer(Modifier.height(Space.x1))
         Text("Управление вашим электромобилем", color = ElectroColors.TextSecondary,
             fontSize = 14.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())

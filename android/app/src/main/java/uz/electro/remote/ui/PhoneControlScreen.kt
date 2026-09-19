@@ -34,6 +34,7 @@ import uz.electro.remote.EventKind
 import uz.electro.remote.R
 import uz.electro.remote.data.*
 import uz.electro.remote.ui.components.*
+import uz.electro.remote.ui.components.BrandLockup
 import uz.electro.remote.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -164,6 +165,7 @@ fun PhoneControlScreen(vm: CarViewModel = viewModel()) {
                     seatPresetSet = vm.seatPresetSet(),
                     onSeatsOn = { vm.seatsOn() },
                     onSeatsOff = { vm.seatsOff() },
+                    onFeedback = { kind, text, files, done -> vm.sendFeedback(kind, text, files, done) },
                 )
             }
 
@@ -209,13 +211,16 @@ private fun HomeTab(
     seatPresetSet: Boolean,
     onSeatsOn: () -> Unit,
     onSeatsOff: () -> Unit,
+    onFeedback: (kind: String, text: String, files: List<android.net.Uri>, done: (String?) -> Unit) -> Unit,
 ) {
     // на виду четыре действия, ради которых открывают приложение; под
     // кнопкой — только сиденья
     var confirm by remember { mutableStateOf<HomeConfirm?>(null) }
     var blocked by remember { mutableStateOf<String?>(null) }
     var showHelp by remember { mutableStateOf(false) }
-    if (showHelp) HelpDialog(support) { showHelp = false }
+    var showFeedback by remember { mutableStateOf(false) }
+    if (showHelp) HelpDialog(support, onFeedback = { showFeedback = true }) { showHelp = false }
+    if (showFeedback) FeedbackDialog(onSend = onFeedback, onDismiss = { showFeedback = false })
 
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState())
@@ -414,7 +419,7 @@ private fun HeaderLockup(
 ) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
         Column(Modifier.weight(1f)) {
-            Text("LEAPREMOTE", style = ElectroType.Overline, color = ElectroColors.Accent)
+            BrandLockup(markSize = 22.dp)
             Spacer(Modifier.height(Space.x1))
             // Модель выбранной машины. Выбор машины — в настройках окна
             // подключения («Мои машины»), а не здесь: на экране управления ты

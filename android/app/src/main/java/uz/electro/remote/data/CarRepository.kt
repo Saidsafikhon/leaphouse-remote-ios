@@ -2,6 +2,8 @@ package uz.electro.remote.data
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import retrofit2.HttpException
 
@@ -26,6 +28,12 @@ sealed interface WakeResult {
  * разнобой: раньше набор команд и скорость опроса зависели от того, каким
  * каналом повезло пройти.
  */
+/** Файл к отзыву, уже прочитанный в память: имя для админки, тип, байты. */
+class FeedbackFile(val name: String, val mime: String, val bytes: ByteArray)
+
+/** Что вышло: id отзыва и сколько вложений долетело/отвалилось. */
+data class FeedbackOutcome(val id: String, val attached: Int, val failed: Int)
+
 class CarRepository(private val settings: Settings) {
 
     private val cloud = CloudClient(settings)
@@ -102,6 +110,31 @@ class CarRepository(private val settings: Settings) {
     /** Контакты поддержки (открытый эндпоинт, ключ не нужен). null — не достали. */
     suspend fun support(): SupportDto? = withContext(Dispatchers.IO) {
         runCatching { cloud.api.support() }.getOrNull()
+    }
+
+    /**
+     * Отзыв в админку: замечание, идея, вопрос. Машина — текущая, если выбрана.
+     * Вложения (скриншоты/записи экрана) уходят следом по одному; если какое-то
+     * не долетело — отзыв всё равно отправлен, об этом говорит результат.
+     */
+    suspend fun sendFeedback(
+        kind: String, text: String, appVersion: String,
+        attachments: List<FeedbackFile> = emptyList(),
+    ): Result<FeedbackOutcome> = withContext(Dispatchers.IO) {
+        runCatching {
+            val created = cloud.api.sendFeedback(FeedbackRequest(
+                kind = kind, text = text,
+                vehicle_id = settings.vehicleId?.takeIf { it.isNotBlank() },
+                app = "phone", app_version = appVersion,
+            ))
+            var failed = 0
+            for (f in attachments) {
+                val body = f.bytes.toRequestBody(f.mime.toMediaTypeOrNull())
+                runCatching { cloud.api.attachToFeedback(created.id, f.name, body) }
+                    .onFailure { failed++ }
+            }
+            FeedbackOutcome(created.id, attachments.size - failed, failed)
+        }
     }
 
     suspend fun wake(): WakeResult = withContext(Dispatchers.IO) {

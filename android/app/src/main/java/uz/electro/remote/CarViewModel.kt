@@ -523,6 +523,49 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
         repo.support()?.let { _support.value = it }
     }
 
+    // --- отзыв -------------------------------------------------------------
+
+    /**
+     * Отправить отзыв с вложениями (uri из галереи: скриншоты, записи экрана);
+     * в колбэк — null при успехе или причина отказа. Файлы читаются здесь, т.к.
+     * только у ViewModel есть Context для contentResolver.
+     */
+    fun sendFeedback(
+        kind: String, text: String, attachments: List<android.net.Uri>, onDone: (String?) -> Unit,
+    ) = viewModelScope.launch {
+        val version = uz.electro.remote.BuildConfig.VERSION_NAME +
+            " (" + uz.electro.remote.BuildConfig.VERSION_CODE + ")"
+        val files = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            attachments.mapNotNull { readFeedbackFile(it) }
+        }
+        val tooBig = attachments.size - files.size
+        val r = repo.sendFeedback(kind, text, version, files)
+        val failure = r.exceptionOrNull()?.let { repo.reason(it) }
+        val outcome = r.getOrNull()
+        onDone(when {
+            failure != null -> failure
+            outcome != null && (outcome.failed > 0 || tooBig > 0) ->
+                "Отзыв отправлен, но " + (outcome.failed + tooBig) + " из " + attachments.size +
+                    " вложений не приложились (слишком большие или нет связи)"
+            else -> null
+        })
+    }
+
+    private fun readFeedbackFile(uri: android.net.Uri): uz.electro.remote.data.FeedbackFile? {
+        val cr = getApplication<Application>().contentResolver
+        val mime = cr.getType(uri) ?: return null
+        if (!(mime.startsWith("image/") || mime.startsWith("video/"))) return null
+        val bytes = runCatching { cr.openInputStream(uri)?.use { it.readBytes() } }.getOrNull() ?: return null
+        if (bytes.size > MAX_ATTACHMENT_BYTES) return null
+        var name = uri.lastPathSegment?.substringAfterLast('/')?.take(100) ?: "file"
+        runCatching {
+            cr.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
+                if (c.moveToFirst()) c.getString(0)?.let { name = it.take(100) }
+            }
+        }
+        return uz.electro.remote.data.FeedbackFile(name, mime, bytes)
+    }
+
     // --- сиденья по профилю ----------------------------------------------
 
     private var seatTimer: Job? = null
@@ -765,6 +808,8 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private companion object {
+        /** Лимит одного вложения к отзыву — совпадает с сервером (40 МБ). */
+        const val MAX_ATTACHMENT_BYTES = 40L * 1024 * 1024
         /** Сколько ждём отклика машины после побудки. */
         const val WAKE_WAIT_SEC = 20
         /** Шаг тикера на экране подключения — секунды должны идти ровно. */

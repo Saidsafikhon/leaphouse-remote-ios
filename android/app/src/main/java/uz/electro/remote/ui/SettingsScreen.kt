@@ -59,6 +59,7 @@ fun SettingsScreen(vm: CarViewModel, onClose: () -> Unit) {
     var deleting by remember { mutableStateOf(false) }
     val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
     var confirmDrop by remember { mutableStateOf<VehicleDto?>(null) }
+    var showFeedback by remember { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
     var pairMsg by remember { mutableStateOf<String?>(null) }
@@ -145,6 +146,16 @@ fun SettingsScreen(vm: CarViewModel, onClose: () -> Unit) {
             Text("Поддержка", style = ElectroType.Caption, color = ElectroColors.TextMuted,
                 modifier = Modifier.clickable { runCatching { uriHandler.openUri(Settings.SUPPORT_URL) } })
         }
+        if (loggedIn) {
+            SectionCard("Отзыв") {
+                Text("Замечания, идеи и предложения по приложению — разработчикам напрямую.",
+                    color = ElectroColors.TextSecondary, fontSize = 13.sp)
+                TextButton(onClick = { showFeedback = true }, contentPadding = PaddingValues(0.dp)) {
+                    Text("Оставить отзыв", color = ElectroColors.Accent)
+                }
+            }
+        }
+
         Text(appVersion(), style = ElectroType.Caption, color = ElectroColors.TextMuted,
             modifier = Modifier.fillMaxWidth().padding(top = Space.x1))
     }
@@ -185,6 +196,11 @@ fun SettingsScreen(vm: CarViewModel, onClose: () -> Unit) {
             },
         )
     }
+
+    if (showFeedback) FeedbackDialog(
+        onSend = { kind, text, files, done -> vm.sendFeedback(kind, text, files, done) },
+        onDismiss = { showFeedback = false },
+    )
 
     // --- переименование (локальное имя) ---
     renaming?.let { v ->

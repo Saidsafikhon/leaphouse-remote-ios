@@ -74,6 +74,19 @@ data class SupportDto(
     val site: String = "",
 )
 
+/** Отзыв из приложения: kind = bug | idea | other. */
+data class FeedbackRequest(
+    val kind: String,
+    val text: String,
+    val vehicle_id: String? = null,
+    val app: String = "phone",
+    val app_version: String? = null,
+)
+
+data class FeedbackCreated(val id: String, val created_at: String)
+
+data class AttachmentDto(val id: String, val name: String, val content_type: String, val size: Long)
+
 data class StatusDto(
     val vehicle_id: String,
     val security_state: String,   // ARMED | DISARMED | UNKNOWN
@@ -218,6 +231,15 @@ interface ElectroApi {
     @GET("api/v1/agent/support")
     suspend fun support(): SupportDto
 
+    @POST("api/v1/feedback")
+    suspend fun sendFeedback(@Body body: FeedbackRequest): FeedbackCreated
+
+    /** Сырой файл телом запроса, тип — в Content-Type самого RequestBody. */
+    @POST("api/v1/feedback/{id}/attachments")
+    suspend fun attachToFeedback(
+        @Path("id") id: String, @Query("name") name: String, @Body file: okhttp3.RequestBody,
+    ): AttachmentDto
+
     @GET("api/v1/vehicles")
     suspend fun vehicles(): List<VehicleDto>
 
@@ -309,6 +331,8 @@ class CloudClient(private val settings: Settings) {
         // «timeout» ровно на побудке, хотя реле уже щёлкнуло.
         .connectTimeout(CONNECT_TIMEOUT_S, TimeUnit.SECONDS)
         .readTimeout(READ_TIMEOUT_S, TimeUnit.SECONDS)
+        // вложение к отзыву (запись экрана) — десятки мегабайт по мобильной сети
+        .writeTimeout(WRITE_TIMEOUT_S, TimeUnit.SECONDS)
         .build()
 
     @Volatile private var cachedUrl: String? = null
@@ -332,5 +356,6 @@ class CloudClient(private val settings: Settings) {
     private companion object {
         const val CONNECT_TIMEOUT_S = 10L
         const val READ_TIMEOUT_S = 40L
+        const val WRITE_TIMEOUT_S = 180L
     }
 }

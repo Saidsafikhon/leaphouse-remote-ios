@@ -34,7 +34,7 @@ fun HelpFab(onClick: () -> Unit, modifier: Modifier = Modifier) {
  * (`GET /api/v1/agent/support`). Контакты кликабельны: набор, чат, профиль, сайт.
  */
 @Composable
-fun HelpDialog(support: SupportDto?, onDismiss: () -> Unit) {
+fun HelpDialog(support: SupportDto?, onFeedback: (() -> Unit)? = null, onDismiss: () -> Unit) {
     val uri = LocalUriHandler.current
     val s = support
     val any = s != null && (s.phone.isNotBlank() || s.telegram.isNotBlank() ||
@@ -64,10 +64,18 @@ fun HelpDialog(support: SupportDto?, onDismiss: () -> Unit) {
                     if (s.site.isNotBlank())
                         HelpLine("Сайт", s.site) { runCatching { uri.openUri(webLink(s.site)) } }
                 }
+                if (onFeedback != null) {
+                    Spacer(Modifier.height(12.dp))
+                    Text("Нашли ошибку или есть идея — напишите нам прямо отсюда.",
+                        color = ElectroColors.TextMuted, fontSize = 12.sp)
+                }
             }
         },
         confirmButton = {
             TextButton(onClick = onDismiss) { Text("Закрыть", color = ElectroColors.Accent) }
+        },
+        dismissButton = onFeedback?.let {
+            { TextButton(onClick = { onDismiss(); it() }) { Text("Оставить отзыв", color = ElectroColors.Accent) } }
         },
     )
 }

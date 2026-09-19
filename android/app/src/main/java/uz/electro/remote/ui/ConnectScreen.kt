@@ -19,6 +19,7 @@ import uz.electro.remote.ConnectPhase
 import uz.electro.remote.ConnectStatus
 import uz.electro.remote.R
 import uz.electro.remote.ui.components.*
+import uz.electro.remote.ui.components.BrandLockup
 import uz.electro.remote.ui.theme.*
 
 /**
@@ -65,7 +66,14 @@ fun ConnectScreen(vm: CarViewModel, status: ConnectStatus) {
     val chosen by vm.selectedVehicle.collectAsState()
     val support by vm.support.collectAsState()
     var showHelp by remember { mutableStateOf(false) }
-    if (showHelp) HelpDialog(support) { showHelp = false }
+    val loggedInForFeedback by vm.loggedIn.collectAsState()
+    var showFeedback by remember { mutableStateOf(false) }
+    // отзыв — только под аккаунтом: без ключа серверу его не принять
+    if (showHelp) HelpDialog(support, onFeedback = if (loggedInForFeedback) ({ showFeedback = true }) else null) { showHelp = false }
+    if (showFeedback) FeedbackDialog(
+        onSend = { kind, text, files, done -> vm.sendFeedback(kind, text, files, done) },
+        onDismiss = { showFeedback = false },
+    )
 
     Column(
         Modifier.fillMaxSize().background(ElectroColors.Background)
@@ -81,7 +89,7 @@ fun ConnectScreen(vm: CarViewModel, status: ConnectStatus) {
         Spacer(Modifier.weight(1f))
 
         // тот же лозунг, что в шапке главного экрана: марка мелко, модель крупно
-        Text("LEAPREMOTE", style = ElectroType.Overline, color = ElectroColors.Accent)
+        BrandLockup(markSize = 26.dp)
         Spacer(Modifier.height(Space.x2))
         // Модель — выбранной машины: с несколькими машинами в парке подпись
         // «C16» над C01 вводила бы в заблуждение ровно там, где это опасно.
