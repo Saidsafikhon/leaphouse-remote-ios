@@ -33,7 +33,6 @@ object CarArt {
             "pearl-white" to R.drawable.car_c16_pearl_white,
             "metallic-black" to R.drawable.car_c16_metallic_black,
             "canopy-gray" to R.drawable.car_c16_canopy_gray,
-            "terra-grey" to R.drawable.car_c16_terra_grey,
             "jade-green" to R.drawable.car_c16_jade_green,
             "glacier-blue" to R.drawable.car_c16_glacier_blue,
         ),
@@ -52,7 +51,6 @@ object CarArt {
             "walden-green" to R.drawable.car_c11_walden_green,
         ),
         "C01" to mapOf(
-            "pearl-white" to R.drawable.car_c01_pearl_white,
             "metallic-black" to R.drawable.car_c01_metallic_black,
             "galaxy-silver" to R.drawable.car_c01_galaxy_silver,
             "glacier-blue" to R.drawable.car_c01_glacier_blue,

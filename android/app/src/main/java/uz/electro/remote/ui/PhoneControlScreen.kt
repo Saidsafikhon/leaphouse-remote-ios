@@ -250,17 +250,18 @@ private fun HomeTab(
         val hasClimate = caps?.quick?.contains("climate") != false
         val hasSeats = caps?.groups?.contains("seats") != false
         if (hasClimate || hasSeats) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Space.x3)) {
+            // IntrinsicSize.Max + fillMaxHeight: обе плитки одной высоты, по большей
+            Row(Modifier.fillMaxWidth().height(IntrinsicSize.Max), horizontalArrangement = Arrangement.spacedBy(Space.x3)) {
                 if (hasClimate) {
                     GwmClimateCard(
-                        car, controls, Modifier.weight(1f),
+                        car, controls, Modifier.weight(1f).fillMaxHeight(),
                         onToggle = { blocked = toggleClimate(car, controls, onSendAll) },
                         onOpen = onOpenClimate,
                     )
                 }
                 if (hasSeats) {
                     GwmSeatsCard(
-                        controls, Modifier.weight(1f),
+                        controls, Modifier.weight(1f).fillMaxHeight(),
                         hasPreset = seatPresetSet,
                         onOn = onSeatsOn, onOff = onSeatsOff,
                         onOpen = { onOpen("seats") },
@@ -865,7 +866,7 @@ private fun SeatGlyphs(controls: Map<Int, String>) {
                     Icon(
                         painterResource(R.drawable.seat_front), null,
                         tint = tint,
-                        modifier = Modifier.size(width = 22.dp, height = 34.dp),
+                        modifier = Modifier.size(width = 20.dp, height = 30.dp),
                     )
                 }
             }
