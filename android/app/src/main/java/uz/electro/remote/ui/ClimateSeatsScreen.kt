@@ -521,9 +521,6 @@ private fun SeatsTab(
         // схема салона: два ряда кресел, плитка с иконкой и уровнем на каждом
         Surface(color = ElectroColors.Surface, shape = Radius.Lg, modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(Space.x4)) {
-                Text("▲ перёд", style = ElectroType.Caption, color = ElectroColors.TextMuted,
-                    modifier = Modifier.align(Alignment.CenterHorizontally))
-                Spacer(Modifier.height(Space.x3))
                 SeatDiagramRow(0, 1, "Водитель", "Пассажир", levels, selected, accent, icon,
                     onSelect = { selected = if (selected == it) null else it })
                 Spacer(Modifier.height(Space.x3))
@@ -600,33 +597,43 @@ private fun SeatTile(
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Text(name, style = ElectroType.Caption, color = ElectroColors.TextSecondary, maxLines = 1)
         Spacer(Modifier.height(6.dp))
-        // автомобильное кресло (вид сверху): подголовник, спинка, подушка.
-        // Выбранное — обведено акцентом, активное — окрашено в цвет режима.
+        // кресло — силуэт с эскиза владельца (seat_front): выбранное обведено
+        // акцентом, активное окрашено в цвет режима; уровень — отдельной
+        // строкой под креслом, чтобы читался и не прятался за иконкой
         Box(
-            Modifier.fillMaxWidth().height(150.dp).clip(RoundedCornerShape(20.dp))
-                .border(2.dp, if (selected) accent else Color.Transparent, RoundedCornerShape(20.dp))
+            Modifier.fillMaxWidth().height(112.dp).clip(RoundedCornerShape(16.dp))
+                .border(2.dp, if (selected) accent else Color.Transparent, RoundedCornerShape(16.dp))
                 .clickable(onClick = onClick),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                painterResource(R.drawable.ic_car_seat_top), null,
-                tint = if (active) accent.copy(alpha = 0.28f) else ElectroColors.SurfaceElevated,
+                painterResource(R.drawable.seat_front), null,
+                tint = if (active) accent.copy(alpha = 0.55f) else ElectroColors.TextDisabled.copy(alpha = 0.55f),
                 modifier = Modifier.fillMaxHeight().padding(vertical = 8.dp),
             )
-            // плитка режима — на спинке кресла
+            // иконка режима на спинке кресла
             Surface(
-                color = if (active) accent.copy(alpha = 0.16f) else ElectroColors.Surface,
-                shape = Radius.Md,
-                border = if (active) androidx.compose.foundation.BorderStroke(1.5.dp, accent) else null,
-                modifier = Modifier.size(52.dp).offset(y = (-8).dp),
+                color = if (active) accent else ElectroColors.Surface,
+                shape = CircleShape,
+                border = if (active) null else androidx.compose.foundation.BorderStroke(1.dp, ElectroColors.Outline),
+                modifier = Modifier.size(30.dp).offset(y = (-6).dp),
             ) {
-                Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center) {
-                    Icon(icon, null, tint = if (active) accent else ElectroColors.TextMuted,
-                        modifier = Modifier.size(22.dp))
-                    if (active) Text("$level", style = ElectroType.Label, color = accent)
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Icon(icon, null, tint = if (active) ElectroColors.OnAccent else ElectroColors.TextMuted,
+                        modifier = Modifier.size(16.dp))
                 }
             }
+        }
+        Spacer(Modifier.height(4.dp))
+        // уровень: три деления, заполнены по уровню, плюс цифра
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+            repeat(SEAT_LEVELS) { i ->
+                Box(Modifier.size(width = 14.dp, height = 5.dp).clip(RoundedCornerShape(3.dp))
+                    .background(if (i < level) accent else ElectroColors.SurfaceElevated))
+            }
+            Spacer(Modifier.width(4.dp))
+            Text(if (active) "$level/$SEAT_LEVELS" else "выкл", style = ElectroType.Caption,
+                color = if (active) accent else ElectroColors.TextMuted)
         }
     }
 }

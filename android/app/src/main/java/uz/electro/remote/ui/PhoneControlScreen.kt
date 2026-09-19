@@ -861,10 +861,11 @@ private fun SeatGlyphs(controls: Map<Int, String>) {
                         seatLevel(controls, vent) > 0 -> ElectroColors.Info
                         else -> ElectroColors.TextDisabled
                     }
+                    // силуэт кресла (эскиз владельца), тонируется по состоянию
                     Icon(
-                        Lx.AirlineSeatReclineNormal, null,
+                        painterResource(R.drawable.seat_front), null,
                         tint = tint,
-                        modifier = Modifier.size(26.dp),
+                        modifier = Modifier.size(width = 22.dp, height = 34.dp),
                     )
                 }
             }

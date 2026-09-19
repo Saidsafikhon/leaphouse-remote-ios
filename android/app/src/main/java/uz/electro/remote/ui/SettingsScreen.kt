@@ -54,6 +54,7 @@ fun SettingsScreen(vm: CarViewModel, onClose: () -> Unit) {
     val busy by vm.busy.collectAsState()
     val vehicles by vm.vehicles.collectAsState()
     val vehicleId by vm.vehicleId.collectAsState()
+    val paint by vm.paint.collectAsState()
     val parkNote by vm.parkNote.collectAsState()
 
     LaunchedEffect(loggedIn) { if (loggedIn) vm.loadVehicles() }
@@ -111,7 +112,9 @@ fun SettingsScreen(vm: CarViewModel, onClose: () -> Unit) {
                     if (vehicle.vehicle_id == vehicleId) {
                         PaintPicker(
                             model = vehicle.model,
-                            current = vm.vehiclePaint(vehicle.vehicle_id),
+                            // из StateFlow, а не из prefs напрямую: иначе галочка
+                            // не переезжает, пока экран не пересоберут
+                            current = paint,
                             onPick = { vm.setVehiclePaint(vehicle.vehicle_id, it) },
                         )
                     }
