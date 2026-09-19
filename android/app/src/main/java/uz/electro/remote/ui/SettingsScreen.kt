@@ -321,55 +321,39 @@ private fun ThemeSection() {
     }
 }
 
-/** Защита входа: код из 4 цифр и, поверх него, отпечаток / лицо. */
+/** Защита входа системной блокировкой телефона: отпечаток / лицо / код экрана. */
 @Composable
 private fun LockSection() {
     val ctx = androidx.compose.ui.platform.LocalContext.current
+    val activity = ctx as? androidx.fragment.app.FragmentActivity
     val lock = remember { uz.electro.remote.security.AppLock(ctx) }
     var enabled by remember { mutableStateOf(lock.enabled) }
-    var bio by remember { mutableStateOf(lock.biometricEnabled) }
-    var setup by remember { mutableStateOf<String?>(null) } // "on" | "change" | "off"
-    val bioAvailable = remember { lock.biometricAvailable() }
+    val available = remember { lock.available() }
+    val bio = remember { lock.biometricAvailable() }
 
     SectionCard("Защита входа") {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("Код при входе", color = ElectroColors.TextPrimary, fontSize = 14.sp)
-                Text("4 цифры при запуске и возврате в приложение", color = ElectroColors.TextMuted, fontSize = 11.sp)
+                Text("Блокировка при входе", color = if (available) ElectroColors.TextPrimary else ElectroColors.TextMuted, fontSize = 14.sp)
+                Text(
+                    when {
+                        !available -> "Сначала включите блокировку экрана в настройках телефона"
+                        bio -> "Отпечаток или лицо, запасной путь — код экрана телефона"
+                        else -> "Код, рисунок или пароль экрана телефона"
+                    },
+                    color = ElectroColors.TextMuted, fontSize = 11.sp,
+                )
             }
-            Switch(checked = enabled, onCheckedChange = { on -> setup = if (on) "on" else "off" },
-                colors = SwitchDefaults.colors(checkedTrackColor = ElectroColors.Accent, checkedThumbColor = ElectroColors.OnAccent))
+            Switch(
+                checked = enabled, enabled = available,
+                onCheckedChange = { on ->
+                    // и включение, и выключение — только после подтверждения системой
+                    val act = activity ?: return@Switch
+                    lock.prompt(act) { ok -> if (ok) { lock.enabled = on; enabled = on } }
+                },
+                colors = SwitchDefaults.colors(checkedTrackColor = ElectroColors.Accent, checkedThumbColor = ElectroColors.OnAccent),
+            )
         }
-        if (enabled) {
-            TextButton(onClick = { setup = "change" }, contentPadding = PaddingValues(0.dp)) {
-                Text("Сменить код", color = ElectroColors.Accent)
-            }
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("Отпечаток или лицо", color = if (bioAvailable) ElectroColors.TextPrimary else ElectroColors.TextMuted, fontSize = 14.sp)
-                    Text(if (bioAvailable) "Вместо кода, код остаётся запасным" else "На этом телефоне биометрия не настроена",
-                        color = ElectroColors.TextMuted, fontSize = 11.sp)
-                }
-                Switch(checked = bio, enabled = bioAvailable, onCheckedChange = { on -> lock.biometricEnabled = on; bio = on },
-                    colors = SwitchDefaults.colors(checkedTrackColor = ElectroColors.Accent, checkedThumbColor = ElectroColors.OnAccent))
-            }
-        }
-    }
-    setup?.let { mode ->
-        PinSetupDialog(
-            lock = lock,
-            verifyFirst = mode != "on",
-            verifyOnly = mode == "off",
-            title = when (mode) { "on" -> "Код входа"; "change" -> "Новый код"; else -> "Отключить код" },
-            onDone = { pin ->
-                when (mode) {
-                    "off" -> { lock.clear(); enabled = false; bio = false }
-                    else -> { if (pin != null) lock.setPin(pin); enabled = true }
-                }
-                setup = null
-            },
-            onDismiss = { setup = null },
-        )
     }
 }
 

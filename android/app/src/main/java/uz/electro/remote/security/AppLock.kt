@@ -1,69 +1,48 @@
 package uz.electro.remote.security
 
+import android.app.KeyguardManager
 import android.content.Context
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
-import java.security.MessageDigest
-import java.security.SecureRandom
 
 /**
- * Защита входа в приложение: 4-значный код и биометрия (отпечаток / лицо).
- *
- * Код не хранится — только SHA-256 от соли и кода; соль случайная на телефон.
- * Биометрия — надстройка над кодом: без кода её включить нельзя, и отказ
- * системного диалога всегда оставляет запасной путь через код.
+ * Защита входа в приложение системной блокировкой телефона: отпечаток / лицо,
+ * а запасной путь — PIN, рисунок или пароль экрана блокировки. Своего кода
+ * нет: хранить и проверять нечего, всё делает система (`BiometricPrompt` с
+ * `DEVICE_CREDENTIAL`, на старых Android — `KeyguardManager`).
  */
 class AppLock(ctx: Context) {
     private val sp = ctx.getSharedPreferences("electro", Context.MODE_PRIVATE)
     private val app = ctx.applicationContext
 
-    /** Задан ли код. */
-    val enabled: Boolean get() = !sp.getString(K_HASH, null).isNullOrEmpty()
+    /** Включена ли блокировка при входе. Старый 4-значный код (до 0.44) переносится в «включено». */
+    var enabled: Boolean
+        get() = sp.getBoolean(K_ENABLED, !sp.getString("lock_pin_hash", null).isNullOrEmpty())
+        set(v) { sp.edit().putBoolean(K_ENABLED, v).remove("lock_pin_hash").remove("lock_pin_salt").apply() }
 
-    var biometricEnabled: Boolean
-        get() = enabled && sp.getBoolean(K_BIO, false)
-        set(v) { sp.edit().putBoolean(K_BIO, v).apply() }
-
-    /** Предлагали ли уже поставить код после входа; «не сейчас» запоминаем, чтобы не докучать. */
+    /** Предлагали ли уже включить после входа; «не сейчас» запоминаем, чтобы не докучать. */
     var offerDeclined: Boolean
         get() = sp.getBoolean(K_OFFER_DECLINED, false)
         set(v) { sp.edit().putBoolean(K_OFFER_DECLINED, v).apply() }
 
-    fun setPin(pin: String) {
-        val salt = ByteArray(16).also { SecureRandom().nextBytes(it) }.joinToString("") { "%02x".format(it) }
-        sp.edit().putString(K_SALT, salt).putString(K_HASH, hash(salt, pin)).apply()
+    /**
+     * Есть ли на телефоне чем защищать: биометрия или хотя бы блокировка экрана.
+     * Без блокировки экрана системе нечего спросить — тумблер недоступен.
+     */
+    fun available(): Boolean {
+        val bm = BiometricManager.from(app).canAuthenticate(AUTHENTICATORS)
+        if (bm == BiometricManager.BIOMETRIC_SUCCESS) return true
+        return (app.getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager)?.isDeviceSecure == true
     }
 
-    fun clear() { sp.edit().remove(K_HASH).remove(K_SALT).remove(K_BIO).remove(K_FAILS).remove(K_LOCK_UNTIL).apply() }
-
-    fun check(pin: String): Boolean {
-        val salt = sp.getString(K_SALT, null) ?: return false
-        val ok = hash(salt, pin) == sp.getString(K_HASH, null)
-        if (ok) sp.edit().remove(K_FAILS).remove(K_LOCK_UNTIL).apply()
-        else {
-            val fails = sp.getInt(K_FAILS, 0) + 1
-            val e = sp.edit().putInt(K_FAILS, fails)
-            // после пяти промахов — пауза 30 с, чтобы код нельзя было перебрать
-            if (fails >= MAX_FAILS) e.putLong(K_LOCK_UNTIL, System.currentTimeMillis() + COOLDOWN_MS).putInt(K_FAILS, 0)
-            e.apply()
-        }
-        return ok
-    }
-
-    /** Сколько секунд ещё ждать после серии промахов; 0 — можно вводить. */
-    fun cooldownSec(): Int {
-        val until = sp.getLong(K_LOCK_UNTIL, 0L)
-        return ((until - System.currentTimeMillis()) / 1000).toInt().coerceAtLeast(0)
-    }
-
-    /** Есть ли на телефоне биометрия, которой можно пользоваться. */
+    /** Есть ли биометрия (для подписи в настройках). */
     fun biometricAvailable(): Boolean =
-        BiometricManager.from(app).canAuthenticate(AUTHENTICATORS) == BiometricManager.BIOMETRIC_SUCCESS
+        BiometricManager.from(app).canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK) == BiometricManager.BIOMETRIC_SUCCESS
 
-    /** Системный диалог биометрии; кнопка отказа — «Код». */
-    fun promptBiometric(activity: FragmentActivity, onResult: (Boolean) -> Unit) {
+    /** Системный диалог: биометрия, при отказе/отсутствии — код или рисунок телефона. */
+    fun prompt(activity: FragmentActivity, onResult: (Boolean) -> Unit) {
         val prompt = BiometricPrompt(activity, ContextCompat.getMainExecutor(activity),
             object : BiometricPrompt.AuthenticationCallback() {
                 override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) = onResult(true)
@@ -71,25 +50,17 @@ class AppLock(ctx: Context) {
             })
         val info = BiometricPrompt.PromptInfo.Builder()
             .setTitle("LeapRemote")
-            .setSubtitle("Подтвердите вход")
-            .setNegativeButtonText("Код")
+            .setSubtitle("Подтвердите, что это вы")
             .setAllowedAuthenticators(AUTHENTICATORS)
             .build()
         prompt.authenticate(info)
     }
 
-    private fun hash(salt: String, pin: String): String =
-        MessageDigest.getInstance("SHA-256").digest((salt + ":" + pin).toByteArray()).joinToString("") { "%02x".format(it) }
-
     private companion object {
-        const val K_HASH = "lock_pin_hash"
-        const val K_SALT = "lock_pin_salt"
-        const val K_BIO = "lock_biometric"
-        const val K_FAILS = "lock_fails"
+        const val K_ENABLED = "lock_system"
         const val K_OFFER_DECLINED = "lock_offer_declined"
-        const val K_LOCK_UNTIL = "lock_until"
-        const val MAX_FAILS = 5
-        const val COOLDOWN_MS = 30_000L
-        const val AUTHENTICATORS = BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.BIOMETRIC_WEAK
+        // WEAK + DEVICE_CREDENTIAL — единственная комбинация, которую библиотека
+        // умеет на всех API (на 28–29 через KeyguardManager)
+        const val AUTHENTICATORS = BiometricManager.Authenticators.BIOMETRIC_WEAK or BiometricManager.Authenticators.DEVICE_CREDENTIAL
     }
 }

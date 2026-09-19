@@ -1,98 +1,54 @@
 import Foundation
-import CryptoKit
 import LocalAuthentication
 
-/// Защита входа в приложение: 4-значный код и биометрия (Face ID / Touch ID) —
-/// зеркало `security/AppLock.kt`. Код не хранится, только SHA-256 от соли и
-/// кода. Биометрия — надстройка над кодом: без кода её не включить, и отказ
-/// системного диалога всегда оставляет запасной путь через код.
+/// Защита входа системной блокировкой устройства: Face ID / Touch ID, а запасной
+/// путь — код-пароль iPhone (`.deviceOwnerAuthentication`). Своего кода нет —
+/// всё делает система. Зеркало `security/AppLock.kt`.
 final class AppLock: ObservableObject {
     static let shared = AppLock()
     private let d = UserDefaults.standard
 
-    private enum K {
-        static let hash = "lock_pin_hash", salt = "lock_pin_salt", bio = "lock_biometric"
-        static let fails = "lock_fails", until = "lock_until"
-    }
-    static let pinLength = 4
-    private static let maxFails = 5
-    private static let cooldown: TimeInterval = 30
-
-    /// Заблокировано ли приложение сейчас (снимается кодом или биометрией).
+    /// Заблокировано ли приложение сейчас (снимается системным диалогом).
     @Published var locked = false
-    @Published private(set) var enabled: Bool
-    @Published var biometricEnabled: Bool {
-        didSet { d.set(biometricEnabled, forKey: K.bio) }
+    @Published var enabled: Bool {
+        didSet { d.set(enabled, forKey: "lock_system") }
     }
 
     private init() {
-        enabled = !(d.string(forKey: K.hash) ?? "").isEmpty
-        biometricEnabled = d.bool(forKey: K.bio)
+        // старый 4-значный код (до 0.44) переносится в «включено», сам код стирается
+        let legacy = !(d.string(forKey: "lock_pin_hash") ?? "").isEmpty
+        enabled = d.object(forKey: "lock_system") == nil ? legacy : d.bool(forKey: "lock_system")
+        for k in ["lock_pin_hash", "lock_pin_salt", "lock_biometric", "lock_fails", "lock_until"] { d.removeObject(forKey: k) }
         locked = enabled && Settings.shared.loggedIn
     }
 
-    /// Предлагали ли уже поставить код после входа; «не сейчас» запоминаем.
+    /// Предлагали ли уже включить после входа; «не сейчас» запоминаем.
     var offerDeclined: Bool {
         get { d.bool(forKey: "lock_offer_declined") }
         set { d.set(newValue, forKey: "lock_offer_declined") }
     }
 
-    func setPin(_ pin: String) {
-        var bytes = [UInt8](repeating: 0, count: 16)
-        _ = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
-        let salt = bytes.map { String(format: "%02x", $0) }.joined()
-        d.set(salt, forKey: K.salt); d.set(Self.hash(salt, pin), forKey: K.hash)
-        enabled = true
+    /// Есть ли чем защищать: биометрия или хотя бы код-пароль устройства.
+    func available() -> Bool {
+        LAContext().canEvaluatePolicy(.deviceOwnerAuthentication, error: nil)
     }
 
-    func clear() {
-        for k in [K.hash, K.salt, K.bio, K.fails, K.until] { d.removeObject(forKey: k) }
-        enabled = false; biometricEnabled = false; locked = false
-    }
-
-    func check(_ pin: String) -> Bool {
-        guard let salt = d.string(forKey: K.salt) else { return false }
-        let ok = Self.hash(salt, pin) == d.string(forKey: K.hash)
-        if ok { d.removeObject(forKey: K.fails); d.removeObject(forKey: K.until) }
-        else {
-            let fails = d.integer(forKey: K.fails) + 1
-            // после пяти промахов — пауза 30 с, чтобы код нельзя было перебрать
-            if fails >= Self.maxFails { d.set(Date().addingTimeInterval(Self.cooldown).timeIntervalSince1970, forKey: K.until); d.set(0, forKey: K.fails) }
-            else { d.set(fails, forKey: K.fails) }
-        }
-        return ok
-    }
-
-    /// Сколько секунд ещё ждать после серии промахов; 0 — можно вводить.
-    func cooldownSec() -> Int { max(0, Int(d.double(forKey: K.until) - Date().timeIntervalSince1970)) }
-
-    /// Есть ли на устройстве биометрия, которой можно пользоваться.
-    func biometricAvailable() -> Bool {
-        LAContext().canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil)
-    }
-
-    /// Какая именно: для подписи в настройках и на кнопке.
-    var biometricName: String {
+    /// Какая биометрия есть — для подписи в настройках; nil — только код-пароль.
+    var biometricName: String? {
         let ctx = LAContext()
-        _ = ctx.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil)
+        guard ctx.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil) else { return nil }
         switch ctx.biometryType {
         case .faceID: return "Face ID"
         case .touchID: return "Touch ID"
-        default: return "Биометрия"
+        default: return nil
         }
     }
 
-    /// Системный диалог биометрии; кнопка отказа — «Код».
-    func promptBiometric(_ done: @escaping (Bool) -> Void) {
+    /// Системный диалог: биометрия, при отказе/отсутствии — код-пароль iPhone.
+    func prompt(_ done: @escaping (Bool) -> Void) {
         let ctx = LAContext()
-        ctx.localizedFallbackTitle = "Код"
-        ctx.localizedCancelTitle = "Код"
-        ctx.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: "Подтвердите вход в LeapRemote") { ok, _ in
+        ctx.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: "Подтвердите вход в LeapRemote") { ok, _ in
             DispatchQueue.main.async { done(ok) }
         }
-    }
-
-    private static func hash(_ salt: String, _ pin: String) -> String {
-        SHA256.hash(data: Data((salt + ":" + pin).utf8)).map { String(format: "%02x", $0) }.joined()
     }
 }

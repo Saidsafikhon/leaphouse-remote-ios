@@ -195,46 +195,28 @@ private struct ThemeSection: View {
     }
 }
 
-/// Защита входа: код из 4 цифр и, поверх него, Face ID / Touch ID.
+/// Защита входа системной блокировкой устройства: Face ID / Touch ID / код-пароль.
 private struct LockSection: View {
     @Environment(\.palette) private var p
     @ObservedObject private var lock = AppLock.shared
-    private enum Mode: String, Identifiable { case on, change, off; var id: String { rawValue } }
-    @State private var mode: Mode? = nil
 
     var body: some View {
-        let bioAvailable = lock.biometricAvailable()
+        let available = lock.available()
+        let bio = lock.biometricName
         SectionCard(title: "Защита входа") {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Код при входе").font(.system(size: 14)).foregroundStyle(p.textPrimary)
-                    Text("4 цифры при запуске и возврате в приложение").font(.system(size: 11)).foregroundStyle(p.textMuted)
+                    Text("Блокировка при входе").font(.system(size: 14)).foregroundStyle(available ? p.textPrimary : p.textMuted)
+                    Text(!available ? "Сначала включите код-пароль в настройках iPhone"
+                         : (bio.map { "\($0), запасной путь — код-пароль iPhone" } ?? "Код-пароль iPhone"))
+                        .font(.system(size: 11)).foregroundStyle(p.textMuted)
                 }
                 Spacer()
-                ElectroToggle(isOn: lock.enabled) { on in mode = on ? .on : .off }
-            }
-            if lock.enabled {
-                Button { mode = .change } label: { Text("Сменить код").font(ElectroType.body).foregroundStyle(p.accent) }.buttonStyle(.plain)
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(lock.biometricName).font(.system(size: 14)).foregroundStyle(bioAvailable ? p.textPrimary : p.textMuted)
-                        Text(bioAvailable ? "Вместо кода, код остаётся запасным" : "На этом устройстве биометрия не настроена")
-                            .font(.system(size: 11)).foregroundStyle(p.textMuted)
-                    }
-                    Spacer()
-                    ElectroToggle(isOn: lock.biometricEnabled, enabled: bioAvailable) { on in lock.biometricEnabled = on }
+                // и включение, и выключение — только после подтверждения системой
+                ElectroToggle(isOn: lock.enabled, enabled: available) { on in
+                    lock.prompt { ok in if ok { lock.enabled = on } }
                 }
             }
-        }
-        .sheet(item: $mode) { m in
-            PinSetupSheet(
-                lock: lock,
-                title: m == .on ? "Код входа" : (m == .change ? "Новый код" : "Отключить код"),
-                verifyFirst: m != .on, verifyOnly: m == .off
-            ) { pin in
-                if m == .off { lock.clear() } else if let pin { lock.setPin(pin) }
-            }
-            .presentationDetents([.large]).presentationDragIndicator(.visible)
         }
     }
 }

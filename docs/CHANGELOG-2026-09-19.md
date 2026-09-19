@@ -77,7 +77,7 @@ contentResolver; iOS: `UI/Screens/FeedbackSheet.swift`, `CloudClient.attachToFee
 - Плитки «Климат» и «Сиденья» на главной одной ширины и высоты (Android `IntrinsicSize.Max` + `fillMaxHeight`, iOS
   `fixedSize(horizontal:false, vertical:true)` + `maxHeight: .infinity`); подпись сидений короткая («Выключены», «Обогрев · 2»).
 
-## 5. Защита входа (0.42.0)
+## 5. Защита входа (0.42.0 → системная в 0.44.0)
 
 - 4-значный код: хранится только SHA-256(соль + код), соль случайная; после 5 промахов пауза 30 с. Смена/отключение — через
   текущий код. Биометрия — надстройка над кодом (без кода не включить, код всегда запасной).
@@ -87,7 +87,12 @@ contentResolver; iOS: `UI/Screens/FeedbackSheet.swift`, `CloudClient.attachToFee
   `ui/LockScreen.kt` (`LockScreen`, `PinPad`, `PinSetupDialog`), секция «Защита входа» в настройках.
 - iOS: `Data/AppLock.swift` (CryptoKit + LocalAuthentication, `NSFaceIDUsageDescription`), `UI/Screens/LockScreen.swift`
   (`LockScreen`, `PinPad`, `PinSetupSheet`), `RootView` показывает `LockScreen` поверх ворот.
-- Рисунок (pattern) не делался — при необходимости отдельный экран с сеткой 3×3.
+- **0.44.0 (100): свой 4-значный код заменён системной блокировкой.** Android — `BiometricPrompt` с
+  `BIOMETRIC_WEAK | DEVICE_CREDENTIAL` (отпечаток/лицо, запасной путь — PIN/рисунок/пароль экрана; на API 28–29 библиотека
+  сама уходит в `KeyguardManager`); iOS — `LAContext.evaluatePolicy(.deviceOwnerAuthentication)` (Face ID/Touch ID, запасной —
+  код-пароль iPhone). Один тумблер «Блокировка при входе»; включение/выключение — только после подтверждения системой.
+  Если на телефоне нет блокировки экрана — тумблер недоступен с подсказкой, и приложение не запирается (`lock.available()`).
+  Старый код (`lock_pin_hash`) мигрирует в «включено» и стирается. `PinPad`/`PinSetupDialog`/`PinSetupSheet` удалены.
 
 ## 6. Климат
 

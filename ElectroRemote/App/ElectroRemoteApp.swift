@@ -24,7 +24,6 @@ struct RootView: View {
     private enum Branch { case register, forgot }
     @State private var branch: Branch? = nil
     @State private var offerLock = false
-    @State private var offerSetup = false
     /// Оформление: auto | light | dark — выбор в настройках, применяется сразу.
     @AppStorage("themeMode") private var themeMode = "auto"
 
@@ -34,7 +33,7 @@ struct RootView: View {
         Group {
             // Защита входа: код/биометрия при запуске и при каждом возврате из
             // фона. Только для вошедшего — экран логина сам себя защищает.
-            if vm.loggedIn && lock.enabled && lock.locked {
+            if vm.loggedIn && lock.enabled && lock.locked && lock.available() {
                 LockScreen(lock: lock)
             } else if !vm.loggedIn {
                 switch branch {
@@ -62,19 +61,17 @@ struct RootView: View {
             if on {
                 branch = nil
                 // после входа один раз предлагаем поставить код
-                if !lock.enabled && !lock.offerDeclined { offerLock = true }
+                if !lock.enabled && !lock.offerDeclined && lock.available() { offerLock = true }
             }
         }
         .alert("Защитить вход?", isPresented: $offerLock) {
-            Button("Установить код") { offerSetup = true }
+            Button("Включить") {
+                // включаем только после успешного подтверждения — иначе можно запереть самого себя
+                lock.prompt { ok in if ok { lock.enabled = true } else { lock.offerDeclined = true } }
+            }
             Button("Не сейчас", role: .cancel) { lock.offerDeclined = true }
         } message: {
-            Text("Код из 4 цифр (и Face ID / Touch ID, если есть) будет запрашиваться при запуске и возврате в приложение. Можно включить позже в настройках.")
-        }
-        .sheet(isPresented: $offerSetup) {
-            PinSetupSheet(lock: lock, title: "Код входа") { pin in if let pin { lock.setPin(pin) } }
-                .presentationDetents([.large]).presentationDragIndicator(.visible)
-                .onDisappear { if !lock.enabled { lock.offerDeclined = true } }
+            Text("При запуске и возврате в приложение будет запрашиваться Face ID / Touch ID или код-пароль iPhone. Можно включить позже в настройках.")
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .background && vm.loggedIn && lock.enabled { lock.locked = true }

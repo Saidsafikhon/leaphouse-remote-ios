@@ -90,22 +90,23 @@ class MainActivity : FragmentActivity() {
                 // Защита входа: код/биометрия при запуске и при каждом возврате
                 // из фона. Только для вошедшего — экран логина сам себя защищает.
                 val lock = remember { AppLock(this@MainActivity) }
+                // если на телефоне сняли блокировку экрана — запирать нечем, не запираем
+                val lockActive = lock.enabled && remember { lock.available() }
                 val owner = LocalLifecycleOwner.current
                 DisposableEffect(owner, loggedIn) {
                     val obs = LifecycleEventObserver { _, e ->
-                        if (e == Lifecycle.Event.ON_STOP && loggedIn && lock.enabled) locked.value = true
+                        if (e == Lifecycle.Event.ON_STOP && loggedIn && lockActive) locked.value = true
                     }
-                    if (loggedIn && lock.enabled) locked.value = true
+                    if (loggedIn && lockActive) locked.value = true
                     owner.lifecycle.addObserver(obs)
                     onDispose { owner.lifecycle.removeObserver(obs) }
                 }
-                // После входа один раз предлагаем поставить код; «Не сейчас» —
-                // больше не спрашиваем, включить можно в настройках.
+                // После входа один раз предлагаем включить блокировку телефона
+                // для входа; «Не сейчас» — больше не спрашиваем, есть в настройках.
                 var offer by remember { mutableStateOf(false) }
-                var offerSetup by remember { mutableStateOf(false) }
                 var wasLoggedIn by remember { mutableStateOf(loggedIn) }
                 LaunchedEffect(loggedIn) {
-                    if (loggedIn && !wasLoggedIn && !lock.enabled && !lock.offerDeclined) offer = true
+                    if (loggedIn && !wasLoggedIn && !lock.enabled && !lock.offerDeclined && lock.available()) offer = true
                     wasLoggedIn = loggedIn
                 }
                 if (offer) {
@@ -113,26 +114,21 @@ class MainActivity : FragmentActivity() {
                         onDismissRequest = { offer = false; lock.offerDeclined = true },
                         containerColor = uz.electro.remote.ui.theme.ElectroColors.SurfaceElevated, tonalElevation = 0.dp,
                         title = { androidx.compose.material3.Text("Защитить вход?", color = uz.electro.remote.ui.theme.ElectroColors.TextPrimary) },
-                        text = { androidx.compose.material3.Text("Код из 4 цифр (и отпечаток или лицо, если есть) будет запрашиваться при запуске и возврате в приложение. Можно включить позже в настройках.",
+                        text = { androidx.compose.material3.Text("При запуске и возврате в приложение будет запрашиваться блокировка телефона: отпечаток, лицо или код экрана. Можно включить позже в настройках.",
                             color = uz.electro.remote.ui.theme.ElectroColors.TextSecondary) },
-                        confirmButton = { androidx.compose.material3.TextButton(onClick = { offer = false; offerSetup = true }) {
-                            androidx.compose.material3.Text("Установить код", color = uz.electro.remote.ui.theme.ElectroColors.Accent) } },
+                        confirmButton = { androidx.compose.material3.TextButton(onClick = {
+                            offer = false
+                            // включаем только после успешного подтверждения — иначе можно запереть самого себя
+                            lock.prompt(this@MainActivity) { ok -> if (ok) lock.enabled = true else lock.offerDeclined = true }
+                        }) { androidx.compose.material3.Text("Включить", color = uz.electro.remote.ui.theme.ElectroColors.Accent) } },
                         dismissButton = { androidx.compose.material3.TextButton(onClick = { offer = false; lock.offerDeclined = true }) {
                             androidx.compose.material3.Text("Не сейчас", color = uz.electro.remote.ui.theme.ElectroColors.TextSecondary) } },
                     )
                 }
-                if (offerSetup) {
-                    uz.electro.remote.ui.PinSetupDialog(
-                        lock = lock, verifyFirst = false, title = "Код входа",
-                        onDone = { pin -> if (pin != null) lock.setPin(pin); offerSetup = false },
-                        onDismiss = { offerSetup = false; lock.offerDeclined = true },
-                    )
-                }
 
-                if (locked.value && loggedIn && lock.enabled) {
+                if (locked.value && loggedIn && lockActive) {
                     LockScreen(
-                        lock = lock,
-                        onBiometric = { cb -> lock.promptBiometric(this@MainActivity, cb) },
+                        onPrompt = { cb -> lock.prompt(this@MainActivity, cb) },
                         onUnlocked = { locked.value = false },
                     )
                     return@ElectroTheme
