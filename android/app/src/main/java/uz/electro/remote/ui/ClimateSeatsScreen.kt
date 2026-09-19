@@ -245,10 +245,10 @@ private fun ClimateTab(
                         e.apply()
                         sendAll(Cmd.maxHeat(next), "Макс. обогрев")
                     }
-                    ClimateButton("Обогрев стёкол", IconRearDefrost, defogOn, Modifier.weight(1f)) {
+                    ClimateButton("Обогрев всех стёкол", IconRearDefrost, defogOn, Modifier.weight(1f)) {
                         val next = !defogOn; defogOn = next
                         prefs.edit().putBoolean("sceneDefog", next).apply()
-                        sendAll(Cmd.defogGlass(next), "Обогрев стёкол")
+                        sendAll(Cmd.defogGlass(next), "Обогрев всех стёкол")
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(Space.x3)) {

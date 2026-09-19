@@ -93,6 +93,8 @@ struct SettingsScreen: View {
                 }
             }
 
+            ThemeSection()
+
             if vm.loggedIn {
                 LockSection()
             }
@@ -164,6 +166,35 @@ struct SettingsScreen: View {
 }
 
 /// Строка машины: выбор радиокнопкой, имя (локальное поверх серверного), правка и отвязка.
+/// Оформление: авто (за системой), светлая, тёмная. Применяется сразу.
+private struct ThemeSection: View {
+    @Environment(\.palette) private var p
+    @AppStorage("themeMode") private var themeMode = "auto"
+    private let options: [(String, String)] = [("auto", "Авто"), ("light", "Светлая"), ("dark", "Тёмная")]
+
+    var body: some View {
+        SectionCard(title: "Оформление") {
+            HStack(spacing: 0) {
+                ForEach(options, id: \.0) { code, label in
+                    let sel = themeMode == code
+                    Button { themeMode = code } label: {
+                        Text(label).font(.system(size: 14, weight: sel ? .semibold : .regular))
+                            .foregroundStyle(sel ? p.textPrimary : p.textSecondary)
+                            .frame(maxWidth: .infinity).padding(.vertical, 10)
+                            .background(sel ? p.surface : Color.clear)
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(4)
+            .background(p.surfaceElevated)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            Text("Авто — как в системе телефона").font(.system(size: 11)).foregroundStyle(p.textMuted)
+        }
+    }
+}
+
 /// Защита входа: код из 4 цифр и, поверх него, Face ID / Touch ID.
 private struct LockSection: View {
     @Environment(\.palette) private var p

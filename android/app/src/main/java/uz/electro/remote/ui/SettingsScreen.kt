@@ -164,6 +164,8 @@ fun SettingsScreen(vm: CarViewModel, onClose: () -> Unit) {
             Text("Поддержка", style = ElectroType.Caption, color = ElectroColors.TextMuted,
                 modifier = Modifier.clickable { runCatching { uriHandler.openUri(Settings.SUPPORT_URL) } })
         }
+        ThemeSection()
+
         if (loggedIn) {
             LockSection()
         }
@@ -289,6 +291,35 @@ private fun fieldColors() = OutlinedTextFieldDefaults.colors(
     unfocusedLabelColor = ElectroColors.TextSecondary,
     cursorColor = ElectroColors.Accent,
 )
+
+/** Оформление: авто (за системой), светлая, тёмная. Применяется сразу. */
+@Composable
+private fun ThemeSection() {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val mode = uz.electro.remote.ui.theme.ThemePref.mode.value
+    SectionCard("Оформление") {
+        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(ElectroColors.SurfaceElevated).padding(4.dp)) {
+            listOf(
+                uz.electro.remote.ui.theme.ThemeMode.AUTO to "Авто",
+                uz.electro.remote.ui.theme.ThemeMode.LIGHT to "Светлая",
+                uz.electro.remote.ui.theme.ThemeMode.DARK to "Тёмная",
+            ).forEach { (m, label) ->
+                val sel = m == mode
+                Box(
+                    Modifier.weight(1f).clip(RoundedCornerShape(10.dp))
+                        .background(if (sel) ElectroColors.Surface else androidx.compose.ui.graphics.Color.Transparent)
+                        .clickable { uz.electro.remote.ui.theme.ThemePref.set(ctx, m) }
+                        .padding(vertical = 10.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(label, fontSize = 14.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Normal,
+                        color = if (sel) ElectroColors.TextPrimary else ElectroColors.TextSecondary)
+                }
+            }
+        }
+        Text("Авто — как в системе телефона", color = ElectroColors.TextMuted, fontSize = 11.sp)
+    }
+}
 
 /** Защита входа: код из 4 цифр и, поверх него, отпечаток / лицо. */
 @Composable

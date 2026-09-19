@@ -178,23 +178,22 @@ enum Cmd {
         return l
     }
 
-    /// Обогрев стёкол: заднее стекло + зеркала + HI + обдув лобового макс.
+    /// «Обогрев всех стёкол»: зеркала + обдув лобового + обогрев заднего.
+    /// Климат включаем (без него обдув не пойдёт), уставку не трогаем;
+    /// выключение гасит только эти три — климат остаётся, как был.
     static func defogGlass(_ on: Bool) -> [VehicleCommand] {
         if on {
             return [
                 VehicleCommand(type: AC, value: "1", label: "Климат"),
-                VehicleCommand(type: DEFROST_REAR, value: "1", label: "Обогрев заднего стекла"),
                 VehicleCommand(type: MIRROR_HEAT, value: "1", label: "Обогрев зеркал"),
-                VehicleCommand(type: TEMP_L, value: String(TEMP_MAX), label: "Температура"),
-                VehicleCommand(type: TEMP_R, value: String(TEMP_MAX), label: "Температура"),
                 VehicleCommand(type: DEFROST_FRONT, value: "2", label: "Обдув лобового"),
+                VehicleCommand(type: DEFROST_REAR, value: "1", label: "Обогрев заднего стекла"),
             ]
         } else {
             return [
-                VehicleCommand(type: DEFROST_REAR, value: "0", label: "Обогрев заднего стекла"),
                 VehicleCommand(type: MIRROR_HEAT, value: "0", label: "Обогрев зеркал"),
                 VehicleCommand(type: DEFROST_FRONT, value: "0", label: "Обдув лобового"),
-                VehicleCommand(type: AC, value: "0", label: "Климат"),
+                VehicleCommand(type: DEFROST_REAR, value: "0", label: "Обогрев заднего стекла"),
             ]
         }
     }

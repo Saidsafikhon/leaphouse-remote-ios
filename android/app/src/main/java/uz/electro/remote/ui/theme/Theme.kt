@@ -40,9 +40,31 @@ private fun schemeOf(p: ElectroPalette, dark: Boolean): ColorScheme {
  * с системным означал бы, что человек однажды выставит его и перестанет
  * понимать, почему темнеет телефон, а приложение — нет.
  */
+/** Оформление: за системой, всегда светлое или всегда тёмное. Выбор в настройках. */
+enum class ThemeMode { AUTO, LIGHT, DARK }
+
+/** Текущий выбор темы — observable, чтобы экран перекрасился сразу, без перезапуска. */
+object ThemePref {
+    val mode = androidx.compose.runtime.mutableStateOf(ThemeMode.AUTO)
+
+    fun load(ctx: android.content.Context) {
+        val v = ctx.getSharedPreferences("electro", android.content.Context.MODE_PRIVATE).getString("themeMode", null)
+        mode.value = runCatching { ThemeMode.valueOf(v ?: "AUTO") }.getOrDefault(ThemeMode.AUTO)
+    }
+
+    fun set(ctx: android.content.Context, m: ThemeMode) {
+        mode.value = m
+        ctx.getSharedPreferences("electro", android.content.Context.MODE_PRIVATE).edit().putString("themeMode", m.name).apply()
+    }
+}
+
 @Composable
 fun ElectroTheme(content: @Composable () -> Unit) {
-    val dark = isSystemInDarkTheme()
+    val dark = when (ThemePref.mode.value) {
+        ThemeMode.AUTO -> isSystemInDarkTheme()
+        ThemeMode.LIGHT -> false
+        ThemeMode.DARK -> true
+    }
     val palette = if (dark) ElectroDarkColors else ElectroLightColors
 
     // Значки статусной строки рисует система, и на светлом фоне белые пропадают

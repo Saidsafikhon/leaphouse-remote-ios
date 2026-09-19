@@ -25,9 +25,12 @@ struct RootView: View {
     @State private var branch: Branch? = nil
     @State private var offerLock = false
     @State private var offerSetup = false
+    /// Оформление: auto | light | dark — выбор в настройках, применяется сразу.
+    @AppStorage("themeMode") private var themeMode = "auto"
 
     var body: some View {
-        let palette: ElectroPalette = scheme == .dark ? .dark : .light
+        let dark = themeMode == "dark" || (themeMode == "auto" && scheme == .dark)
+        let palette: ElectroPalette = dark ? .dark : .light
         Group {
             // Защита входа: код/биометрия при запуске и при каждом возврате из
             // фона. Только для вошедшего — экран логина сам себя защищает.
@@ -54,7 +57,7 @@ struct RootView: View {
         }
         .environment(\.palette, palette)
         .background(palette.background.ignoresSafeArea())
-        .preferredColorScheme(nil)
+        .preferredColorScheme(themeMode == "auto" ? nil : (dark ? .dark : .light))
         .onChange(of: vm.loggedIn) { _, on in
             if on {
                 branch = nil

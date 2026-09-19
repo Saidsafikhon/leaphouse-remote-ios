@@ -128,11 +128,11 @@ private struct ClimateTab: View {
                             prefs.setBool("sceneMaxHeat", next)
                             sendAll(Cmd.maxHeat(next), "Макс. обогрев")
                         }
-                        ClimateButton(label: "Обогрев стёкол", icon: "windshield.rear.and.heat.waves", active: defogOn) {
+                        ClimateButton(label: "Обогрев всех стёкол", icon: "windshield.rear.and.heat.waves", active: defogOn) {
                             let next = !defogOn
                             defogOn = next
                             prefs.setBool("sceneDefog", next)
-                            sendAll(Cmd.defogGlass(next), "Обогрев стёкол")
+                            sendAll(Cmd.defogGlass(next), "Обогрев всех стёкол")
                         }
                     }
                     HStack(spacing: Space.x3) {

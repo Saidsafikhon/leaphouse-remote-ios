@@ -43,6 +43,7 @@ class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         SignatureGuard.enforce(this)
+        uz.electro.remote.ui.theme.ThemePref.load(this)
         Push.ensureChannel(this)
         if (Build.VERSION.SDK_INT >= 33 && !Push.canPost(this)) {
             askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)

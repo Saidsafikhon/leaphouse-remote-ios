@@ -178,18 +178,20 @@ object Cmd {
     }
 
     /** Обогрев стёкол: заднее стекло + зеркала + HI + обдув лобового макс. Включает AC. */
+    /**
+     * «Обогрев всех стёкол»: зеркала + обдув лобового + обогрев заднего.
+     * Климат включаем (без него обдув не пойдёт), но уставку не трогаем.
+     * Выключение гасит только эти три — климат остаётся, как был.
+     */
     fun defogGlass(on: Boolean): List<VehicleCommand> = if (on) listOf(
         VehicleCommand(AC, "1", "Климат"),
-        VehicleCommand(DEFROST_REAR, "1", "Обогрев заднего стекла"),
         VehicleCommand(MIRROR_HEAT, "1", "Обогрев зеркал"),
-        VehicleCommand(TEMP_L, "$TEMP_MAX", "Температура"),
-        VehicleCommand(TEMP_R, "$TEMP_MAX", "Температура"),
         VehicleCommand(DEFROST_FRONT, "2", "Обдув лобового"),
+        VehicleCommand(DEFROST_REAR, "1", "Обогрев заднего стекла"),
     ) else listOf(
-        VehicleCommand(DEFROST_REAR, "0", "Обогрев заднего стекла"),
         VehicleCommand(MIRROR_HEAT, "0", "Обогрев зеркал"),
         VehicleCommand(DEFROST_FRONT, "0", "Обдув лобового"),
-        VehicleCommand(AC, "0", "Климат"),
+        VehicleCommand(DEFROST_REAR, "0", "Обогрев заднего стекла"),
     )
 
     /** Выключить все сиденья (обогрев и обдув всех мест). */
