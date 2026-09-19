@@ -16,7 +16,7 @@ ElectroRemote/
   UI/Components плитки, чипы, кнопки, бейджи, тосты, диалог, каркасы экранов
   UI/Screens    Login/Register/Forgot/ParkGate/Pair(+QR), Connect, PhoneControl
                 (главная), ClimateSeats, Scenes/Schedule/Voice/Map, Settings
-  Resources/    Assets.xcassets: AppIcon, car_01…car_25, цвет заставки
+  Resources/    Assets.xcassets: AppIcon, car_<model>_<colour>, seat_front, brand_glyph; Fonts/Unbounded-*.ttf
 project.yml     xcodegen — .xcodeproj в git не хранится
 ```
 
@@ -26,7 +26,10 @@ project.yml     xcodegen — .xcodeproj в git не хранится
 - QR — AVFoundation, разрешение камеры спрашивается на месте;
 - иконки — SF Symbols (в т.ч. штатные `windshield.*.and.heat.waves`,
   `mirror.side.left.and.heat.waves`, `carseat.right`);
-- тема берётся у системы (как и на Android: своего переключателя нет).
+- тема: Авто (за системой) / Светлая / Тёмная — выбор в Настройках → «Оформление» (с 0.43.0, на обеих платформах).
+
+Подробный журнал изменений 19–20.09.2026 (отзывы, бренд, рендеры, защита входа, климат):
+`docs/CHANGELOG-2026-09-19.md`.
 
 Не переносилось намеренно: `SignatureGuard` (anti-tamper по подписи APK —
 на iOS подпись проверяет система) и мёртвый код (`SeatsScreen.kt`,
