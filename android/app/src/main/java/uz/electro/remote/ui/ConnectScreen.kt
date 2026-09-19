@@ -127,10 +127,12 @@ fun ConnectScreen(vm: CarViewModel, status: ConnectStatus) {
         }
 
         Spacer(Modifier.height(Space.x5))
+        val h = hint(status, vm.wakeConfigured)
+        val failed = status.phase == ConnectPhase.Timeout || status.phase == ConnectPhase.Error
         Text(
-            hint(status, vm.wakeConfigured),
+            h,
             style = ElectroType.Body,
-            color = ElectroColors.TextSecondary,
+            color = if (failed) ElectroColors.Danger else ElectroColors.TextSecondary,
             textAlign = TextAlign.Center,
         )
 
@@ -196,30 +198,17 @@ fun ConnectScreen(vm: CarViewModel, status: ConnectStatus) {
 private fun PhaseBadge(status: ConnectStatus) {
     when (status.phase) {
         ConnectPhase.Idle -> StatusBadge(BadgeKind.Offline, "СПИТ")
-        ConnectPhase.Sending -> StatusBadge(BadgeKind.Info, "БУДИМ МАШИНУ")
-        ConnectPhase.Waiting -> StatusBadge(BadgeKind.Unconfirmed, "ЖДЁМ ОТКЛИКА · ${status.waitedSec} С")
-        ConnectPhase.Timeout -> StatusBadge(BadgeKind.Timeout, "НЕ ОТОЗВАЛАСЬ")
+        ConnectPhase.Sending, ConnectPhase.Waiting -> StatusBadge(BadgeKind.Info, "ПОДКЛЮЧЕНИЕ")
+        ConnectPhase.Timeout -> StatusBadge(BadgeKind.Failed, "ОШИБКА")
         ConnectPhase.Error -> StatusBadge(BadgeKind.Failed, "ОШИБКА")
         ConnectPhase.Connected -> StatusBadge(BadgeKind.Online, "НА СВЯЗИ")
     }
 }
 
+/** Коротко: без объяснений, что происходит под капотом — только статус. */
 private fun hint(status: ConnectStatus, configured: Boolean): String = when {
-    !configured && status.phase == ConnectPhase.Idle ->
-        "Войдите на сервер в настройках — иначе будить машину нечем."
-    // На Idle сообщение появляется после отключения — рассказать, чем оно
-    // закончилось, больше негде: главный экран к этому моменту уже закрыт.
-    status.phase == ConnectPhase.Idle && status.message != null -> status.message
-    status.phase == ConnectPhase.Idle ->
-        "Модем машины спит. По кнопке сервер разбудит её, и она выйдет на связь."
-    status.phase == ConnectPhase.Sending -> "Отправляем команду пробуждения…"
-    // status.message говорит, каким путём машину разбудили: через пробуждалку,
-    // облако или SMS. Это стоит показать — пути отзываются по-разному.
-    status.phase == ConnectPhase.Waiting ->
-        (status.message ?: "Команда отправлена") + ". Машина обычно отзывается за 20–40 секунд."
-    status.phase == ConnectPhase.Timeout ->
-        (status.message ?: "Машина не ответила") +
-            ". Команда принята, но машина не вышла на связь: возможно, она вне зоны."
-    status.phase == ConnectPhase.Error -> status.message ?: "Не удалось разбудить машину"
+    !configured && status.phase == ConnectPhase.Idle -> "Войдите на сервер в настройках."
+    status.phase == ConnectPhase.Sending || status.phase == ConnectPhase.Waiting -> "Подключение…"
+    status.phase == ConnectPhase.Timeout || status.phase == ConnectPhase.Error -> "Ошибка: подключение не удалось"
     else -> ""
 }

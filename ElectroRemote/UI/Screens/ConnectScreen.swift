@@ -57,7 +57,8 @@ struct ConnectScreen: View {
             .clipShape(RoundedRectangle(cornerRadius: Radius.lg, style: .continuous))
 
             Spacer().frame(height: Space.x5)
-            Text(hint(status, vm.wakeConfigured)).font(ElectroType.body).foregroundStyle(p.textSecondary)
+            let failed = status.phase == .timeout || status.phase == .error
+            Text(hint(status, vm.wakeConfigured)).font(ElectroType.body).foregroundStyle(failed ? p.danger : p.textSecondary)
                 .multilineTextAlignment(.center)
 
             if status.phase == .waiting {
@@ -105,31 +106,20 @@ private struct PhaseBadge: View {
     var body: some View {
         switch status.phase {
         case .idle: StatusBadge(kind: .offline, text: "СПИТ")
-        case .sending: StatusBadge(kind: .info, text: "БУДИМ МАШИНУ")
-        case .waiting: StatusBadge(kind: .unconfirmed, text: "ЖДЁМ ОТКЛИКА · \(status.waitedSec) С")
-        case .timeout: StatusBadge(kind: .timeout, text: "НЕ ОТОЗВАЛАСЬ")
+        case .sending, .waiting: StatusBadge(kind: .info, text: "ПОДКЛЮЧЕНИЕ")
+        case .timeout: StatusBadge(kind: .failed, text: "ОШИБКА")
         case .error: StatusBadge(kind: .failed, text: "ОШИБКА")
         case .connected: StatusBadge(kind: .online, text: "НА СВЯЗИ")
         }
     }
 }
 
+/// Коротко: без объяснений, что происходит под капотом — только статус.
 private func hint(_ status: ConnectStatus, _ configured: Bool) -> String {
-    if !configured && status.phase == .idle {
-        return "Войдите на сервер в настройках — иначе будить машину нечем."
-    }
+    if !configured && status.phase == .idle { return "Войдите на сервер в настройках." }
     switch status.phase {
-    case .idle:
-        return status.message ?? "Модем машины спит. По кнопке сервер разбудит её, и она выйдет на связь."
-    case .sending:
-        return "Отправляем команду пробуждения…"
-    case .waiting:
-        return (status.message ?? "Команда отправлена") + ". Машина обычно отзывается за 20–40 секунд."
-    case .timeout:
-        return (status.message ?? "Машина не ответила") + ". Команда принята, но машина не вышла на связь: возможно, она вне зоны."
-    case .error:
-        return status.message ?? "Не удалось разбудить машину"
-    case .connected:
-        return ""
+    case .sending, .waiting: return "Подключение…"
+    case .timeout, .error: return "Ошибка: подключение не удалось"
+    case .idle, .connected: return ""
     }
 }
