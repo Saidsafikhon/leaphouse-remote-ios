@@ -56,7 +56,7 @@ final class ScreenshotTests: XCTestCase {
         sleep(1)
         shot("04-climate")
         app.buttons["Сиденья"].tap()
-        wait(app.staticTexts["▲ перёд"])
+        wait(app.staticTexts["Водитель"])
         sleep(1)
         shot("05-seats")
         app.buttons["Закрыть"].tap()

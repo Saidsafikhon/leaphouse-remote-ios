@@ -20,6 +20,7 @@ struct SettingsScreen: View {
     @State private var deletePassword = ""
     @State private var deleteError: String? = nil
     @State private var deleteBusy = false
+    @State private var feedback = false
 
     var body: some View {
         ScreenScaffold(title: "Настройки", onBack: onClose) {
@@ -58,6 +59,10 @@ struct SettingsScreen: View {
                             }
                         )
                         .id("\(v.vehicle_id)-\(vm.nickVersion)")
+                        // цвет кузова — только у выбранной машины, чтобы список не разрастался
+                        if v.vehicle_id == vm.vehicleId {
+                            PaintPicker(model: v.model, current: vm.paint) { vm.setVehiclePaint(v.vehicle_id, $0) }
+                        }
                     }
                     Button { scanning = true } label: {
                         HStack(spacing: 6) {
@@ -88,6 +93,20 @@ struct SettingsScreen: View {
                 }
             }
 
+            if vm.loggedIn {
+                SectionCard(title: "Отзыв") {
+                    Text("Замечания, идеи и предложения по приложению — разработчикам напрямую.")
+                        .font(.system(size: 13)).foregroundStyle(p.textSecondary)
+                    Button { feedback = true } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "square.and.pencil").font(.system(size: 15)).foregroundStyle(p.accent)
+                            Text("Оставить отзыв").font(ElectroType.body).foregroundStyle(p.accent)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
             HStack(spacing: Space.x4) {
                 Link("Политика конфиденциальности", destination: Links.privacy)
                 Link("Поддержка", destination: Links.support)
@@ -95,6 +114,10 @@ struct SettingsScreen: View {
             .font(ElectroType.caption).foregroundStyle(p.textMuted).frame(maxWidth: .infinity)
             Text(appVersion()).font(ElectroType.caption).foregroundStyle(p.textMuted)
                 .frame(maxWidth: .infinity).padding(.top, Space.x1)
+        }
+        .sheet(isPresented: $feedback) {
+            FeedbackView(vm: vm) { feedback = false }
+                .presentationDetents([.large]).presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $deleting) {
             DeleteAccountSheet(password: $deletePassword, error: deleteError, busy: deleteBusy) {
@@ -137,6 +160,54 @@ struct SettingsScreen: View {
 }
 
 /// Строка машины: выбор радиокнопкой, имя (локальное поверх серверного), правка и отвязка.
+/// Кружки цветов кузова, на которые есть рендер модели; выбранный — крупнее,
+/// с толстым акцентным кольцом и галочкой.
+private struct PaintPicker: View {
+    @Environment(\.palette) private var p
+    let model: String?
+    let current: String?
+    let onPick: (String) -> Void
+
+    var body: some View {
+        let paints = CarArt.paints(model)
+        if paints.count >= 2 {
+            let chosen = paints.first { $0.code == current }?.code ?? paints[0].code
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 10) {
+                    ForEach(paints) { pt in
+                        let sel = pt.code == chosen
+                        Button { onPick(pt.code) } label: {
+                            ZStack {
+                                Circle().stroke(sel ? p.accent : p.outline, lineWidth: sel ? 3 : 1)
+                                Circle().fill(pt.swatch).padding(sel ? 5 : 3)
+                                if sel {
+                                    Text("✓").font(.system(size: 12, weight: .bold))
+                                        .foregroundStyle(pt.swatch.isLight ? Color(hex: 0x111111) : .white)
+                                }
+                            }
+                            .frame(width: sel ? 34 : 26, height: sel ? 34 : 26)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                Text("Цвет кузова: " + (paints.first { $0.code == chosen }?.label ?? ""))
+                    .font(.system(size: 11)).foregroundStyle(p.textMuted)
+            }
+            .padding(.leading, 44).padding(.top, 2).padding(.bottom, 8)
+        }
+    }
+}
+
+private extension Color {
+    /// Светлый ли цвет — для контрастной галочки на образце.
+    var isLight: Bool {
+        let ui = UIColor(self)
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        ui.getRed(&r, green: &g, blue: &b, alpha: &a)
+        return 0.299 * r + 0.587 * g + 0.114 * b > 0.55
+    }
+}
+
 private struct VehicleRow: View {
     @Environment(\.palette) private var p
     let vehicle: VehicleDto

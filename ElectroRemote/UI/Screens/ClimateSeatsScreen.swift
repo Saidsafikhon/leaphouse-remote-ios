@@ -361,7 +361,6 @@ private struct SeatsTab: View {
 
                 // схема салона: два ряда кресел
                 VStack(spacing: Space.x3) {
-                    Text("▲ перёд").font(ElectroType.caption).foregroundStyle(p.textMuted)
                     HStack(spacing: Space.x4) {
                         SeatTile(name: names[0], level: levels[0], selected: selected == 0, accent: accent, icon: icon) { toggleSelect(0) }
                         SeatTile(name: names[1], level: levels[1], selected: selected == 1, accent: accent, icon: icon) { toggleSelect(1) }
@@ -460,23 +459,33 @@ private struct SeatTile: View {
         let active = level > 0
         VStack(spacing: 6) {
             Text(name).font(ElectroType.caption).foregroundStyle(p.textSecondary).lineLimit(1)
+            // кресло — силуэт с эскиза владельца: выбранное обведено акцентом,
+            // активное окрашено в цвет режима; уровень — строкой под креслом
             Button(action: action) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 20, style: .continuous).fill(p.surfaceElevated)
-                    RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(selected ? accent : .clear, lineWidth: 2)
-                    VStack(spacing: 2) {
-                        Image(systemName: icon).font(.system(size: 20)).foregroundStyle(active ? accent : p.textMuted)
-                        if active { Text("\(level)").font(ElectroType.label).foregroundStyle(accent) }
+                    RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(selected ? accent : .clear, lineWidth: 2)
+                    Image("seat_front").resizable().renderingMode(.template).scaledToFit()
+                        .foregroundStyle(active ? accent.opacity(0.55) : p.textDisabled.opacity(0.55))
+                        .padding(.vertical, 8)
+                    ZStack {
+                        Circle().fill(active ? accent : p.surface)
+                        if !active { Circle().stroke(p.outline, lineWidth: 1) }
+                        Image(systemName: icon).font(.system(size: 14)).foregroundStyle(active ? p.onAccent : p.textMuted)
                     }
-                    .frame(width: 64, height: 64)
-                    .background(active ? accent.opacity(0.14) : p.surface)
-                    .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).stroke(active ? accent : .clear, lineWidth: 1.5))
+                    .frame(width: 30, height: 30).offset(y: -6)
                 }
-                .frame(height: 120)
+                .frame(height: 112)
                 .frame(maxWidth: .infinity)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            HStack(spacing: 3) {
+                ForEach(0..<SEAT_LEVELS, id: \.self) { i in
+                    RoundedRectangle(cornerRadius: 3).fill(i < level ? accent : p.surfaceElevated).frame(width: 14, height: 5)
+                }
+                Spacer().frame(width: 4)
+                Text(active ? "\(level)/\(SEAT_LEVELS)" : "выкл").font(ElectroType.caption).foregroundStyle(active ? accent : p.textMuted)
+            }
         }
     }
 }

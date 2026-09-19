@@ -114,8 +114,12 @@ extension EnvironmentValues {
 
 /// Шкала из 8 ступеней — та же, что текстовыми стилями в Figma.
 enum ElectroType {
+    /// Фирменный шрифт LeapRemote (Unbounded) — словесный знак и крупные величины.
+    /// PostScript-имена из TTF: `Unbounded-Light`, `Unbounded-ExtraBold`.
+    static func brandLight(_ size: CGFloat) -> Font { .custom("Unbounded-Light", size: size) }
+    static func brandBold(_ size: CGFloat) -> Font { .custom("Unbounded-ExtraBold", size: size) }
     /// Модель автомобиля, температура — одна крупная величина на экран.
-    static let display = Font.system(size: 34, weight: .light)
+    static let display = brandLight(32)
     static let title = Font.system(size: 26, weight: .light)
     static let headline = Font.system(size: 19, weight: .regular)
     /// Значение в полосе состояния: «520 км», «85 %».

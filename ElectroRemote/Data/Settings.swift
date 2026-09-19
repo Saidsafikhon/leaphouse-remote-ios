@@ -15,6 +15,7 @@ final class Settings {
         static let vehicle = "vehicleId"
         static let cloudOn = "cloudEnabled"
         static let nickPrefix = "nick_"
+        static let paintPrefix = "paint_"
         static let seatPreset = "seatPreset"
         static let optimistic = "optimistic"
     }
@@ -65,6 +66,13 @@ final class Settings {
     func setVehicleNick(_ id: String, _ name: String?) {
         let trimmed = name?.trimmingCharacters(in: .whitespaces) ?? ""
         if trimmed.isEmpty { d.removeObject(forKey: K.nickPrefix + id) } else { d.set(trimmed, forKey: K.nickPrefix + id) }
+    }
+
+    /// Цвет кузова для рендера — локально, сервер его не знает.
+    func vehiclePaint(_ id: String) -> String? { d.string(forKey: K.paintPrefix + id) }
+
+    func setVehiclePaint(_ id: String, _ paint: String?) {
+        if let paint, !paint.isEmpty { d.set(paint, forKey: K.paintPrefix + id) } else { d.removeObject(forKey: K.paintPrefix + id) }
     }
 
     /// Разрешено ли ходить в backend.

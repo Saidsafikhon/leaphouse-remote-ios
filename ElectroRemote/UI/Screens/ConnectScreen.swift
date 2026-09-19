@@ -36,7 +36,7 @@ struct ConnectScreen: View {
             }
             Spacer()
 
-            Text("LEAPREMOTE").font(ElectroType.overline).kerning(1.1).foregroundStyle(p.accent)
+            BrandLockup(markSize: 26)
             Spacer().frame(height: Space.x2)
             Text(chosen?.model ?? "C16").font(ElectroType.display).foregroundStyle(p.textPrimary)
             if let name = chosen?.name, !name.isEmpty {
@@ -45,9 +45,11 @@ struct ConnectScreen: View {
             }
             Spacer().frame(height: Space.x6)
 
-            // Рендер машины с тёмной подложкой в PNG — оформляем hero-карточкой.
+            // Рендер — студийная вырезка по модели и цвету кузова, на карточке темы.
             ZStack(alignment: .topTrailing) {
-                Image("car_01").resizable().scaledToFit().frame(maxWidth: .infinity).frame(height: 200)
+                Image(CarArt.imageName(chosen?.model, vm.paint)).resizable().scaledToFit()
+                    .frame(maxWidth: .infinity).frame(height: 200)
+                    .padding(.horizontal, Space.x2).padding(.vertical, Space.x2)
                 PhaseBadge(status: status).padding(Space.x3)
             }
             .frame(maxWidth: .infinity)
@@ -94,7 +96,7 @@ struct ConnectScreen: View {
         .padding(.bottom, Space.x5)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(p.background)
-        .sheet(isPresented: $showHelp) { HelpSheet(support: vm.support) }
+        .sheet(isPresented: $showHelp) { HelpSheet(support: vm.support, feedbackVM: vm.loggedIn ? vm : nil) }
     }
 }
 

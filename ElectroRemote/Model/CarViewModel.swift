@@ -57,6 +57,8 @@ final class CarViewModel: ObservableObject {
     @Published private(set) var newsRead: Set<String> = Settings.shared.newsRead
     /// Меняется при смене ника — чтобы список перерисовался.
     @Published private(set) var nickVersion = 0
+    /// Цвет кузова выбранной машины (локально) — рендер на экранах.
+    @Published private(set) var paint: String? = Settings.shared.vehicleId.flatMap { Settings.shared.vehiclePaint($0) }
 
     private var pollTask: Task<Void, Never>?
     private var connectTask: Task<Void, Never>?
@@ -583,6 +585,7 @@ final class CarViewModel: ObservableObject {
     func selectVehicle(_ id: String) {
         repo.selectVehicle(id)
         vehicleId = id
+        paint = settings.vehiclePaint(id)
         refreshNow()
         // У новой машины может быть другая модель → другой набор кнопок.
         loadMeta()
@@ -605,5 +608,26 @@ final class CarViewModel: ObservableObject {
     func setVehicleNick(_ id: String, _ name: String?) {
         settings.setVehicleNick(id, name)
         nickVersion += 1
+    }
+
+    func vehiclePaint(_ id: String) -> String? { settings.vehiclePaint(id) }
+
+    func setVehiclePaint(_ id: String, _ code: String?) {
+        settings.setVehiclePaint(id, code)
+        if id == vehicleId { paint = code }
+        nickVersion += 1
+    }
+
+    // --- отзыв ---
+
+    /// Отправить отзыв с вложениями; nil — успех, иначе причина/предупреждение.
+    /// `requested` — сколько файлов выбрал человек (часть могла не прочитаться или превысить лимит).
+    func sendFeedback(kind: String, text: String, files: [CarRepository.FeedbackFile], requested: Int) async -> String? {
+        do {
+            let r = try await repo.sendFeedback(kind: kind, text: text, appVersion: appVersion(), files: files)
+            let lost = r.failed + (requested - files.count)
+            if lost > 0 { return "Отзыв отправлен, но \(lost) из \(requested) вложений не приложились (слишком большие или нет связи)" }
+            return nil
+        } catch { return repo.reason(error) }
     }
 }

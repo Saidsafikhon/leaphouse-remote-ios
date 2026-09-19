@@ -137,8 +137,7 @@ struct LoginScreen: View {
         ScrollView {
             VStack(spacing: 0) {
                 Spacer().frame(height: Space.x8 * 2)
-                Text("LEAPREMOTE").font(.system(size: 28, weight: .bold)).foregroundStyle(p.accent)
-                    .multilineTextAlignment(.center).frame(maxWidth: .infinity)
+                BrandLockup(markSize: 44).frame(maxWidth: .infinity)
                 Spacer().frame(height: Space.x1)
                 Text("Управление вашим электромобилем").font(.system(size: 14)).foregroundStyle(p.textSecondary)
                     .multilineTextAlignment(.center).frame(maxWidth: .infinity)
@@ -411,8 +410,21 @@ struct HelpSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
     let support: SupportDto?
+    /// Отзыв доступен только под аккаунтом: без ключа серверу его не принять.
+    var feedbackVM: CarViewModel? = nil
+    @State private var feedback = false
 
     var body: some View {
+        if feedback, let vm = feedbackVM {
+            FeedbackView(vm: vm) { dismiss() }
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+        } else {
+            help
+        }
+    }
+
+    private var help: some View {
         VStack(alignment: .leading, spacing: Space.x3) {
             HStack {
                 Text("Помощь").font(ElectroType.headline).foregroundStyle(p.textPrimary)
@@ -435,6 +447,11 @@ struct HelpSheet: View {
                 if !s.site.isEmpty { helpLine("Сайт", s.site) { if let u = URL(string: webLink(s.site)) { openURL(u) } } }
             } else {
                 Text("Контакты поддержки пока не заданы.").font(.system(size: 13)).foregroundStyle(p.textMuted)
+            }
+            if feedbackVM != nil {
+                Spacer().frame(height: Space.x2)
+                Text("Нашли ошибку или есть идея — напишите нам прямо отсюда.").font(.system(size: 12)).foregroundStyle(p.textMuted)
+                ElectroButton(text: "Оставить отзыв", style: .secondary) { feedback = true }
             }
             Spacer()
         }

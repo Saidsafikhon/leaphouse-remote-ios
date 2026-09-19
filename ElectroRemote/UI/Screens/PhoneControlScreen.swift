@@ -74,6 +74,7 @@ struct PhoneControlScreen: View {
                             model: vm.selectedVehicle?.model ?? "C16",
                             support: vm.support,
                             caps: vm.capabilities,
+                            paint: vm.paint,
                             controls: controls,
                             stateOf: stateOf,
                             seatPresetSet: vm.seatPresetSet(),
@@ -83,7 +84,8 @@ struct PhoneControlScreen: View {
                             onRefresh: { vm.refreshNow() },
                             onOpen: { tab = $0 },
                             onSeatsOn: { vm.seatsOn() },
-                            onSeatsOff: { vm.seatsOff() }
+                            onSeatsOff: { vm.seatsOff() },
+                            feedbackVM: vm
                         )
                     }
                 }
@@ -148,6 +150,7 @@ private struct HomeTabView: View {
     let model: String
     let support: SupportDto?
     let caps: CapabilitiesDto?
+    let paint: String?
     let controls: [Int: String]
     let stateOf: (Int) -> ControlState
     let seatPresetSet: Bool
@@ -158,6 +161,7 @@ private struct HomeTabView: View {
     let onOpen: (HomeTab) -> Void
     let onSeatsOn: () -> Void
     let onSeatsOff: () -> Void
+    var feedbackVM: CarViewModel? = nil
 
     @State private var dialog: DialogSpec? = nil
     @State private var showHelp = false
@@ -167,7 +171,7 @@ private struct HomeTabView: View {
             VStack(alignment: .leading, spacing: Space.x5) {
                 HeaderLockup(car: car, model: model, unread: unreadNews, onHelp: { showHelp = true },
                              onNews: { onOpen(.news) }, onRefresh: onRefresh, onDisconnect: onDisconnect)
-                Hero(car: car)
+                Hero(model: model, paint: paint)
                 CarStatusStrip(car: car)
 
                 SectionTitle(text: "Панель быстрого доступа")
@@ -187,6 +191,7 @@ private struct HomeTabView: View {
                 let hasClimate = caps?.quick.contains("climate") ?? true
                 let hasSeats = caps?.groups.contains("seats") ?? true
                 if hasClimate || hasSeats {
+                    // одинаковая ширина (по половине) и высота (по большей плитке)
                     HStack(alignment: .top, spacing: Space.x3) {
                         if hasClimate {
                             GwmClimateCard(car: car, controls: controls, onToggle: { toggleClimate() }, onOpen: { onOpen(.climate) })
@@ -195,6 +200,7 @@ private struct HomeTabView: View {
                             GwmSeatsCard(controls: controls, hasPreset: seatPresetSet, onOn: onSeatsOn, onOff: onSeatsOff, onOpen: { onOpen(.seats) })
                         }
                     }
+                    .fixedSize(horizontal: false, vertical: true)
                 }
 
                 EntryRow(caps: caps, onOpen: onOpen)
@@ -205,7 +211,7 @@ private struct HomeTabView: View {
         }
         .background(p.background)
         .electroDialog($dialog)
-        .sheet(isPresented: $showHelp) { HelpSheet(support: support) }
+        .sheet(isPresented: $showHelp) { HelpSheet(support: support, feedbackVM: feedbackVM) }
     }
 
     /// Одна кнопка климата: включить или погасить всё. Выключение — только
@@ -233,11 +239,12 @@ let SEAT_LEVELS = 3
 func seatSummary(_ controls: [Int: String]) -> String {
     let heat = Cmd.SEAT_HEATS.filter { seatLevel(controls, $0) > 0 }.count
     let vent = Cmd.SEAT_VENTS.filter { seatLevel(controls, $0) > 0 }.count
+    // коротко — подпись живёт в узкой плитке на главной, ей нельзя переноситься
     switch (heat, vent) {
-    case (0, 0): return "Обогрев и вентиляция выключены"
-    case (_, 0): return "Обогрев: \(heat) из 4"
-    case (0, _): return "Вентиляция: \(vent) из 4"
-    default: return "Обогрев \(heat) · вентиляция \(vent)"
+    case (0, 0): return "Выключены"
+    case (_, 0): return "Обогрев · \(heat)"
+    case (0, _): return "Обдув · \(vent)"
+    default: return "Обогрев \(heat) · обдув \(vent)"
     }
 }
 
@@ -268,7 +275,7 @@ private struct HeaderLockup: View {
     var body: some View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: Space.x1) {
-                Text("LEAPREMOTE").font(ElectroType.overline).kerning(1.1).foregroundStyle(p.accent)
+                BrandLockup(markSize: 22)
                 Text(model).font(ElectroType.display).foregroundStyle(p.textPrimary)
                 Button(action: onRefresh) {
                     HStack(spacing: 6) {
@@ -340,42 +347,17 @@ private func updatedText(_ car: CarState) -> String {
     return "Обновлено " + f.string(from: Date(timeIntervalSince1970: Double(car.updatedAt) / 1000))
 }
 
+/// Рендер — студийная вырезка модели в цвете кузова; состояние дверей
+/// показывает полоса статуса ниже.
 private struct Hero: View {
-    let car: CarState
+    let model: String
+    let paint: String?
     var body: some View {
-        Image(heroName(car.doors, car.trunkOpen == true, car.hoodOpen))
+        Image(CarArt.imageName(model, paint))
             .resizable().scaledToFit()
             .frame(maxWidth: .infinity).frame(height: 190)
+            .padding(.horizontal, Space.x2)
     }
-}
-
-/// Картинка машины по состоянию дверей/багажника/капота (25 вариаций).
-private func heroName(_ d: Doors, _ trunk: Bool, _ hood: Bool) -> String {
-    let n: Int
-    switch true {
-    case hood && trunk && d.anyOpen: n = 25
-    case hood && trunk: n = 24
-    case hood && d.frontRight: n = 23
-    case hood && d.frontLeft: n = 22
-    case hood: n = 21
-    case trunk && d.frontLeft && d.frontRight && d.rearLeft && d.rearRight: n = 20
-    case trunk && d.frontRight && d.rearRight: n = 19
-    case trunk && d.frontLeft && d.rearLeft: n = 18
-    case trunk && d.rearRight: n = 17
-    case trunk && d.rearLeft: n = 16
-    case trunk && d.frontRight: n = 15
-    case trunk && d.frontLeft: n = 14
-    case trunk: n = 13
-    case d.frontLeft && d.frontRight && d.rearLeft && d.rearRight: n = 12
-    case d.frontRight && d.rearRight: n = 11
-    case d.frontLeft && d.rearLeft: n = 10
-    case d.rearRight: n = 9
-    case d.rearLeft: n = 8
-    case d.frontRight: n = 7
-    case d.frontLeft: n = 6
-    default: n = 1
-    }
-    return String(format: "car_%02d", n)
 }
 
 /// Одна полоса вместо четырёх карточек: охрана слева, запас и заряд справа.
@@ -563,7 +545,7 @@ private struct GwmClimateCard: View {
             Text(car.cabinTemp.map { "в салоне \($0.asTemp)°" } ?? "уставка").font(ElectroType.caption).foregroundStyle(p.textMuted)
         }
         .padding(Space.x4)
-        .frame(maxWidth: .infinity, minHeight: 132, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: 132, maxHeight: .infinity, alignment: .leading)
         .background(p.surface)
         .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
         .contentShape(Rectangle())
@@ -598,7 +580,7 @@ private struct GwmSeatsCard: View {
             Text(seatSummary(controls)).font(ElectroType.caption).foregroundStyle(p.textMuted).lineLimit(1)
         }
         .padding(Space.x4)
-        .frame(maxWidth: .infinity, minHeight: 132, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: 132, maxHeight: .infinity, alignment: .leading)
         .background(p.surface)
         .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
         .contentShape(Rectangle())
@@ -624,8 +606,9 @@ private struct SeatGlyphs: View {
                     ForEach(0..<2, id: \.self) { col in
                         let pair = seats[row * 2 + col]
                         let tint: Color = seatLevel(controls, pair.0) > 0 ? p.warn : (seatLevel(controls, pair.1) > 0 ? p.info : p.textDisabled)
-                        Image(systemName: "carseat.right").font(.system(size: 22)).foregroundStyle(tint)
-                            .frame(width: 26, height: 26)
+                        // силуэт кресла (эскиз владельца), тонируется по состоянию
+                        Image("seat_front").resizable().renderingMode(.template).scaledToFit()
+                            .foregroundStyle(tint).frame(width: 20, height: 30)
                     }
                 }
             }

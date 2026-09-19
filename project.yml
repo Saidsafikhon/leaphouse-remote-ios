@@ -1,5 +1,5 @@
 # Проект генерируется xcodegen (`xcodegen generate`) — .xcodeproj в git не хранится.
-# Версия и код сборки идут той же линией, что и Android (0.38.19 / 75).
+# Версия и код сборки идут той же линией, что и Android (0.41.0 / 94).
 name: ElectroRemote
 options:
   bundleIdPrefix: uz.electro
@@ -11,8 +11,8 @@ settings:
   base:
     SWIFT_VERSION: "5.9"
     SWIFT_STRICT_CONCURRENCY: minimal
-    MARKETING_VERSION: "0.38.19"
-    CURRENT_PROJECT_VERSION: "75"
+    MARKETING_VERSION: "0.41.0"
+    CURRENT_PROJECT_VERSION: "94"
     TARGETED_DEVICE_FAMILY: "1"
     ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: ""

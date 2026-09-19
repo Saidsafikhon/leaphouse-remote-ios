@@ -81,6 +81,23 @@ final class CarRepository {
     /// Контакты поддержки (открытый эндпоинт). nil — не достали.
     func support() async -> SupportDto? { Demo.enabled ? Demo.support : try? await cloud.support() }
 
+    /// Файл к отзыву, уже прочитанный в память.
+    struct FeedbackFile { let name: String; let mime: String; let data: Data }
+    /// Что вышло: сколько вложений долетело и сколько отвалилось.
+    struct FeedbackOutcome { let id: String; let attached: Int; let failed: Int }
+
+    /// Отзыв в админку; вложения уходят следом по одному, отзыв без них всё равно отправлен.
+    func sendFeedback(kind: String, text: String, appVersion: String, files: [FeedbackFile]) async throws -> FeedbackOutcome {
+        if Demo.enabled { return FeedbackOutcome(id: "demo", attached: files.count, failed: 0) }
+        let created = try await cloud.sendFeedback(FeedbackRequest(
+            kind: kind, text: text, vehicle_id: settings.vehicleId.flatMap { $0.isEmpty ? nil : $0 }, app_version: appVersion))
+        var failed = 0
+        for f in files {
+            do { _ = try await cloud.attachToFeedback(created.id, name: f.name, mime: f.mime, data: f.data) } catch { failed += 1 }
+        }
+        return FeedbackOutcome(id: created.id, attached: files.count - failed, failed: failed)
+    }
+
     func wake() async -> WakeResult {
         if Demo.enabled { return .sent("через пробуждалку в машине") }
         guard settings.cloudEnabled, settings.loggedIn else { return .noServer }

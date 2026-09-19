@@ -85,6 +85,17 @@ struct PasswordResetAccepted: Decodable { let detail: String? }
 
 struct PairClaimRequest: Encodable { let code: String }
 
+/// Отзыв из приложения: kind = bug | idea | other.
+struct FeedbackRequest: Encodable {
+    let kind: String
+    let text: String
+    let vehicle_id: String?
+    var app: String = "phone"
+    let app_version: String?
+}
+struct FeedbackCreated: Decodable { let id: String; let created_at: String }
+struct AttachmentDto: Decodable { let id: String; let name: String; let content_type: String; let size: Int }
+
 struct VehicleDto: Decodable, Identifiable, Equatable {
     let vehicle_id: String
     let vin: String
@@ -320,6 +331,25 @@ final class CloudClient {
     func removePushToken(_ token: String) async throws { let _: Empty = try await perform("DELETE", "api/v1/auth/push-token", body: PushTokenRemove(token: token)) }
     func news() async throws -> [NewsItem] { try await perform("GET", "api/v1/news?limit=50") }
     func support() async throws -> SupportDto { try await perform("GET", "api/v1/agent/support") }
+
+    // --- отзывы ---
+    func sendFeedback(_ body: FeedbackRequest) async throws -> FeedbackCreated { try await perform("POST", "api/v1/feedback", body: body) }
+
+    /// Вложение — сырой файл телом запроса, тип в Content-Type (сервер без multipart).
+    func attachToFeedback(_ feedbackId: String, name: String, mime: String, data: Data) async throws -> AttachmentDto {
+        let q = name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "file"
+        var req = URLRequest(url: try url("api/v1/feedback/\(feedbackId)/attachments?name=\(q)"))
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        req.setValue(mime, forHTTPHeaderField: "Content-Type")
+        if let token = settings.token, !token.isEmpty { req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
+        // запись экрана — десятки мегабайт по мобильной сети
+        req.timeoutInterval = 180
+        let (respData, resp) = try await session.upload(for: req, from: data)
+        let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
+        guard (200..<300).contains(code) else { throw ApiError.http(code, String(data: respData, encoding: .utf8) ?? "") }
+        do { return try JSONDecoder().decode(AttachmentDto.self, from: respData) } catch { throw ApiError.decode }
+    }
 
     // --- машины ---
     func vehicles() async throws -> [VehicleDto] { try await perform("GET", "api/v1/vehicles") }

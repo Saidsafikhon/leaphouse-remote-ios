@@ -43,5 +43,10 @@
 	<string>Automatic</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Unbounded-Light.ttf</string>
+		<string>Unbounded-ExtraBold.ttf</string>
+	</array>
 </dict>
 </plist>
