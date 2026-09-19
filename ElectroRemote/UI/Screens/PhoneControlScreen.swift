@@ -226,7 +226,15 @@ private struct HomeTabView: View {
 }
 
 /// Климат считаем включённым только по сигналу машины, а не по эху нажатия.
-func climateOn(_ controls: [Int: String]) -> Bool { controls[Cmd.AC] == "1" }
+/// Климат включён, если сигнал «ac» с машины не ноль: голова на части машин
+/// отдаёт режим (2 — авто и т.п.), и строгое «== 1» гасило тумблер при работающем климате.
+func climateOn(_ controls: [Int: String]) -> Bool { acOn(controls[Cmd.AC]) }
+
+func acOn(_ v: String?) -> Bool {
+    guard let s = v?.trimmingCharacters(in: .whitespaces).lowercased(), !s.isEmpty, s != "false", s != "null" else { return false }
+    if let f = Double(s) { return f != 0 }
+    return s == "true" || s == "on"
+}
 
 /// Уровень 0..3 по сигналу с машины или по последней команде.
 func seatLevel(_ controls: [Int: String], _ type: Int) -> Int {

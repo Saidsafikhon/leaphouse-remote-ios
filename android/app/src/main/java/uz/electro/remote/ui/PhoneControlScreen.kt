@@ -321,7 +321,18 @@ private fun toggleClimate(
 }
 
 /** Климат считаем включённым только по сигналу машины, а не по эху нажатия. */
-internal fun climateOn(controls: Map<Int, String>): Boolean = controls[Cmd.AC] == "1"
+/**
+ * Климат включён, если сигнал «ac» с машины не ноль. Раньше сравнивали строго
+ * с «1», а голова на части машин отдаёт режим (2 — авто и т.п.): тумблер гас,
+ * хотя климат работал. Панель на самой голове считает так же (`!= "0"`).
+ */
+internal fun climateOn(controls: Map<Int, String>): Boolean = acOn(controls[Cmd.AC])
+
+internal fun acOn(v: String?): Boolean {
+    val s = v?.trim()?.lowercase() ?: return false
+    if (s.isEmpty() || s == "false" || s == "null") return false
+    return s.toFloatOrNull()?.let { it != 0f } ?: (s == "true" || s == "on")
+}
 
 /**
  * Почему сейчас нельзя включать климат. null — можно.
@@ -347,7 +358,7 @@ private data class HomeConfirm(
 private fun toggle(current: String?): String = if (current == "1") "0" else "1"
 
 private fun climateSummary(car: CarState, controls: Map<Int, String>): String {
-    val on = controls[Cmd.AC] == "1"
+    val on = acOn(controls[Cmd.AC])
     val cabin = car.cabinTemp?.let { "в салоне ${it.asTemp()}°" } ?: "температура неизвестна"
     return (if (on) "Включён" else "Выключен") + " · " + cabin
 }
