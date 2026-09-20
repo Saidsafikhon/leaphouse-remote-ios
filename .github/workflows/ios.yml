@@ -223,6 +223,8 @@ jobs:
           set -o pipefail
           for THEME in dark light; do
             xcrun simctl ui "${{ steps.sim.outputs.udid }}" appearance $THEME
+            # чистое состояние: после первого прогона приложение остаётся «вошедшим», а тест ждёт экран входа
+            xcrun simctl uninstall "${{ steps.sim.outputs.udid }}" uz.electro.remote || true
             mkdir -p "screenshots/$THEME"
             TEST_RUNNER_SCREENSHOT_DIR="$PWD/screenshots/$THEME" xcodebuild test -project ElectroRemote.xcodeproj -scheme ElectroRemote \
               -destination "id=${{ steps.sim.outputs.udid }}" \
