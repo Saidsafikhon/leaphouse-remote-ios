@@ -217,32 +217,36 @@ jobs:
           xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --cellularBars 4 --wifiBars 3 --operatorName ""
           echo "sim: $NAME $UDID"
 
-      - name: Run UI test (screenshots)
+      # Два прогона — тёмная и светлая тема (приложение в «Авто» идёт за системой).
+      - name: Run UI test (screenshots, dark + light)
         run: |
           set -o pipefail
-          mkdir -p screenshots
-          TEST_RUNNER_SCREENSHOT_DIR="$PWD/screenshots" xcodebuild test -project ElectroRemote.xcodeproj -scheme ElectroRemote \
-            -destination "id=${{ steps.sim.outputs.udid }}" \
-            -resultBundlePath build/screens.xcresult \
-            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
-            2>&1 | tee uitest.log | grep -E "error:|Test Case|passed|failed|BUILD|TEST" || true
-          echo "--- screenshots dir:"; ls -la screenshots || true
-          # запасной путь: вложения теста из xcresult
-          if [ "$(ls screenshots/*.png 2>/dev/null | wc -l)" -lt 5 ] && [ -d build/screens.xcresult ]; then
-            mkdir -p attachments
-            xcrun xcresulttool export attachments --path build/screens.xcresult --output-path attachments || true
-            find attachments -name "*.png" -exec cp {} screenshots/ \;
-            ls -la screenshots || true
-          fi
-          echo "::notice::screenshots: $(ls screenshots 2>/dev/null | tr '\n' ' ') | attachments: $(find attachments -name '*.png' 2>/dev/null | head -3 | tr '\n' ' ')"
-          test "$(ls screenshots/*.png 2>/dev/null | wc -l)" -ge 5
+          for THEME in dark light; do
+            xcrun simctl ui "${{ steps.sim.outputs.udid }}" appearance $THEME
+            mkdir -p "screenshots/$THEME"
+            TEST_RUNNER_SCREENSHOT_DIR="$PWD/screenshots/$THEME" xcodebuild test -project ElectroRemote.xcodeproj -scheme ElectroRemote \
+              -destination "id=${{ steps.sim.outputs.udid }}" \
+              -resultBundlePath "build/screens-$THEME.xcresult" \
+              CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+              2>&1 | tee "uitest-$THEME.log" | grep -E "error:|Test Case|passed|failed|BUILD|TEST" || true
+            echo "--- screenshots/$THEME:"; ls -la "screenshots/$THEME" || true
+            # запасной путь: вложения теста из xcresult
+            if [ "$(ls screenshots/$THEME/*.png 2>/dev/null | wc -l)" -lt 5 ] && [ -d "build/screens-$THEME.xcresult" ]; then
+              rm -rf attachments; mkdir -p attachments
+              xcrun xcresulttool export attachments --path "build/screens-$THEME.xcresult" --output-path attachments || true
+              find attachments -name "*.png" -exec cp {} "screenshots/$THEME/" \;
+            fi
+            echo "::notice::screenshots/$THEME: $(ls screenshots/$THEME 2>/dev/null | tr '\n' ' ')"
+            test "$(ls screenshots/$THEME/*.png 2>/dev/null | wc -l)" -ge 5
+          done
+          cat uitest-dark.log uitest-light.log > uitest.log
 
       - name: Package screenshots
         run: |
-          W=$(python3 -c "import struct;f=open('screenshots/03-home.png','rb');f.read(16);print(struct.unpack('>I',f.read(4))[0])")
-          H=$(python3 -c "import struct;f=open('screenshots/03-home.png','rb');f.read(20);print(struct.unpack('>I',f.read(4))[0])")
+          W=$(python3 -c "import struct;f=open('screenshots/dark/03-home.png','rb');f.read(16);print(struct.unpack('>I',f.read(4))[0])")
+          H=$(python3 -c "import struct;f=open('screenshots/dark/03-home.png','rb');f.read(20);print(struct.unpack('>I',f.read(4))[0])")
           echo "размер $W x $H (${{ steps.sim.outputs.name }})"
-          cd screenshots && zip -q "../LeapRemote-screenshots-${W}x${H}.zip" *.png && cd ..
+          cd screenshots && zip -qr "../LeapRemote-screenshots-${W}x${H}.zip" dark light && cd ..
           ls -la *.zip
 
       - name: Report errors
@@ -266,5 +270,5 @@ jobs:
         with:
           name: LeapRemote-screenshots
           path: |
-            screenshots/*.png
-            uitest.log
+            screenshots/**/*.png
+            uitest*.log
