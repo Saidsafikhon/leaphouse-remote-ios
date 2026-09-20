@@ -61,7 +61,8 @@ struct RootView: View {
             if on {
                 branch = nil
                 // после входа один раз предлагаем поставить код
-                if !lock.enabled && !lock.offerDeclined && lock.available() { offerLock = true }
+                // в демо-прогоне скриншотов диалог не нужен
+                if !lock.enabled && !lock.offerDeclined && lock.available() && !Demo.enabled { offerLock = true }
             }
         }
         .alert("Защитить вход?", isPresented: $offerLock) {
