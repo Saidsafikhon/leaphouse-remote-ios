@@ -364,7 +364,12 @@ private fun PaintPicker(model: String?, current: String?, onPick: (String) -> Un
     if (paints.size < 2) return
     val chosen = current?.takeIf { c -> paints.any { it.code == c } } ?: paints.first().code
     Column(Modifier.fillMaxWidth().padding(start = 48.dp, top = 2.dp, bottom = 8.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+        // цветов может быть до 8 — переносим на вторую строку, а не режем
+        @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+        androidx.compose.foundation.layout.FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             paints.forEach { p ->
                 val sel = p.code == chosen
                 // выбранный — крупнее, с толстым акцентным кольцом и галочкой,

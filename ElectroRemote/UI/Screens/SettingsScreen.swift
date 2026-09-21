@@ -234,7 +234,8 @@ private struct PaintPicker: View {
         if paints.count >= 2 {
             let chosen = paints.first { $0.code == current }?.code ?? paints[0].code
             VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 10) {
+                // цветов может быть до 8 — сетка с переносом, а не одна строка
+                LazyVGrid(columns: Array(repeating: GridItem(.fixed(34), spacing: 8), count: 7), alignment: .leading, spacing: 8) {
                     ForEach(paints) { pt in
                         let sel = pt.code == chosen
                         Button { onPick(pt.code) } label: {
