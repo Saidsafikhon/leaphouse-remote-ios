@@ -19,8 +19,7 @@ object CarArt {
         "pearl-white" to Paint("pearl-white", "Жемчужно-белый", Color(0xFFE9EAEC)),
         "metallic-black" to Paint("metallic-black", "Чёрный металлик", Color(0xFF1B1D21)),
         "canopy-gray" to Paint("canopy-gray", "Серый", Color(0xFF8E9296)),
-        "terra-grey" to Paint("terra-grey", "Терра-серый", Color(0xFF6A6D70)),
-        "jade-green" to Paint("jade-green", "Нефритовый зелёный", Color(0xFF2E5B45)),
+        "jade-green" to Paint("jade-green", "Глазурно-зелёный", Color(0xFF2E5B45)),
         "galaxy-silver" to Paint("galaxy-silver", "Серебристый", Color(0xFFB8BCC2)),
         "glacier-blue" to Paint("glacier-blue", "Ледниковый голубой", Color(0xFFB6CDE0)),
         "walden-green" to Paint("walden-green", "Тёмно-зелёный", Color(0xFF2F4A3C)),
@@ -32,6 +31,8 @@ object CarArt {
         "star-purple" to Paint("star-purple", "Звёздный фиолетовый", Color(0xFF5A4A6E)),
         "tundra-grey" to Paint("tundra-grey", "Тундра-серый", Color(0xFFC9C6C0)),
         "sky-grey" to Paint("sky-grey", "Небесно-серый", Color(0xFF4C5157)),
+        "dawn-purple" to Paint("dawn-purple", "Рассветный фиолетовый", Color(0xFF4A3550)),
+        "starry-night-blue" to Paint("starry-night-blue", "Звёздная ночь (синий)", Color(0xFF4A5F85)),
     )
 
     /** Какие цвета есть у модели — ровно те, на которые есть рендер. */
@@ -47,7 +48,7 @@ object CarArt {
             "pearl-white" to R.drawable.car_c10_pearl_white,
             "metallic-black" to R.drawable.car_c10_metallic_black,
             "canopy-gray" to R.drawable.car_c10_canopy_gray,
-            "terra-grey" to R.drawable.car_c10_terra_grey,
+            "tundra-grey" to R.drawable.car_c10_tundra_grey,
             "jade-green" to R.drawable.car_c10_jade_green,
         ),
         "C11" to mapOf(
@@ -66,8 +67,10 @@ object CarArt {
         "B10" to mapOf(
             "pearl-white" to R.drawable.car_b10_pearl_white,
             "metallic-black" to R.drawable.car_b10_metallic_black,
-            "terra-grey" to R.drawable.car_b10_terra_grey,
-            "glacier-blue" to R.drawable.car_b10_glacier_blue,
+            "tundra-grey" to R.drawable.car_b10_tundra_grey,
+            "galaxy-silver" to R.drawable.car_b10_galaxy_silver,
+            "starry-night-blue" to R.drawable.car_b10_starry_night_blue,
+            "dawn-purple" to R.drawable.car_b10_dawn_purple,
             "sakura-pink" to R.drawable.car_b10_sakura_pink,
         ),
         "A10" to mapOf(

@@ -18,8 +18,7 @@ enum CarArt {
         "pearl-white": Paint(code: "pearl-white", label: "Жемчужно-белый", swatch: Color(hex: 0xE9EAEC)),
         "metallic-black": Paint(code: "metallic-black", label: "Чёрный металлик", swatch: Color(hex: 0x1B1D21)),
         "canopy-gray": Paint(code: "canopy-gray", label: "Серый", swatch: Color(hex: 0x8E9296)),
-        "terra-grey": Paint(code: "terra-grey", label: "Терра-серый", swatch: Color(hex: 0x6A6D70)),
-        "jade-green": Paint(code: "jade-green", label: "Нефритовый зелёный", swatch: Color(hex: 0x2E5B45)),
+        "jade-green": Paint(code: "jade-green", label: "Глазурно-зелёный", swatch: Color(hex: 0x2E5B45)),
         "galaxy-silver": Paint(code: "galaxy-silver", label: "Серебристый", swatch: Color(hex: 0xB8BCC2)),
         "glacier-blue": Paint(code: "glacier-blue", label: "Ледниковый голубой", swatch: Color(hex: 0xB6CDE0)),
         "walden-green": Paint(code: "walden-green", label: "Тёмно-зелёный", swatch: Color(hex: 0x2F4A3C)),
@@ -31,15 +30,17 @@ enum CarArt {
         "star-purple": Paint(code: "star-purple", label: "Звёздный фиолетовый", swatch: Color(hex: 0x5A4A6E)),
         "tundra-grey": Paint(code: "tundra-grey", label: "Тундра-серый", swatch: Color(hex: 0xC9C6C0)),
         "sky-grey": Paint(code: "sky-grey", label: "Небесно-серый", swatch: Color(hex: 0x4C5157)),
+        "dawn-purple": Paint(code: "dawn-purple", label: "Рассветный фиолетовый", swatch: Color(hex: 0x4A3550)),
+        "starry-night-blue": Paint(code: "starry-night-blue", label: "Звёздная ночь (синий)", swatch: Color(hex: 0x4A5F85)),
     ]
 
     /// Какие цвета есть у модели — ровно те, на которые есть рендер (порядок = порядок кружков).
     private static let art: [String: [String]] = [
         "C16": ["pearl-white", "metallic-black", "canopy-gray", "jade-green", "glacier-blue"],
-        "C10": ["pearl-white", "metallic-black", "canopy-gray", "terra-grey", "jade-green"],
+        "C10": ["pearl-white", "metallic-black", "canopy-gray", "tundra-grey", "jade-green"],
         "C11": ["pearl-white", "metallic-black", "canopy-gray", "galaxy-silver", "walden-green", "light-white"],
         "C01": ["metallic-black", "galaxy-silver", "walden-green"],
-        "B10": ["pearl-white", "metallic-black", "terra-grey", "glacier-blue", "sakura-pink"],
+        "B10": ["pearl-white", "metallic-black", "tundra-grey", "galaxy-silver", "starry-night-blue", "dawn-purple", "sakura-pink"],
         "A10": ["seaweed-green", "galaxy-silver", "tundra-grey", "berry-blue", "acorn-brown", "star-purple"],
         "D19": ["metallic-black", "pearl-white", "sky-grey", "jade-green"],
     ]
