@@ -63,7 +63,7 @@ fun NewsScreen(
             else -> n.category == filter
         }
     }
-    val unread = items.count { it.id !in read }
+    val unread = items.count { it.source == null && it.id !in read }
 
     ScreenScaffold(S("Новости"), onBack) {
         Row(
@@ -92,7 +92,8 @@ fun NewsScreen(
         if (shown.isEmpty()) {
             EmptyNote(if (items.isEmpty()) S("Пока ничего нет. Здесь появятся новости и уведомления от оператора.") else S("В этом разделе пусто."))
         }
-        shown.forEach { n -> NewsCard(n, isRead = n.id in read, onOpen = { onRead(n); selected = n }) }
+        // NEW — только у новостей оператора; RSS-новости показываются тихо
+        shown.forEach { n -> NewsCard(n, isRead = n.source != null || n.id in read, onOpen = { onRead(n); selected = n }) }
     }
 }
 

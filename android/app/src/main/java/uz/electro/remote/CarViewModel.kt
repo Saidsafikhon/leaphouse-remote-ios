@@ -158,8 +158,9 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
     val newsRead: StateFlow<Set<String>> = _newsRead.asStateFlow()
 
     /** Сколько новостей ещё не отмечено прочитанными — бейдж на колокольчике. */
+    // Считаем только новости оператора (source == null): автоновости из RSS бейдж не крутят.
     val unreadNews: StateFlow<Int> =
-        combine(_news, _newsRead) { list, read -> list.count { it.id !in read } }
+        combine(_news, _newsRead) { list, read -> list.count { it.source == null && it.id !in read } }
             .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
 
     /** До входа — публичная лента (без адресных уведомлений), после — полная. */

@@ -92,12 +92,13 @@ final class CarViewModel: ObservableObject {
 
     // --- новости и push ---
 
-    var unreadNews: Int { news.filter { !newsRead.contains($0.id) }.count }
+    /// Считаем только новости оператора (source == nil): автоновости из RSS бейдж не крутят.
+    var unreadNews: Int { news.filter { $0.source == nil && !newsRead.contains($0.id) }.count }
 
     /// До входа — публичная лента (без адресных уведомлений), после — полная.
     func loadNews() { Task { news = loggedIn ? await repo.news() : await repo.newsPublic() } }
 
-    func isRead(_ item: NewsItem) -> Bool { newsRead.contains(item.id) }
+    func isRead(_ item: NewsItem) -> Bool { item.source != nil || newsRead.contains(item.id) }
 
     func markRead(_ item: NewsItem) {
         newsRead.insert(item.id)
