@@ -21,6 +21,8 @@ for d in DST:
 # ключи из кода
 keys = set()
 pat = re.compile(r'(?<![A-Za-z])[SL]\("((?:[^"\\]|\\.)*)"')
+# подписи цветов: Paint("code", "Ключ" / labelKey: "Ключ" — переводятся при чтении
+pat2 = re.compile(r'(?:Paint\("[a-z-]+", |labelKey: )"([^"]+)"')
 for p in glob.glob(ROOT + '/android/app/src/main/java/**/*.kt', recursive=True) + glob.glob(ROOT + '/ElectroRemote/**/*.swift', recursive=True):
     s = open(p, encoding='utf-8', errors='ignore').read()
     for m in pat2.finditer(s): keys.add(m.group(1))
