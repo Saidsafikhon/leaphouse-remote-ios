@@ -103,8 +103,8 @@ struct CarSceneView: UIViewRepresentable {
     let yaw: Float
     let pitch: Float
 
-    /// Камера — как на Android: цель в центре модели (единичный куб), взгляд спереди-слева чуть сверху.
-    static let eye = SCNVector3(-1.23, 0.38, 1.53)
+    /// Камера — как на Android: цель в центре модели (единичный куб), чистый вид сбоку, нос влево, чуть сверху.
+    static let eye = SCNVector3(0, 0.3, 2.0)
     /// «Правая» ось камеры — вокруг неё наклон, чтобы вертикальный свайп работал как орбита.
     static var rightAxis: SCNVector3 {
         let f = SCNVector3(-eye.x, 0, -eye.z)          // forward без y

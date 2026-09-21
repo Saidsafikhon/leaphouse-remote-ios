@@ -135,9 +135,9 @@ class FilamentCarView(ctx: Context) : SurfaceView(ctx) {
     private var uiHelper: UiHelper? = null
     private var pendingPaint: Color? = null
 
-    /** Стартовый ракурс — как на статичном рендере экрана подключения: три четверти спереди-слева, чуть сверху, нос влево. Одинаковый для всех моделей. */
+    /** Стартовый ракурс (выбран владельцем 21.09): чистый вид сбоку, нос влево, чуть сверху. Одинаковый для всех моделей. */
     private companion object {
-        const val EYE_X = -1.15f; const val EYE_Y = 0.36f; const val EYE_Z = -2.57f   // цель в (0,0,-4)
+        const val EYE_X = 0f; const val EYE_Y = 0.3f; const val EYE_Z = -2.0f   // цель в (0,0,-4)
     }
 
     // ось наклона = «правая» ось камеры, чтобы вертикальный свайп работал как орбита
