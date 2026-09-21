@@ -25,7 +25,9 @@ final class Lang: ObservableObject {
         }
         tables = t
         let saved = UserDefaults.standard.string(forKey: "lang")
-        if let s = saved, Lang.all.contains(s) { code = s }
+        // UI-тест скриншотов запускается с «-screenshots»: экраны ждут русские подписи
+        if ProcessInfo.processInfo.arguments.contains("-screenshots") { code = "ru" }
+        else if let s = saved, Lang.all.contains(s) { code = s }
         else {
             let sys = Locale.preferredLanguages.first.map { String($0.prefix(2)).lowercased() } ?? "ru"
             code = Lang.all.contains(sys) ? sys : "ru"
