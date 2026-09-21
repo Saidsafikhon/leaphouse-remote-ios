@@ -162,7 +162,8 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
         combine(_news, _newsRead) { list, read -> list.count { it.id !in read } }
             .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
 
-    fun loadNews() = viewModelScope.launch { _news.value = repo.news() }
+    /** До входа — публичная лента (без адресных уведомлений), после — полная. */
+    fun loadNews() = viewModelScope.launch { _news.value = if (_loggedIn.value) repo.news() else repo.newsPublic() }
 
     fun markNewsRead(id: String) {
         val next = _newsRead.value + id

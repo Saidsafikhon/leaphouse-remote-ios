@@ -52,6 +52,19 @@ fun LoginScreen(
     val support by vm.support.collectAsState()
     var showHelp by remember { mutableStateOf(false) }
     if (showHelp) HelpDialog(support) { showHelp = false }
+    // Новости «для всех» видны и до входа
+    val news by vm.news.collectAsState()
+    val newsRead by vm.newsRead.collectAsState()
+    val unreadNews by vm.unreadNews.collectAsState()
+    var showNews by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { vm.loadNews() }
+    if (showNews) {
+        androidx.compose.material3.Surface(color = ElectroColors.Background, modifier = Modifier.fillMaxSize()) {
+            NewsScreen(news, newsRead, onRead = { vm.markNewsRead(it.id) },
+                onReadAll = { vm.markAllNewsRead() }, onBack = { showNews = false })
+        }
+        return
+    }
 
     Column(
         Modifier.fillMaxSize().background(ElectroColors.Background)
@@ -61,6 +74,8 @@ fun LoginScreen(
         Spacer(Modifier.height(Space.x8))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
             uz.electro.remote.ui.components.LangPicker(compact = true)
+            Spacer(Modifier.width(Space.x2))
+            NewsBell(unreadNews, onClick = { showNews = true })
             Spacer(Modifier.width(Space.x2))
             HelpFab(onClick = { showHelp = true })
         }

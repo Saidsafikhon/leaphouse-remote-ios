@@ -228,6 +228,10 @@ interface ElectroApi {
     @GET("api/v1/news")
     suspend fun news(@Query("limit") limit: Int = 50): List<NewsItemDto>
 
+    /** Лента без входа — только новости «для всех» (экран логина). */
+    @GET("api/v1/news/public")
+    suspend fun newsPublic(@Query("limit") limit: Int = 50): List<NewsItemDto>
+
     @GET("api/v1/agent/support")
     suspend fun support(): SupportDto
 

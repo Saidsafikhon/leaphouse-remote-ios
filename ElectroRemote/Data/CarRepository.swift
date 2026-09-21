@@ -184,6 +184,7 @@ final class CarRepository {
     }
 
     func news() async -> [NewsItem] { Demo.enabled ? Demo.news : ((try? await cloud.news()) ?? []) }
+    func newsPublic() async -> [NewsItem] { Demo.enabled ? Demo.news : ((try? await cloud.newsPublic()) ?? []) }
 
     func logout() { settings.logout() }
 

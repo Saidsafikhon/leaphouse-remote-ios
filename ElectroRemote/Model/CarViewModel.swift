@@ -94,7 +94,8 @@ final class CarViewModel: ObservableObject {
 
     var unreadNews: Int { news.filter { !newsRead.contains($0.id) }.count }
 
-    func loadNews() { Task { news = await repo.news() } }
+    /// До входа — публичная лента (без адресных уведомлений), после — полная.
+    func loadNews() { Task { news = loggedIn ? await repo.news() : await repo.newsPublic() } }
 
     func isRead(_ item: NewsItem) -> Bool { newsRead.contains(item.id) }
 

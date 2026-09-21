@@ -275,6 +275,10 @@ class CarRepository(private val settings: Settings) {
         runCatching { cloud.api.news() }.getOrElse { emptyList() }
     }
 
+    suspend fun newsPublic(): List<NewsItemDto> = withContext(Dispatchers.IO) {
+        runCatching { cloud.api.newsPublic() }.getOrElse { emptyList() }
+    }
+
     /** Push-токен серверу; не критично — при неудаче повторим при следующем запуске. */
     suspend fun registerPushToken(token: String): Boolean = withContext(Dispatchers.IO) {
         if (!settings.loggedIn) return@withContext false

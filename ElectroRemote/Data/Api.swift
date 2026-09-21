@@ -330,6 +330,8 @@ final class CloudClient {
     func registerPushToken(platform: String, token: String) async throws { let _: Empty = try await perform("POST", "api/v1/auth/push-token", body: PushTokenBody(platform: platform, token: token)) }
     func removePushToken(_ token: String) async throws { let _: Empty = try await perform("DELETE", "api/v1/auth/push-token", body: PushTokenRemove(token: token)) }
     func news() async throws -> [NewsItem] { try await perform("GET", "api/v1/news?limit=50") }
+    /// Лента без входа — только новости «для всех» (экран логина).
+    func newsPublic() async throws -> [NewsItem] { try await perform("GET", "api/v1/news/public?limit=50") }
     func support() async throws -> SupportDto { try await perform("GET", "api/v1/agent/support") }
 
     // --- отзывы ---

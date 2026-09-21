@@ -124,6 +124,7 @@ struct LoginScreen: View {
     @State private var error: String? = nil
     @State private var busy = false
     @State private var showHelp = false
+    @State private var showNews = false
 
     init(vm: CarViewModel, onLoggedIn: @escaping () -> Void, onRegister: @escaping () -> Void, onForgot: @escaping () -> Void) {
         self.vm = vm
@@ -135,10 +136,20 @@ struct LoginScreen: View {
     }
 
     var body: some View {
+        if showNews {
+            NewsScreen(items: vm.news, isRead: { vm.isRead($0) }, onRead: { vm.markRead($0) },
+                       onReadAll: { vm.markAllRead() }, onBack: { showNews = false }, onRefresh: { vm.loadNews() })
+        } else {
+            form
+        }
+    }
+
+    private var form: some View {
         ScrollView {
             VStack(spacing: 0) {
                 Spacer().frame(height: Space.x8)
-                HStack(spacing: Space.x2) { Spacer(); LangPicker(compact: true); HelpFab { showHelp = true } }
+                // Новости «для всех» видны и до входа
+                HStack(spacing: Space.x2) { Spacer(); LangPicker(compact: true); NewsBell(unread: vm.unreadNews) { showNews = true }; HelpFab { showHelp = true } }
                 Spacer().frame(height: Space.x6)
                 BrandLockup(markSize: 44).frame(maxWidth: .infinity)
                 Spacer().frame(height: Space.x1)
@@ -196,6 +207,7 @@ struct LoginScreen: View {
         .scrollDismissesKeyboard(.interactively)
         .background(p.background)
         .sheet(isPresented: $showHelp) { HelpSheet(support: vm.support, feedbackVM: nil) }
+        .onAppear { vm.loadNews() }
     }
 }
 
