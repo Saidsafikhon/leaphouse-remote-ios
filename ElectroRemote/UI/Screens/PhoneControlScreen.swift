@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Вкладки главного экрана.
-enum HomeTab: Equatable { case car, climate, seats, map, settings, scenes, schedule, voice, news }
+enum HomeTab: Equatable { case car, climate, seats, map, settings, scenes, schedule, voice, news, shop }
 
 /// Главный экран по обложке: марка и модель → фото машины → полоса состояния →
 /// быстрые действия → климат и сиденья → входы в разделы.
@@ -65,6 +65,10 @@ struct PhoneControlScreen: View {
                         )
                     case .voice:
                         VoiceScreen(intents: vm.voiceIntents, onRun: { vm.runVoice($0) }, onBack: { tab = .car })
+                    case .shop:
+                        ShopScreen(products: vm.products, loggedIn: true, model: vm.selectedVehicle?.model,
+                                   onOrder: { id, qty, phone, comment, done in vm.order(id, qty: qty, phone: phone, comment: comment, done: done) },
+                                   onBack: { tab = .car }, onRefresh: { vm.loadProducts() })
                     case .news:
                         NewsScreen(items: vm.news, isRead: { vm.isRead($0) }, onRead: { vm.markRead($0) },
                                    onReadAll: { vm.markAllRead() }, onBack: { tab = .car }, onRefresh: { vm.loadNews() })
@@ -170,7 +174,7 @@ private struct HomeTabView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: Space.x5) {
                 HeaderLockup(car: car, model: model, unread: unreadNews, onHelp: { showHelp = true },
-                             onNews: { onOpen(.news) }, onRefresh: onRefresh, onDisconnect: onDisconnect)
+                             onNews: { onOpen(.news) }, onShop: { onOpen(.shop) }, onRefresh: onRefresh, onDisconnect: onDisconnect)
                 Hero(model: model, paint: paint)
                 CarStatusStrip(car: car)
 
@@ -277,6 +281,7 @@ private struct HeaderLockup: View {
     let unread: Int
     let onHelp: () -> Void
     let onNews: () -> Void
+    let onShop: () -> Void
     let onRefresh: () -> Void
     let onDisconnect: () -> Void
 
@@ -297,6 +302,7 @@ private struct HeaderLockup: View {
             VStack(alignment: .trailing, spacing: Space.x2) {
                 DisconnectChip(action: onDisconnect)
                 HStack(spacing: Space.x2) {
+                    ShopFab(action: onShop)
                     NewsBell(unread: unread, action: onNews)
                     HelpFab(action: onHelp)
                 }

@@ -126,6 +126,40 @@ struct VehicleDto: Decodable, Identifiable, Equatable {
     var id: String { vehicle_id }
 }
 
+/// Товар витрины магазина аксессуаров. Цена в сумах.
+struct ProductDto: Decodable, Identifiable, Equatable {
+    let id: String
+    let title: String
+    var description: String = ""
+    var price: Int64 = 0
+    var old_price: Int64? = nil
+    var currency: String = "UZS"
+    var image_url: String? = nil
+    var link: String? = nil
+    var category: String = "accessory"   // accessory | equipment | care | tuning | other
+    var models: String = ""
+    var active: Bool = true
+
+    private enum CodingKeys: String, CodingKey { case id, title, description, price, old_price, currency, image_url, link, category, models, active }
+    init(from d: Decoder) throws {
+        let c = try d.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        title = try c.decode(String.self, forKey: .title)
+        description = try c.decodeIfPresent(String.self, forKey: .description) ?? ""
+        price = try c.decodeIfPresent(Int64.self, forKey: .price) ?? 0
+        old_price = try c.decodeIfPresent(Int64.self, forKey: .old_price)
+        currency = try c.decodeIfPresent(String.self, forKey: .currency) ?? "UZS"
+        image_url = try c.decodeIfPresent(String.self, forKey: .image_url)
+        link = try c.decodeIfPresent(String.self, forKey: .link)
+        category = try c.decodeIfPresent(String.self, forKey: .category) ?? "accessory"
+        models = try c.decodeIfPresent(String.self, forKey: .models) ?? ""
+        active = try c.decodeIfPresent(Bool.self, forKey: .active) ?? true
+    }
+}
+
+struct OrderRequest: Encodable { let product_id: String; let qty: Int; let phone: String; let comment: String; let vehicle_id: String? }
+struct OrderDto: Decodable { let id: String; let product_title: String; let qty: Int; let status: String }
+
 struct SupportDto: Decodable, Equatable {
     var phone: String = ""
     var telegram: String = ""
@@ -353,6 +387,8 @@ final class CloudClient {
     /// Лента без входа — только новости «для всех» (экран логина).
     func newsPublic() async throws -> [NewsItem] { try await perform("GET", "api/v1/news/public?limit=50") }
     func support() async throws -> SupportDto { try await perform("GET", "api/v1/agent/support") }
+    func products() async throws -> [ProductDto] { try await perform("GET", "api/v1/shop/products") }
+    func order(_ body: OrderRequest) async throws -> OrderDto { try await perform("POST", "api/v1/shop/orders", body: body) }
 
     // --- отзывы ---
     func sendFeedback(_ body: FeedbackRequest) async throws -> FeedbackCreated { try await perform("POST", "api/v1/feedback", body: body) }

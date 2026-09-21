@@ -10,6 +10,7 @@ struct ConnectScreen: View {
     @State private var showSettings = false
     @State private var showHelp = false
     @State private var showNews = false
+    @State private var showShop = false
 
     private func start() {
         if vm.wakeConfigured { vm.connect() } else { showSettings = true }
@@ -18,6 +19,10 @@ struct ConnectScreen: View {
     var body: some View {
         if showSettings {
             SettingsScreen(vm: vm) { showSettings = false }
+        } else if showShop {
+            ShopScreen(products: vm.products, loggedIn: true, model: vm.selectedVehicle?.model,
+                                   onOrder: { id, qty, phone, comment, done in vm.order(id, qty: qty, phone: phone, comment: comment, done: done) },
+                                   onBack: { showShop = false }, onRefresh: { vm.loadProducts() })
         } else if showNews {
             NewsScreen(items: vm.news, isRead: { vm.isRead($0) }, onRead: { vm.markRead($0) },
                        onReadAll: { vm.markAllRead() }, onBack: { showNews = false }, onRefresh: { vm.loadNews() })
@@ -32,6 +37,7 @@ struct ConnectScreen: View {
             HStack(spacing: Space.x2) {
                 LangPicker(compact: true)
                 Spacer()
+                ShopFab { showShop = true }
                 NewsBell(unread: vm.unreadNews) { showNews = true }
                 HelpFab { showHelp = true }
             }

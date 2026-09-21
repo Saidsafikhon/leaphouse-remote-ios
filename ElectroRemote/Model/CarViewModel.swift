@@ -95,6 +95,17 @@ final class CarViewModel: ObservableObject {
     /// Считаем только новости оператора (source == nil): автоновости из RSS бейдж не крутят.
     var unreadNews: Int { news.filter { $0.source == nil && !newsRead.contains($0.id) }.count }
 
+    // --- магазин ---
+    @Published private(set) var products: [ProductDto] = []
+    func loadProducts() { Task { products = await repo.products() } }
+    /// Заявка: колбэк с текстом ошибки или nil при успехе.
+    func order(_ productId: String, qty: Int, phone: String, comment: String, done: @escaping (String?) -> Void) {
+        Task {
+            let err = await repo.order(OrderRequest(product_id: productId, qty: qty, phone: phone, comment: comment, vehicle_id: vehicleId))
+            await MainActor.run { done(err) }
+        }
+    }
+
     /// До входа — публичная лента (без адресных уведомлений), после — полная.
     func loadNews() { Task { news = loggedIn ? await repo.news() : await repo.newsPublic() } }
 

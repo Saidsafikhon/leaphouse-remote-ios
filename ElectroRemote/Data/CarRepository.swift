@@ -80,6 +80,11 @@ final class CarRepository {
 
     /// Контакты поддержки (открытый эндпоинт). nil — не достали.
     func support() async -> SupportDto? { Demo.enabled ? Demo.support : try? await cloud.support() }
+    func products() async -> [ProductDto] { (try? await cloud.products()) ?? [] }
+    /// Заявка на товар; nil — отправлено, иначе текст ошибки.
+    func order(_ req: OrderRequest) async -> String? {
+        do { _ = try await cloud.order(req); return nil } catch { return reasonOf(error) }
+    }
 
     /// Файл к отзыву, уже прочитанный в память.
     struct FeedbackFile { let name: String; let mime: String; let data: Data }
