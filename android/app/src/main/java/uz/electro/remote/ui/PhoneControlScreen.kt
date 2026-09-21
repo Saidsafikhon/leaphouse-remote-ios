@@ -17,6 +17,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -496,13 +497,22 @@ private fun updatedText(car: CarState): String = when {
 
 @Composable
 private fun Hero(model: String?, paint: String?) {
-    // Состояние дверей/багажника рисует полоса статуса ниже; сам рендер —
-    // студийная вырезка модели в цвете кузова, без тёмной подложки.
-    Image(
-        painterResource(CarArt.image(model, paint)), null,
-        modifier = Modifier.fillMaxWidth().height(190.dp).padding(horizontal = Space.x2),
-        contentScale = ContentScale.Fit,
-    )
+    // 3D-машина (крутится пальцем), пока модель не скачалась — студийный рендер.
+    var ready by remember { mutableStateOf(false) }
+    val swatch = CarArt.paints(model).firstOrNull { it.code == paint }?.swatch
+        ?: CarArt.paints(model).firstOrNull()?.swatch ?: androidx.compose.ui.graphics.Color(0xFFE9EAEC)
+    Box(Modifier.fillMaxWidth().height(230.dp)) {
+        if (!ready) Image(
+            painterResource(CarArt.image(model, paint)), null,
+            modifier = Modifier.fillMaxWidth().height(190.dp).align(Alignment.Center).padding(horizontal = Space.x2),
+            contentScale = ContentScale.Fit,
+        )
+        uz.electro.remote.ui.components.CarModelView(
+            model = model, paint = swatch,
+            modifier = Modifier.fillMaxSize().then(if (ready) Modifier else Modifier.alpha(0f)),
+            onReady = { ready = it },
+        )
+    }
 }
 
 /** Одна полоса вместо четырёх карточек: охрана слева, запас и заряд справа. */
