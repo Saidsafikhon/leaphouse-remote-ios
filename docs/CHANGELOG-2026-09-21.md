@@ -27,7 +27,12 @@
     after shutdown` → SIGABRT (так и падало при входе в настройки).
   - на эмуляторе (SwiftShader) Filament вешает систему — `CarModels.supported` отдаёт статичную картинку.
 - `PhoneControlScreen.Hero`: статичный рендер до первого реально отрисованного кадра (`onFirstFrame`), потом 3D.
-- iOS-версия 3D **не сделана** (план: SceneKit/GLTFKit2 с теми же GLB).
+- iOS (0.47.0): `UI/Components/CarModelView.swift` — SceneKit + пакет **GLTFKit2** (SPM, `project.yml → packages`),
+  те же GLB с сервера, кеш в Caches/models/v<N>, `CarSceneCache` держит сцену в процессе. `CarSceneView.prepare`:
+  модель в единичный куб и в центр, узлы `pitch`→`yaw`→content, камера `(-1.45, 0.45, 1.8)` fov 46°, окружение —
+  сгенерированный градиент «студия» + directional light. Жест — SwiftUI `highPriorityGesture(DragGesture)`
+  (yaw 0.01/pt, pitch 0.006/pt, [-0.35, 0.9]). Перекраска — материалы `M_Paint`/`M_CarPaint` → diffuse.
+  Hero на главной: статичный рендер до `onReady`. Prefetch с экрана подключения.
 
 ## 2. Цвета кузова — по официальным сайтам
 
@@ -108,8 +113,15 @@
 - Поиск в админке на вкладке «Магазин» (общее поле сверху): по товарам (название, описание, категория, модели, цена)
   и заявкам (товар, телефон, комментарий, человек, статус); фильтрует на клиенте (`drawShop`).
 
-## 6. Версии и сборки
+## 6. Размер приложения
 
-- Android 0.46.0 (103) и iOS 0.46.0 (103). APK на рабочем столе `LeapRemote-0.46.0-103-android.apk`; iOS собирает CI
-  (`.github/workflows/ios.yml`, релиз `latest`).
+- Android 0.46: 33 МБ — 28 МБ из них нативные библиотеки Filament в четырёх копиях (arm64, arm32, x86, x86_64).
+  0.47: `ndk { abiFilters "arm64-v8a", "armeabi-v7a" }` → **18,4 МБ** (arm64 7,0 + arm32 5,9 + dex 3,7 + res 3,1).
+  Дальше — App Bundle для Google Play (каждому телефону только его ABI, ~11 МБ) или отказ от arm32 (телефоны до 2015).
+- iOS: ~6,6 МБ неподписанный IPA (+ GLTFKit2 xcframework в 0.47).
+
+## 7. Версии и сборки
+
+- Android 0.47.0 (104) и iOS 0.47.0 (104). На рабочем столе `LeapRemote-0.47.0-104-android.apk` и
+  `LeapRemote-0.47.0-104-ios-unsigned.ipa`; iOS собирает CI (`.github/workflows/ios.yml`, релиз `latest`).
 - Samsung SM-G960F (adb `27e48d88bc1c7ece`) — стоит 0.46.0.
