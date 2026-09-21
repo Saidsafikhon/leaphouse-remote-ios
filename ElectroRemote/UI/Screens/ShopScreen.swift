@@ -13,6 +13,7 @@ struct ShopScreen: View {
     let onRefresh: () -> Void
 
     @State private var category = "all"
+    @State private var query = ""
     @State private var selected: ProductDto? = nil
 
     private var categories: [(String, String)] {
@@ -23,11 +24,25 @@ struct ShopScreen: View {
     var body: some View {
         // сначала товары для своей модели, потом общие, потом остальные
         let m = (model ?? "").uppercased()
+        let q = query.trimmingCharacters(in: .whitespaces).lowercased()
         let shown = products
             .filter { category == "all" || $0.category == category }
+            .filter { q.isEmpty || $0.title.lowercased().contains(q) || $0.description.lowercased().contains(q) || $0.models.lowercased().contains(q) }
             .sorted { a, b in rank(a, m) < rank(b, m) }
         let columns = [GridItem(.flexible(), spacing: Space.x3), GridItem(.flexible(), spacing: Space.x3)]
         ScreenScaffold(title: L("Магазин"), onBack: onBack) {
+            HStack(spacing: Space.x2) {
+                Image(systemName: "magnifyingglass").foregroundStyle(p.textMuted)
+                TextField(L("Поиск товаров"), text: $query).font(ElectroType.body).foregroundStyle(p.textPrimary)
+                    .textInputAutocapitalization(.never).autocorrectionDisabled()
+                if !query.isEmpty {
+                    Button { query = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(p.textMuted) }.buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, Space.x4).frame(height: 46)
+            .background(p.surface)
+            .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).stroke(p.outline, lineWidth: 1))
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 6) {
                     ForEach(categories, id: \.0) { c in
@@ -44,7 +59,7 @@ struct ShopScreen: View {
                 }
             }
             if shown.isEmpty {
-                EmptyNote(text: products.isEmpty ? L("Товары скоро появятся.") : L("В этом разделе пусто."))
+                EmptyNote(text: products.isEmpty ? L("Товары скоро появятся.") : (q.isEmpty ? L("В этом разделе пусто.") : L("Ничего не найдено")))
             }
             LazyVGrid(columns: columns, spacing: Space.x3) {
                 ForEach(shown) { pr in

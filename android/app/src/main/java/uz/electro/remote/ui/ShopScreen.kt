@@ -43,6 +43,7 @@ fun ShopScreen(
     onBack: () -> Unit,
 ) {
     var category by remember { mutableStateOf("all") }
+    var query by remember { mutableStateOf("") }
     var selected by remember { mutableStateOf<ProductDto?>(null) }
     val categories = listOf(
         "all" to S("Все"), "accessory" to S("Аксессуары"), "equipment" to S("Оборудование"),
@@ -55,11 +56,26 @@ fun ShopScreen(
     }
     // сначала товары для своей модели, потом общие, потом остальные
     val m = (model ?: "").uppercase()
+    val q = query.trim().lowercase()
     val shown = products
         .filter { category == "all" || it.category == category }
+        .filter { q.isEmpty() || it.title.lowercase().contains(q) || it.description.lowercase().contains(q) || it.models.lowercase().contains(q) }
         .sortedBy { p -> when { p.models.isBlank() -> 1; m.isNotBlank() && p.models.uppercase().contains(m) -> 0; else -> 2 } }
 
     ScreenScaffold(S("Магазин"), onBack) {
+        OutlinedTextField(
+            value = query, onValueChange = { query = it }, singleLine = true,
+            placeholder = { Text(S("Поиск товаров"), color = ElectroColors.TextMuted) },
+            leadingIcon = { Icon(Lx.Search, null, tint = ElectroColors.TextMuted, modifier = Modifier.size(20.dp)) },
+            trailingIcon = if (query.isNotEmpty()) ({ Icon(Lx.Close, null, tint = ElectroColors.TextMuted,
+                modifier = Modifier.size(20.dp).clickable { query = "" }) }) else null,
+            shape = Radius.Md, modifier = Modifier.fillMaxWidth(),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = ElectroColors.Accent, unfocusedBorderColor = ElectroColors.Outline,
+                focusedTextColor = ElectroColors.TextPrimary, unfocusedTextColor = ElectroColors.TextPrimary,
+                cursorColor = ElectroColors.Accent,
+            ),
+        )
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             categories.forEach { (k, label) ->
                 val on = category == k
@@ -74,7 +90,7 @@ fun ShopScreen(
                 }
             }
         }
-        if (shown.isEmpty()) EmptyNote(if (products.isEmpty()) S("Товары скоро появятся.") else S("В этом разделе пусто."))
+        if (shown.isEmpty()) EmptyNote(when { products.isEmpty() -> S("Товары скоро появятся."); q.isNotEmpty() -> S("Ничего не найдено"); else -> S("В этом разделе пусто.") })
         // сетка 2 в ряд
         shown.chunked(2).forEach { row ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Space.x3)) {

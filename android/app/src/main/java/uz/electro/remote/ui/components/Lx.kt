@@ -21,6 +21,7 @@ object Lx {
     val ArrowBack: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.lx_arrow_left)
     val ArrowForward: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.lx_arrow_right)
     val ShoppingBag: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.lx_shopping_bag)
+    val Search: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.lx_search)
     val VisibilityOff: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.lx_eye_off)
     val Visibility: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.lx_eye)
     val Schedule: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.lx_clock)
