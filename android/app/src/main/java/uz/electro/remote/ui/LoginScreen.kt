@@ -1,5 +1,6 @@
 package uz.electro.remote.ui
 
+import uz.electro.remote.i18n.S
 import uz.electro.remote.ui.components.Lx
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -54,20 +55,23 @@ fun LoginScreen(
             .padding(horizontal = Space.x6),
     ) {
         Spacer(Modifier.height(Space.x8))
-        Spacer(Modifier.height(Space.x8))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            uz.electro.remote.ui.components.LangPicker(compact = true)
+        }
+        Spacer(Modifier.height(Space.x6))
 
         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
             BrandLockup(markSize = 44.dp)
         }
         Spacer(Modifier.height(Space.x1))
-        Text("Управление вашим электромобилем", color = ElectroColors.TextSecondary,
+        Text(S("Управление вашим электромобилем"), color = ElectroColors.TextSecondary,
             fontSize = 14.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
 
         Spacer(Modifier.height(Space.x8))
 
         Field("EMAIL", email, { email = it }, KeyboardType.Email)
         Spacer(Modifier.height(Space.x4))
-        Field("ПАРОЛЬ", pass, { pass = it }, KeyboardType.Password,
+        Field(S("ПАРОЛЬ"), pass, { pass = it }, KeyboardType.Password,
             visual = if (show) VisualTransformation.None else PasswordVisualTransformation(),
             trailing = {
                 IconButton(onClick = { show = !show }) {
@@ -83,11 +87,11 @@ fun LoginScreen(
 
         Spacer(Modifier.height(Space.x4))
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("Забыли пароль?", color = ElectroColors.TextSecondary, fontSize = 14.sp,
+            Text(S("Забыли пароль?"), color = ElectroColors.TextSecondary, fontSize = 14.sp,
                 modifier = Modifier.clickable(enabled = !busy) { onForgot() }
                     .padding(vertical = Space.x1))
             Spacer(Modifier.weight(1f))
-            Text("Регистрация", color = ElectroColors.Accent, fontSize = 14.sp,
+            Text(S("Регистрация"), color = ElectroColors.Accent, fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.clickable(enabled = !busy) { onRegister() }
                     .padding(vertical = Space.x1))
@@ -96,7 +100,7 @@ fun LoginScreen(
         Spacer(Modifier.height(Space.x8))
 
         ElectroButton(
-            text = if (busy) "Входим…" else "Войти",
+            text = if (busy) S("Входим…") else S("Войти"),
             enabled = email.isNotBlank() && pass.isNotBlank(),
             loading = busy,
             modifier = Modifier.fillMaxWidth(),
@@ -105,13 +109,13 @@ fun LoginScreen(
             scope.launch {
                 vm.signIn(email.trim(), pass)
                     .onSuccess { onLoggedIn() }
-                    .onFailure { error = vm.authError(it, "Неверный email или пароль") }
+                    .onFailure { error = vm.authError(it, S("Неверный email или пароль")) }
                 busy = false
             }
         }
 
         Spacer(Modifier.height(Space.x6))
-        Text("Политика конфиденциальности", style = ElectroType.Caption, color = ElectroColors.TextMuted,
+        Text(S("Политика конфиденциальности"), style = ElectroType.Caption, color = ElectroColors.TextMuted,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth().clickable { runCatching { uriHandler.openUri(Settings.PRIVACY_URL) } })
         Spacer(Modifier.height(Space.x4))

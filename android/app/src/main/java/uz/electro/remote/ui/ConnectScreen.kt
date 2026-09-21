@@ -1,5 +1,6 @@
 package uz.electro.remote.ui
 
+import uz.electro.remote.i18n.S
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -85,7 +86,9 @@ fun ConnectScreen(vm: CarViewModel, status: ConnectStatus) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         // Помощь доступна и до подключения — кнопка в правом верхнем углу.
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+            uz.electro.remote.ui.components.LangPicker(compact = true)
+            Spacer(Modifier.weight(1f))
             NewsBell(unreadNews, onClick = { showNews = true })
             Spacer(Modifier.width(Space.x2))
             HelpFab(onClick = { showHelp = true })
@@ -152,32 +155,32 @@ fun ConnectScreen(vm: CarViewModel, status: ConnectStatus) {
 
         when (status.phase) {
             ConnectPhase.Idle -> {
-                ElectroButton("Подключиться", Modifier.fillMaxWidth()) { start() }
+                ElectroButton(S("Подключиться"), Modifier.fillMaxWidth()) { start() }
                 Spacer(Modifier.height(Space.x2))
                 ElectroButton(
-                    "Найти машину", Modifier.fillMaxWidth(),
+                    S("Найти машину"), Modifier.fillMaxWidth(),
                     style = ButtonStyle.Secondary,
                 ) { vm.findCar() }
             }
 
             ConnectPhase.Sending, ConnectPhase.Waiting -> {
-                ElectroButton("Подключение", Modifier.fillMaxWidth(), loading = true) {}
+                ElectroButton(S("Подключение"), Modifier.fillMaxWidth(), loading = true) {}
             }
 
             ConnectPhase.Timeout -> {
-                ElectroButton("Разбудить ещё раз", Modifier.fillMaxWidth()) { start() }
+                ElectroButton(S("Разбудить ещё раз"), Modifier.fillMaxWidth()) { start() }
                 Spacer(Modifier.height(Space.x2))
                 ElectroButton(
-                    "Всё равно открыть", Modifier.fillMaxWidth(),
+                    S("Всё равно открыть"), Modifier.fillMaxWidth(),
                     style = ButtonStyle.Secondary,
                 ) { vm.enterAnyway() }
             }
 
             ConnectPhase.Error -> {
-                ElectroButton("Повторить", Modifier.fillMaxWidth()) { start() }
+                ElectroButton(S("Повторить"), Modifier.fillMaxWidth()) { start() }
                 Spacer(Modifier.height(Space.x2))
                 ElectroButton(
-                    "Всё равно открыть", Modifier.fillMaxWidth(),
+                    S("Всё равно открыть"), Modifier.fillMaxWidth(),
                     style = ButtonStyle.Ghost,
                 ) { vm.enterAnyway() }
             }
@@ -187,7 +190,7 @@ fun ConnectScreen(vm: CarViewModel, status: ConnectStatus) {
 
         Spacer(Modifier.height(Space.x3))
         ElectroButton(
-            if (vm.wakeConfigured) "Настройки" else "Настроить подключение",
+            if (vm.wakeConfigured) S("Настройки") else S("Настроить подключение"),
             Modifier.fillMaxWidth(),
             style = ButtonStyle.Ghost,
         ) { showSettings = true }
@@ -200,18 +203,18 @@ fun ConnectScreen(vm: CarViewModel, status: ConnectStatus) {
 @Composable
 private fun PhaseBadge(status: ConnectStatus) {
     when (status.phase) {
-        ConnectPhase.Idle -> StatusBadge(BadgeKind.Offline, "СПИТ")
-        ConnectPhase.Sending, ConnectPhase.Waiting -> StatusBadge(BadgeKind.Info, "ПОДКЛЮЧЕНИЕ")
-        ConnectPhase.Timeout -> StatusBadge(BadgeKind.Failed, "ОШИБКА")
-        ConnectPhase.Error -> StatusBadge(BadgeKind.Failed, "ОШИБКА")
-        ConnectPhase.Connected -> StatusBadge(BadgeKind.Online, "НА СВЯЗИ")
+        ConnectPhase.Idle -> StatusBadge(BadgeKind.Offline, S("СПИТ"))
+        ConnectPhase.Sending, ConnectPhase.Waiting -> StatusBadge(BadgeKind.Info, S("ПОДКЛЮЧЕНИЕ"))
+        ConnectPhase.Timeout -> StatusBadge(BadgeKind.Failed, S("ОШИБКА"))
+        ConnectPhase.Error -> StatusBadge(BadgeKind.Failed, S("ОШИБКА"))
+        ConnectPhase.Connected -> StatusBadge(BadgeKind.Online, S("НА СВЯЗИ"))
     }
 }
 
 /** Коротко: без объяснений, что происходит под капотом — только статус. */
 private fun hint(status: ConnectStatus, configured: Boolean): String = when {
-    !configured && status.phase == ConnectPhase.Idle -> "Войдите на сервер в настройках."
-    status.phase == ConnectPhase.Sending || status.phase == ConnectPhase.Waiting -> "Подключение…"
-    status.phase == ConnectPhase.Timeout || status.phase == ConnectPhase.Error -> "Ошибка: подключение не удалось"
+    !configured && status.phase == ConnectPhase.Idle -> S("Войдите на сервер в настройках.")
+    status.phase == ConnectPhase.Sending || status.phase == ConnectPhase.Waiting -> S("Подключение…")
+    status.phase == ConnectPhase.Timeout || status.phase == ConnectPhase.Error -> S("Ошибка: подключение не удалось")
     else -> ""
 }

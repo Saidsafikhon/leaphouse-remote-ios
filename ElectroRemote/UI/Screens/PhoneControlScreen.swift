@@ -174,7 +174,7 @@ private struct HomeTabView: View {
                 Hero(model: model, paint: paint)
                 CarStatusStrip(car: car)
 
-                SectionTitle(text: "Панель быстрого доступа")
+                SectionTitle(text: L("Панель быстрого доступа"))
                 QuickRow(
                     car: car, controls: controls, stateOf: stateOf, onSendAll: onSendAll,
                     quick: caps?.quick ?? DEFAULT_QUICK,
@@ -218,9 +218,9 @@ private struct HomeTabView: View {
     /// климат, сиденья не трогаем. Блокировок нет (climateBlocker снят).
     private func toggleClimate() {
         if climateOn(controls) {
-            onSendAll(Cmd.climateOff(), "Выключить климат")
+            onSendAll(Cmd.climateOff(), L("Выключить климат"))
         } else {
-            onSendAll([VehicleCommand(type: Cmd.AC, value: "1", label: "Климат")], "Включить климат")
+            onSendAll([VehicleCommand(type: Cmd.AC, value: "1", label: L("Климат"))], L("Включить климат"))
         }
     }
 }
@@ -249,10 +249,10 @@ func seatSummary(_ controls: [Int: String]) -> String {
     let vent = Cmd.SEAT_VENTS.filter { seatLevel(controls, $0) > 0 }.count
     // коротко — подпись живёт в узкой плитке на главной, ей нельзя переноситься
     switch (heat, vent) {
-    case (0, 0): return "Выключены"
-    case (_, 0): return "Обогрев · \(heat)"
-    case (0, _): return "Обдув · \(vent)"
-    default: return "Обогрев \(heat) · обдув \(vent)"
+    case (0, 0): return L("Выключены")
+    case (_, 0): return L("Обогрев · {0}", heat)
+    case (0, _): return L("Обдув · {0}", vent)
+    default: return L("Обогрев {0} · обдув {1}", heat, vent)
     }
 }
 
@@ -326,7 +326,7 @@ struct NewsBell: View {
             }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Новости")
+        .accessibilityLabel(L("Новости"))
     }
 }
 
@@ -338,7 +338,7 @@ private struct DisconnectChip: View {
         Button(action: action) {
             HStack(spacing: 6) {
                 Image(systemName: "power").font(.system(size: 13, weight: .medium)).foregroundStyle(p.textSecondary)
-                Text("Отключиться").font(ElectroType.caption).foregroundStyle(p.textSecondary)
+                Text(L("Отключиться")).font(ElectroType.caption).foregroundStyle(p.textSecondary)
             }
             .padding(.horizontal, 12).padding(.vertical, 7)
             .background(p.surfaceElevated)
@@ -349,10 +349,10 @@ private struct DisconnectChip: View {
 }
 
 private func updatedText(_ car: CarState) -> String {
-    if car.updatedAt == 0 { return "Обновление…" }
-    if car.link == .none { return "Нет данных с машины" }
+    if car.updatedAt == 0 { return L("Обновление…") }
+    if car.link == .none { return L("Нет данных с машины") }
     let f = DateFormatter(); f.dateFormat = "HH:mm"
-    return "Обновлено " + f.string(from: Date(timeIntervalSince1970: Double(car.updatedAt) / 1000))
+    return L("Обновлено ") + f.string(from: Date(timeIntervalSince1970: Double(car.updatedAt) / 1000))
 }
 
 /// Рендер — студийная вырезка модели в цвете кузова; состояние дверей
@@ -377,34 +377,34 @@ private struct CarStatusStrip: View {
         let open = car.doors.anyOpen || car.trunkOpen == true || car.hoodOpen
         let doorLine: String = {
             switch car.locked {
-            case .some(true): return "двери закрыты"
-            case .some(false): return "двери отперты"
-            case .none: return "состояние дверей неизвестно"
+            case .some(true): return L("двери закрыты")
+            case .some(false): return L("двери отперты")
+            case .none: return L("состояние дверей неизвестно")
             }
         }()
         let (icon, title, subtitle, accent, tint): (String, String, String, Color, Color) = {
             if car.link == .none {
-                return ("icloud.slash", "Нет связи с машиной", "Показаны последние данные", p.textMuted, p.surfaceElevated)
+                return ("icloud.slash", L("Нет связи с машиной"), L("Показаны последние данные"), p.textMuted, p.surfaceElevated)
             }
             if open {
-                return ("exclamationmark.triangle", "Автомобиль открыт", openDetail(car), p.danger, p.dangerTint)
+                return ("exclamationmark.triangle", L("Автомобиль открыт"), openDetail(car), p.danger, p.dangerTint)
             }
             if car.security == .armed && car.locked == false {
-                return ("exclamationmark.triangle", "На охране, но двери отперты", "Закройте двери", p.danger, p.dangerTint)
+                return ("exclamationmark.triangle", L("На охране, но двери отперты"), L("Закройте двери"), p.danger, p.dangerTint)
             }
             if car.security == .armed {
-                return ("shield", "Автомобиль на охране", doorLine, p.ok, p.okTint)
+                return ("shield", L("Автомобиль на охране"), doorLine, p.ok, p.okTint)
             }
             if car.security == .disarmed {
-                return ("lock.open", "Снят с охраны", doorLine, p.warn, p.warnTint)
+                return ("lock.open", L("Снят с охраны"), doorLine, p.warn, p.warnTint)
             }
             if car.locked == true {
-                return ("lock", "Двери закрыты", "Охрана не сообщается", p.textSecondary, p.surfaceElevated)
+                return ("lock", L("Двери закрыты"), L("Охрана не сообщается"), p.textSecondary, p.surfaceElevated)
             }
-            return ("lock.open", "Двери отперты", "Охрана не сообщается", p.warn, p.warnTint)
+            return ("lock.open", L("Двери отперты"), L("Охрана не сообщается"), p.warn, p.warnTint)
         }()
         var metrics: [Metric] = []
-        if let r = car.rangeKm { metrics.append(Metric(value: "\(r)", unit: "км", fraction: Double(r) / 500)) }
+        if let r = car.rangeKm { metrics.append(Metric(value: "\(r)", unit: L("км"), fraction: Double(r) / 500)) }
         if let s = car.soc { metrics.append(Metric(value: "\(s)", unit: "%", fraction: Double(s) / 100)) }
         return StatusStrip(icon: icon, title: title, subtitle: subtitle, accent: accent, accentTint: tint, metrics: metrics)
     }
@@ -412,11 +412,11 @@ private struct CarStatusStrip: View {
 
 private func openDetail(_ car: CarState) -> String {
     var parts: [String] = []
-    if car.hoodOpen { parts.append("капот") }
-    if car.trunkOpen == true { parts.append("багажник") }
-    if car.doors.anyOpen { parts.append("дверь") }
+    if car.hoodOpen { parts.append(L("капот")) }
+    if car.trunkOpen == true { parts.append(L("багажник")) }
+    if car.doors.anyOpen { parts.append(L("дверь")) }
     let s = parts.joined(separator: ", ")
-    return s.isEmpty ? "Проверьте автомобиль" : s.prefix(1).uppercased() + s.dropFirst()
+    return s.isEmpty ? L("Проверьте автомобиль") : s.prefix(1).uppercased() + s.dropFirst()
 }
 
 /// Четыре действия, ради которых открывают приложение: замки, багажник, климат, окна.
@@ -456,41 +456,41 @@ private struct QuickRow: View {
         switch key {
         case "lock":
             ControlTile(
-                label: locked ? "Открыть двери" : "Закрыть двери",
+                label: locked ? L("Открыть двери") : L("Закрыть двери"),
                 icon: locked ? "lock" : "lock.open",
                 state: stateOf(Cmd.LOCK).orActive(!locked)
             ) {
                 if locked {
-                    onConfirm(HomeConfirm(title: "Открыть двери?", msg: "Автомобиль будет разблокирован.", action: "Открыть",
-                                          cmds: [VehicleCommand(type: Cmd.LOCK, value: "1")], label: "Открыть двери"))
+                    onConfirm(HomeConfirm(title: L("Открыть двери?"), msg: L("Автомобиль будет разблокирован."), action: L("Открыть"),
+                                          cmds: [VehicleCommand(type: Cmd.LOCK, value: "1")], label: L("Открыть двери")))
                 } else {
-                    onSendAll([VehicleCommand(type: Cmd.LOCK, value: "0")], "Закрыть двери")
+                    onSendAll([VehicleCommand(type: Cmd.LOCK, value: "0")], L("Закрыть двери"))
                 }
             }
         case "trunk":
-            ControlTile(label: "Багажник", icon: "car", state: stateOf(Cmd.TRUNK).orActive(trunkOpen)) {
+            ControlTile(label: L("Багажник"), icon: "car", state: stateOf(Cmd.TRUNK).orActive(trunkOpen)) {
                 if trunkOpen {
-                    onSendAll([VehicleCommand(type: Cmd.TRUNK, value: "0")], "Закрыть багажник")
+                    onSendAll([VehicleCommand(type: Cmd.TRUNK, value: "0")], L("Закрыть багажник"))
                 } else {
-                    onConfirm(HomeConfirm(title: "Открыть багажник?", msg: "Багажник будет разблокирован.", action: "Открыть",
-                                          cmds: [VehicleCommand(type: Cmd.TRUNK, value: "1")], label: "Открыть багажник"))
+                    onConfirm(HomeConfirm(title: L("Открыть багажник?"), msg: L("Багажник будет разблокирован."), action: L("Открыть"),
+                                          cmds: [VehicleCommand(type: Cmd.TRUNK, value: "1")], label: L("Открыть багажник")))
                 }
             }
         case "climate":
             ControlTile(
-                label: climateOn(controls) ? "Климат выкл" : "Климат",
+                label: climateOn(controls) ? L("Климат выкл") : L("Климат"),
                 icon: "snowflake",
                 state: stateOf(Cmd.AC).orActive(climateOn(controls)),
                 action: onClimate
             )
         case "windows":
             ControlTile(
-                label: windows ? "Закрыть окна" : "Открыть окна",
+                label: windows ? L("Закрыть окна") : L("Открыть окна"),
                 icon: windows ? "chevron.up" : "chevron.down",
                 state: stateOf(Cmd.WINDOW_FL).orActive(windows)
             ) {
                 let value = windows ? "0" : "100"
-                onSendAll(Cmd.WINDOWS.map { VehicleCommand(type: $0, value: value) }, windows ? "Закрыть все окна" : "Открыть все окна")
+                onSendAll(Cmd.WINDOWS.map { VehicleCommand(type: $0, value: value) }, windows ? L("Закрыть все окна") : L("Открыть все окна"))
             }
         default:
             EmptyView()
@@ -513,9 +513,9 @@ private struct EntryRow: View {
 
     var body: some View {
         var entries: [(HomeTab, String, String)] = []
-        if caps?.scenes ?? true { entries.append((.scenes, "Мои сцены", "square.grid.2x2")) }
-        if caps?.climate_schedule ?? true { entries.append((.schedule, "Расписание", "clock")) }
-        if caps?.voice ?? true { entries.append((.voice, "Голос", "waveform")) }
+        if caps?.scenes ?? true { entries.append((.scenes, L("Мои сцены"), "square.grid.2x2")) }
+        if caps?.climate_schedule ?? true { entries.append((.schedule, L("Расписание"), "clock")) }
+        if caps?.voice ?? true { entries.append((.voice, L("Голос"), "waveform")) }
         return Group {
             if !entries.isEmpty {
                 HStack(spacing: Space.x2) {
@@ -544,13 +544,13 @@ private struct GwmClimateCard: View {
         let temp = controls[Cmd.TEMP_L].flatMap { Double($0) }.map { Int($0) } ?? DEFAULT_TEMP
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("Климат").font(ElectroType.body).foregroundStyle(p.textPrimary)
+                Text(L("Климат")).font(ElectroType.body).foregroundStyle(p.textPrimary)
                 Spacer()
                 ElectroToggle(isOn: on) { _ in onToggle() }
             }
             Spacer(minLength: Space.x3)
             Text(Cmd.tempLabel(temp)).font(ElectroType.display).foregroundStyle(p.textPrimary)
-            Text(car.cabinTemp.map { "в салоне \($0.asTemp)°" } ?? "уставка").font(ElectroType.caption).foregroundStyle(p.textMuted)
+            Text(car.cabinTemp.map { L("в салоне {0}°", $0.asTemp) } ?? L("уставка")).font(ElectroType.caption).foregroundStyle(p.textMuted)
         }
         .padding(Space.x4)
         .frame(maxWidth: .infinity, minHeight: 132, maxHeight: .infinity, alignment: .leading)
@@ -577,7 +577,7 @@ private struct GwmSeatsCard: View {
         let accent: Color = heatOn ? p.warn : (ventOn ? p.info : p.accent)
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("Сиденья").font(ElectroType.body).foregroundStyle(p.textPrimary)
+                Text(L("Сиденья")).font(ElectroType.body).foregroundStyle(p.textPrimary)
                 Spacer()
                 // Вкл — по сохранённому профилю, выкл — гасит все места.
                 ElectroToggle(isOn: anyOn, enabled: anyOn || hasPreset, accent: accent) { on in on ? onOn() : onOff() }
@@ -633,10 +633,10 @@ private struct BottomNav: View {
 
     var body: some View {
         HStack {
-            navItem("house", "Главная", tab == .car) { onSelect(.car) }
-            navItem("snowflake", "Климат", tab == .climate || tab == .seats) { onSelect(.climate) }
-            navItem("map", "Карта", tab == .map) { onSelect(.map) }
-            navItem("gearshape", "Настройки", tab == .settings) { onSelect(.settings) }
+            navItem("house", L("Главная"), tab == .car) { onSelect(.car) }
+            navItem("snowflake", L("Климат"), tab == .climate || tab == .seats) { onSelect(.climate) }
+            navItem("map", L("Карта"), tab == .map) { onSelect(.map) }
+            navItem("gearshape", L("Настройки"), tab == .settings) { onSelect(.settings) }
         }
         .padding(.top, Space.x3)
         .padding(.bottom, Space.x2)

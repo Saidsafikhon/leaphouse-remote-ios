@@ -1,5 +1,6 @@
 package uz.electro.remote.ui.components
 
+import uz.electro.remote.i18n.S
 import androidx.compose.ui.graphics.Color
 import uz.electro.remote.R
 
@@ -13,7 +14,8 @@ import uz.electro.remote.R
  */
 object CarArt {
     /** Цвет кузова: код как на сайте, подпись для настроек и образец для кружка. */
-    class Paint(val code: String, val label: String, val swatch: Color)
+    /** [labelKey] — русский ключ; подпись переводится при чтении, чтобы смена языка подхватывалась. */
+    class Paint(val code: String, private val labelKey: String, val swatch: Color) { val label: String get() = S(labelKey) }
 
     private val PAINTS = mapOf(
         "pearl-white" to Paint("pearl-white", "Жемчужно-белый", Color(0xFFE9EAEC)),

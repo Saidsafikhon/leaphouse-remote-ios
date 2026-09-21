@@ -159,7 +159,7 @@ struct ElectroButton: View {
         Button(action: action) {
             HStack(spacing: Space.x2) {
                 if loading { ProgressView().tint(ink).scaleEffect(0.8) }
-                Text(loading ? "Отправка…" : text).font(ElectroType.body).foregroundStyle(ink)
+                Text(loading ? L("Отправка…") : text).font(ElectroType.body).foregroundStyle(ink)
             }
             .padding(.horizontal, Space.x5)
             .frame(maxWidth: .infinity)
@@ -363,7 +363,7 @@ struct DialogSpec: Identifiable {
     let message: String
     let confirmText: String
     /// nil — кнопки «Отмена» нет (у сообщения выбора нет).
-    var dismissText: String? = "Отмена"
+    var dismissText: String? = L("Отмена")
     let onConfirm: () -> Void
 }
 
@@ -452,7 +452,7 @@ struct ScreenScaffold<Content: View>: View {
                         .frame(width: 32, height: 32)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Назад")
+                .accessibilityLabel(L("Назад"))
                 Text(title).font(ElectroType.headline).foregroundStyle(p.textPrimary)
                 Spacer()
             }

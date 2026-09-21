@@ -1,5 +1,6 @@
 package uz.electro.remote.ui
 
+import uz.electro.remote.i18n.S
 import uz.electro.remote.ui.components.Lx
 import android.content.Context
 import androidx.compose.foundation.Canvas
@@ -91,8 +92,8 @@ fun ClimateSeatsScreen(
                 Modifier.align(Alignment.Center),
                 horizontalArrangement = Arrangement.spacedBy(Space.x4),
             ) {
-                TopTab("Климат", tab == Tab.Climate) { tab = Tab.Climate }
-                TopTab("Сиденья", tab == Tab.Seats) { tab = Tab.Seats }
+                TopTab(S("Климат"), tab == Tab.Climate) { tab = Tab.Climate }
+                TopTab(S("Сиденья"), tab == Tab.Seats) { tab = Tab.Seats }
             }
             Icon(
                 Lx.Close, null, tint = ElectroColors.TextSecondary,
@@ -104,7 +105,7 @@ fun ClimateSeatsScreen(
             Tab.Climate -> ClimateTab(
                 car, controls, send, sendAll,
                 onToggle = {
-                    if (climateOn(controls)) sendAll(Cmd.climateOff(), "Выключить климат")
+                    if (climateOn(controls)) sendAll(Cmd.climateOff(), S("Выключить климат"))
                     else {
                         blocked = climateBlockReason(car, controls)
                         if (blocked == null) onClimateOn(null)
@@ -122,8 +123,8 @@ fun ClimateSeatsScreen(
     blocked?.let { reason ->
         ElectroDialog(
             Lx.Whatshot, ElectroColors.Warn,
-            "Климат не включаем", reason,
-            confirmText = "Понятно",
+            S("Климат не включаем"), reason,
+            confirmText = S("Понятно"),
             onConfirm = { blocked = null }, onDismiss = { blocked = null },
             dismissText = null,
         )
@@ -212,7 +213,7 @@ private fun ClimateTab(
                 VehicleCommand(Cmd.TEMP_L, setTemp.toString()),
                 VehicleCommand(Cmd.TEMP_R, setTemp.toString()),
                 VehicleCommand(Cmd.AC, "1"),
-            ), "Включить климат")
+            ), S("Включить климат"))
         } else {
             send(Cmd.TEMP_L, setTemp.toString()); send(Cmd.TEMP_R, setTemp.toString())
             onOnWithTimer(minutes)
@@ -229,38 +230,38 @@ private fun ClimateTab(
         // тумблеры (циркуляция, обогрев зеркал, обдув лобового)
         Surface(color = ElectroColors.Surface, shape = Radius.Lg, modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(Space.x4), verticalArrangement = Arrangement.spacedBy(Space.x3)) {
-                Text("Функции", style = ElectroType.Title, color = ElectroColors.TextPrimary)
+                Text(S("Функции"), style = ElectroType.Title, color = ElectroColors.TextPrimary)
                 Row(horizontalArrangement = Arrangement.spacedBy(Space.x3)) {
-                    ClimateButton("Макс. охлаждение", Lx.AcUnit, maxCoolOn, Modifier.weight(1f)) {
+                    ClimateButton(S("Макс. охлаждение"), Lx.AcUnit, maxCoolOn, Modifier.weight(1f)) {
                         val next = !maxCoolOn; maxCoolOn = next; if (next) maxHeatOn = false
                         val e = prefs.edit().putBoolean("sceneMaxCool", next)
                         if (next) e.putBoolean("sceneMaxHeat", false)
                         e.apply()
-                        sendAll(Cmd.maxCool(next), "Макс. охлаждение")
+                        sendAll(Cmd.maxCool(next), S("Макс. охлаждение"))
                     }
-                    ClimateButton("Макс. обогрев", Lx.Whatshot, maxHeatOn, Modifier.weight(1f)) {
+                    ClimateButton(S("Макс. обогрев"), Lx.Whatshot, maxHeatOn, Modifier.weight(1f)) {
                         val next = !maxHeatOn; maxHeatOn = next; if (next) maxCoolOn = false
                         val e = prefs.edit().putBoolean("sceneMaxHeat", next)
                         if (next) e.putBoolean("sceneMaxCool", false)
                         e.apply()
-                        sendAll(Cmd.maxHeat(next), "Макс. обогрев")
+                        sendAll(Cmd.maxHeat(next), S("Макс. обогрев"))
                     }
-                    ClimateButton("Обогрев всех стёкол", IconRearDefrost, defogOn, Modifier.weight(1f)) {
+                    ClimateButton(S("Обогрев всех стёкол"), IconRearDefrost, defogOn, Modifier.weight(1f)) {
                         val next = !defogOn; defogOn = next
                         prefs.edit().putBoolean("sceneDefog", next).apply()
-                        sendAll(Cmd.defogGlass(next), "Обогрев всех стёкол")
+                        sendAll(Cmd.defogGlass(next), S("Обогрев всех стёкол"))
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(Space.x3)) {
-                    ClimateButton("Циркуляция", Lx.Loop, recircOn, Modifier.weight(1f)) {
+                    ClimateButton(S("Циркуляция"), Lx.Loop, recircOn, Modifier.weight(1f)) {
                         val next = !recircOn; recircOn = next
                         prefs.edit().putBoolean("sceneRecirc", next).apply()
-                        sendAll(Cmd.recircScene(next), "Циркуляция")
+                        sendAll(Cmd.recircScene(next), S("Циркуляция"))
                     }
-                    ClimateButton("Обогрев зеркал", IconMirrorHeat, mirrorOn, Modifier.weight(1f)) {
+                    ClimateButton(S("Обогрев зеркал"), IconMirrorHeat, mirrorOn, Modifier.weight(1f)) {
                         send(Cmd.MIRROR_HEAT, if (mirrorOn) "0" else "1")
                     }
-                    ClimateButton("Обдув лобового", IconWindshieldDefrost, frontDefrostOn, Modifier.weight(1f)) {
+                    ClimateButton(S("Обдув лобового"), IconWindshieldDefrost, frontDefrostOn, Modifier.weight(1f)) {
                         val next = !frontDefrostOn; frontDefrostOn = next
                         prefs.edit().putBoolean("sceneDefrostF", next).apply()
                         send(Cmd.DEFROST_FRONT, if (next) "2" else "0")
@@ -272,7 +273,7 @@ private fun ClimateTab(
         Surface(color = ElectroColors.Surface, shape = Radius.Lg, modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(Space.x4), verticalArrangement = Arrangement.spacedBy(Space.x4)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Температура (°C)", style = ElectroType.Title, color = ElectroColors.TextPrimary,
+                    Text(S("Температура (°C)"), style = ElectroType.Title, color = ElectroColors.TextPrimary,
                         modifier = Modifier.weight(1f))
                     Switch(
                         checked = shownOn,
@@ -298,24 +299,24 @@ private fun ClimateTab(
                 }
                 if (shownOn) {
                     Text(
-                        "Чтобы изменить температуру, выключите климат — так бережётся компрессор.",
+                        S("Чтобы изменить температуру, выключите климат — так бережётся компрессор."),
                         style = ElectroType.Caption, color = ElectroColors.TextMuted,
                     )
                 } else {
                     Text(
-                        "Выбранная температура применится при включении климата.",
+                        S("Выбранная температура применится при включении климата."),
                         style = ElectroType.Caption, color = ElectroColors.TextMuted,
                     )
                 }
                 Divider(color = ElectroColors.Outline)
-                Text("Настроить время работы", style = ElectroType.Body,
+                Text(S("Настроить время работы"), style = ElectroType.Body,
                     color = ElectroColors.Accent,
                     modifier = Modifier.fillMaxWidth().clickable { pickTime = !pickTime })
                 if (pickTime) {
                     NumberCarousel(value = runMin, min = 5, max = 60, step = 5,
                         onChange = { runMin = it; prefs.edit().putInt("climateRunMin", it).apply() })
                     if (!shownOn) {
-                        ElectroButton("Включить на $runMin мин", Modifier.fillMaxWidth(),
+                        ElectroButton(S("Включить на {0} мин", runMin), Modifier.fillMaxWidth(),
                             style = ButtonStyle.Primary) { turnOn(runMin) }
                     }
                 }
@@ -511,8 +512,8 @@ private fun SeatsTab(
         Surface(color = ElectroColors.SurfaceElevated, shape = Radius.Pill,
             modifier = Modifier.align(Alignment.CenterHorizontally)) {
             Row(Modifier.padding(4.dp)) {
-                PillTab("Подогрев", mode == SeatMode.Heat) { mode = SeatMode.Heat; selected = null }
-                PillTab("Вентиляция", mode == SeatMode.Vent) { mode = SeatMode.Vent; selected = null }
+                PillTab(S("Подогрев"), mode == SeatMode.Heat) { mode = SeatMode.Heat; selected = null }
+                PillTab(S("Вентиляция"), mode == SeatMode.Vent) { mode = SeatMode.Vent; selected = null }
             }
         }
 
@@ -521,10 +522,10 @@ private fun SeatsTab(
         // схема салона: два ряда кресел, плитка с иконкой и уровнем на каждом
         Surface(color = ElectroColors.Surface, shape = Radius.Lg, modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(Space.x4)) {
-                SeatDiagramRow(0, 1, "Водитель", "Пассажир", levels, selected, accent, icon,
+                SeatDiagramRow(0, 1, S("Водитель"), S("Пассажир"), levels, selected, accent, icon,
                     onSelect = { selected = if (selected == it) null else it })
                 Spacer(Modifier.height(Space.x3))
-                SeatDiagramRow(2, 3, "Заднее левое", "Заднее правое", levels, selected, accent, icon,
+                SeatDiagramRow(2, 3, S("Заднее левое"), S("Заднее правое"), levels, selected, accent, icon,
                     onSelect = { selected = if (selected == it) null else it })
             }
         }
@@ -533,20 +534,20 @@ private fun SeatsTab(
         // ползунок задних мест прятался за блоком таймера).
         if (selected != null) {
             val seatName = when (selected) {
-                0 -> "Водитель"; 1 -> "Пассажир"; 2 -> "Заднее левое"; else -> "Заднее правое"
+                0 -> S("Водитель"); 1 -> S("Пассажир"); 2 -> S("Заднее левое"); else -> S("Заднее правое")
             }
             Spacer(Modifier.height(Space.x3))
-            Text("Уровень — $seatName", style = ElectroType.Caption, color = ElectroColors.TextMuted)
+            Text(S("Уровень — {0}", seatName), style = ElectroType.Caption, color = ElectroColors.TextMuted)
             LevelSlider(levels[selected!!], accent) { setLevel(selected!!, it) }
         }
 
         Spacer(Modifier.height(Space.x4))
-        Text("Время работы (мин.)", style = ElectroType.Body, color = ElectroColors.TextPrimary)
+        Text(S("Время работы (мин.)"), style = ElectroType.Body, color = ElectroColors.TextPrimary)
         Spacer(Modifier.height(Space.x2))
         NumberCarousel(value = runMin, min = 1, max = 60, accent = accent,
             onChange = { runMin = it; prefs.edit().putInt("seatRunMin", it).apply() })
         Spacer(Modifier.height(Space.x4))
-        ElectroButton("Активировать", Modifier.fillMaxWidth(), style = ButtonStyle.Primary) {
+        ElectroButton(S("Активировать"), Modifier.fillMaxWidth(), style = ButtonStyle.Primary) {
             // Профиль = обогрев И обдув всех мест + таймер. Он и сохраняется как
             // настройка тумблера на главной, и сразу применяется с таймером.
             val ht = listOf(Cmd.SEAT_HEAT_DRIVER, Cmd.SEAT_HEAT_PASSENGER, Cmd.SEAT_HEAT_REAR_L, Cmd.SEAT_HEAT_REAR_R)
@@ -632,7 +633,7 @@ private fun SeatTile(
                     .background(if (i < level) accent else ElectroColors.SurfaceElevated))
             }
             Spacer(Modifier.width(4.dp))
-            Text(if (active) "$level/$SEAT_LEVELS" else "выкл", style = ElectroType.Caption,
+            Text(if (active) "$level/$SEAT_LEVELS" else S("выкл"), style = ElectroType.Caption,
                 color = if (active) accent else ElectroColors.TextMuted)
         }
     }
@@ -681,7 +682,7 @@ private fun TemperatureBar(temp: Int, cabin: Double?, locked: Boolean = false, o
     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
         Text(Cmd.tempLabel(shown), style = ElectroType.Display, color = palette.TextPrimary)
         Text(
-            cabin?.let { "В салоне ${it.asTemp()}°" } ?: "В салоне —",
+            cabin?.let { S("В салоне {0}°", it.asTemp()) } ?: S("В салоне —"),
             style = ElectroType.Caption, color = palette.TextMuted,
         )
         Spacer(Modifier.height(Space.x3))

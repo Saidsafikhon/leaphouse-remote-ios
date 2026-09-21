@@ -21,8 +21,8 @@ struct ClimateSeatsScreen: View {
             // шапка: две вкладки по центру и крестик справа
             ZStack {
                 HStack(spacing: Space.x4) {
-                    TopTab(text: "Климат", selected: current == .climate) { tab = .climate }
-                    TopTab(text: "Сиденья", selected: current == .seats) { tab = .seats }
+                    TopTab(text: L("Климат"), selected: current == .climate) { tab = .climate }
+                    TopTab(text: L("Сиденья"), selected: current == .seats) { tab = .seats }
                 }
                 HStack {
                     Spacer()
@@ -31,7 +31,7 @@ struct ClimateSeatsScreen: View {
                             .frame(width: 32, height: 32)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Закрыть")
+                    .accessibilityLabel(L("Закрыть"))
                 }
             }
             .padding(Space.x4)
@@ -41,7 +41,7 @@ struct ClimateSeatsScreen: View {
                 ClimateTab(
                     car: car, controls: controls, send: send, sendAll: sendAll,
                     onToggle: {
-                        if climateOn(controls) { sendAll(Cmd.climateOff(), "Выключить климат") } else { onClimateOn(nil) }
+                        if climateOn(controls) { sendAll(Cmd.climateOff(), L("Выключить климат")) } else { onClimateOn(nil) }
                     },
                     onOnWithTimer: { minutes in onClimateOn(minutes) }
                 )
@@ -112,40 +112,40 @@ private struct ClimateTab: View {
             VStack(spacing: Space.x3) {
                 // карточка функций: сцены и тумблеры
                 VStack(alignment: .leading, spacing: Space.x3) {
-                    Text("Функции").font(ElectroType.title).foregroundStyle(p.textPrimary)
+                    Text(L("Функции")).font(ElectroType.title).foregroundStyle(p.textPrimary)
                     HStack(spacing: Space.x3) {
-                        ClimateButton(label: "Макс. охлаждение", icon: "snowflake", active: maxCoolOn) {
+                        ClimateButton(label: L("Макс. охлаждение"), icon: "snowflake", active: maxCoolOn) {
                             let next = !maxCoolOn
                             maxCoolOn = next
                             if next { maxHeatOn = false; prefs.setBool("sceneMaxHeat", false) }
                             prefs.setBool("sceneMaxCool", next)
-                            sendAll(Cmd.maxCool(next), "Макс. охлаждение")
+                            sendAll(Cmd.maxCool(next), L("Макс. охлаждение"))
                         }
-                        ClimateButton(label: "Макс. обогрев", icon: "flame", active: maxHeatOn) {
+                        ClimateButton(label: L("Макс. обогрев"), icon: "flame", active: maxHeatOn) {
                             let next = !maxHeatOn
                             maxHeatOn = next
                             if next { maxCoolOn = false; prefs.setBool("sceneMaxCool", false) }
                             prefs.setBool("sceneMaxHeat", next)
-                            sendAll(Cmd.maxHeat(next), "Макс. обогрев")
+                            sendAll(Cmd.maxHeat(next), L("Макс. обогрев"))
                         }
-                        ClimateButton(label: "Обогрев всех стёкол", icon: "windshield.rear.and.heat.waves", active: defogOn) {
+                        ClimateButton(label: L("Обогрев всех стёкол"), icon: "windshield.rear.and.heat.waves", active: defogOn) {
                             let next = !defogOn
                             defogOn = next
                             prefs.setBool("sceneDefog", next)
-                            sendAll(Cmd.defogGlass(next), "Обогрев всех стёкол")
+                            sendAll(Cmd.defogGlass(next), L("Обогрев всех стёкол"))
                         }
                     }
                     HStack(spacing: Space.x3) {
-                        ClimateButton(label: "Циркуляция", icon: "arrow.triangle.2.circlepath", active: recircOn) {
+                        ClimateButton(label: L("Циркуляция"), icon: "arrow.triangle.2.circlepath", active: recircOn) {
                             let next = !recircOn
                             recircOn = next
                             prefs.setBool("sceneRecirc", next)
-                            sendAll(Cmd.recircScene(next), "Циркуляция")
+                            sendAll(Cmd.recircScene(next), L("Циркуляция"))
                         }
-                        ClimateButton(label: "Обогрев зеркал", icon: "mirror.side.left.and.heat.waves", active: mirrorOn) {
+                        ClimateButton(label: L("Обогрев зеркал"), icon: "mirror.side.left.and.heat.waves", active: mirrorOn) {
                             send(Cmd.MIRROR_HEAT, mirrorOn ? "0" : "1")
                         }
-                        ClimateButton(label: "Обдув лобового", icon: "windshield.front.and.heat.waves", active: frontDefrostOn) {
+                        ClimateButton(label: L("Обдув лобового"), icon: "windshield.front.and.heat.waves", active: frontDefrostOn) {
                             let next = !frontDefrostOn
                             frontDefrostOn = next
                             prefs.setBool("sceneDefrostF", next)
@@ -161,7 +161,7 @@ private struct ClimateTab: View {
                 // нижняя карточка: заголовок с тумблером, полоска температуры, время работы
                 VStack(alignment: .leading, spacing: Space.x4) {
                     HStack {
-                        Text("Температура (°C)").font(ElectroType.title).foregroundStyle(p.textPrimary)
+                        Text(L("Температура (°C)")).font(ElectroType.title).foregroundStyle(p.textPrimary)
                         Spacer()
                         ElectroToggle(isOn: shownOn) { desired in
                             setOptimistic(desired)
@@ -171,12 +171,12 @@ private struct ClimateTab: View {
                     // Полоска LO 18° … HI 32°: тянется пальцем, уставка применится при включении.
                     TemperatureBar(temp: shownOn ? temp : setTemp, cabin: car.cabinTemp, locked: shownOn) { v in setTemp = v }
                     Text(shownOn
-                         ? "Чтобы изменить температуру, выключите климат — так бережётся компрессор."
-                         : "Выбранная температура применится при включении климата.")
+                         ? L("Чтобы изменить температуру, выключите климат — так бережётся компрессор.")
+                         : L("Выбранная температура применится при включении климата."))
                         .font(ElectroType.caption).foregroundStyle(p.textMuted)
                     Divider().background(p.outline)
                     Button { pickTime.toggle() } label: {
-                        Text("Настроить время работы").font(ElectroType.body).foregroundStyle(p.accent)
+                        Text(L("Настроить время работы")).font(ElectroType.body).foregroundStyle(p.accent)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .buttonStyle(.plain)
@@ -185,7 +185,7 @@ private struct ClimateTab: View {
                             runMin = v; prefs.setInt("climateRunMin", v)
                         }
                         if !shownOn {
-                            ElectroButton(text: "Включить на \(runMin) мин") { turnOn(runMin) }
+                            ElectroButton(text: L("Включить на {0} мин", runMin)) { turnOn(runMin) }
                         }
                     }
                 }
@@ -231,7 +231,7 @@ private struct ClimateTab: View {
                 VehicleCommand(type: Cmd.TEMP_L, value: String(setTemp)),
                 VehicleCommand(type: Cmd.TEMP_R, value: String(setTemp)),
                 VehicleCommand(type: Cmd.AC, value: "1"),
-            ], "Включить климат")
+            ], L("Включить климат"))
         } else {
             send(Cmd.TEMP_L, String(setTemp)); send(Cmd.TEMP_R, String(setTemp))
             onOnWithTimer(minutes)
@@ -337,7 +337,7 @@ private struct SeatsTab: View {
     @State private var vent: [Int] = [0, 0, 0, 0]
     @State private var loaded = false
 
-    private let names = ["Водитель", "Пассажир", "Заднее левое", "Заднее правое"]
+    private let names = [L("Водитель"), L("Пассажир"), L("Заднее левое"), L("Заднее правое")]
 
     var body: some View {
         let levels = mode == .heat ? heat : vent
@@ -349,8 +349,8 @@ private struct SeatsTab: View {
                 Spacer().frame(height: Space.x2)
                 // подвкладки Подогрев/Вентиляция пилюлей
                 HStack(spacing: 0) {
-                    PillTab(text: "Подогрев", selected: mode == .heat) { mode = .heat; selected = nil }
-                    PillTab(text: "Вентиляция", selected: mode == .vent) { mode = .vent; selected = nil }
+                    PillTab(text: L("Подогрев"), selected: mode == .heat) { mode = .heat; selected = nil }
+                    PillTab(text: L("Вентиляция"), selected: mode == .vent) { mode = .vent; selected = nil }
                 }
                 .padding(4)
                 .background(p.surfaceElevated)
@@ -378,18 +378,18 @@ private struct SeatsTab: View {
                 // Ползунок уровня выбранного места — под карточкой, всегда виден.
                 if let s = selected {
                     Spacer().frame(height: Space.x3)
-                    Text("Уровень — \(names[s])").font(ElectroType.caption).foregroundStyle(p.textMuted)
+                    Text(L("Уровень — {0}", names[s])).font(ElectroType.caption).foregroundStyle(p.textMuted)
                     LevelSlider(level: levels[s], accent: accent) { setLevel(s, $0) }
                 }
 
                 Spacer().frame(height: Space.x4)
-                Text("Время работы (мин.)").font(ElectroType.body).foregroundStyle(p.textPrimary)
+                Text(L("Время работы (мин.)")).font(ElectroType.body).foregroundStyle(p.textPrimary)
                 Spacer().frame(height: Space.x2)
                 NumberCarousel(value: runMin, min: 1, max: 60, accent: accent) { v in
                     runMin = v; prefs.setInt("seatRunMin", v)
                 }
                 Spacer().frame(height: Space.x4)
-                ElectroButton(text: "Активировать") {
+                ElectroButton(text: L("Активировать")) {
                     // Профиль = обогрев И обдув всех мест + таймер.
                     var map: [Int: Int] = [:]
                     for (i, t) in Cmd.SEAT_HEATS.enumerated() { map[t] = heat[i] }
@@ -484,7 +484,7 @@ private struct SeatTile: View {
                     RoundedRectangle(cornerRadius: 3).fill(i < level ? accent : p.surfaceElevated).frame(width: 14, height: 5)
                 }
                 Spacer().frame(width: 4)
-                Text(active ? "\(level)/\(SEAT_LEVELS)" : "выкл").font(ElectroType.caption).foregroundStyle(active ? accent : p.textMuted)
+                Text(active ? "\(level)/\(SEAT_LEVELS)" : L("выкл")).font(ElectroType.caption).foregroundStyle(active ? accent : p.textMuted)
             }
         }
     }
@@ -532,7 +532,7 @@ private struct TemperatureBar: View {
         let alpha = locked ? 0.4 : 1.0
         VStack(spacing: 0) {
             Text(Cmd.tempLabel(shown)).font(ElectroType.display).foregroundStyle(p.textPrimary)
-            Text(cabin.map { "В салоне \($0.asTemp)°" } ?? "В салоне —").font(ElectroType.caption).foregroundStyle(p.textMuted)
+            Text(cabin.map { L("В салоне {0}°", $0.asTemp) } ?? L("В салоне —")).font(ElectroType.caption).foregroundStyle(p.textMuted)
             Spacer().frame(height: Space.x3)
             GeometryReader { geo in
                 let w = geo.size.width

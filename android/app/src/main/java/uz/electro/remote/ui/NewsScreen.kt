@@ -1,5 +1,6 @@
 package uz.electro.remote.ui
 
+import uz.electro.remote.i18n.S
 import uz.electro.remote.ui.components.Lx
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -42,7 +43,7 @@ fun NewsScreen(
 ) {
     var filter by remember { mutableStateOf("all") }
     var selected by remember { mutableStateOf<NewsItemDto?>(null) }
-    val filters = listOf("all" to "Все", "info" to "Уведомления", "news" to "Новости", "alert" to "Важное")
+    val filters = listOf("all" to S("Все"), "info" to S("Уведомления"), "news" to S("Новости"), "alert" to S("Важное"))
 
     // Запись на весь экран — вместо ленты, с «назад» и «закрыть».
     selected?.let { n ->
@@ -53,7 +54,7 @@ fun NewsScreen(
     val shown = items.filter { filter == "all" || it.kind == filter }
     val unread = items.count { it.id !in read }
 
-    ScreenScaffold("Новости", onBack) {
+    ScreenScaffold(S("Новости"), onBack) {
         Row(
             Modifier.horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -73,12 +74,12 @@ fun NewsScreen(
         }
         if (unread > 0) {
             uz.electro.remote.ui.components.ElectroButton(
-                "Прочитать всё ($unread)", Modifier.fillMaxWidth(),
+                S("Прочитать всё ({0})", unread), Modifier.fillMaxWidth(),
                 style = uz.electro.remote.ui.components.ButtonStyle.Secondary, onClick = onReadAll,
             )
         }
         if (shown.isEmpty()) {
-            EmptyNote(if (items.isEmpty()) "Пока ничего нет. Здесь появятся новости и уведомления от оператора." else "В этом разделе пусто.")
+            EmptyNote(if (items.isEmpty()) S("Пока ничего нет. Здесь появятся новости и уведомления от оператора.") else S("В этом разделе пусто."))
         }
         shown.forEach { n ->
             val isRead = n.id in read
@@ -106,7 +107,7 @@ fun NewsScreen(
                         }
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            newsDate(n.created_at) + if (isRead) "" else " · не прочитано",
+                            newsDate(n.created_at) + if (isRead) "" else S(" · не прочитано"),
                             style = ElectroType.Unit, color = if (isRead) ElectroColors.TextMuted else ElectroColors.Accent,
                         )
                     }
@@ -128,14 +129,14 @@ fun NewsDetailScreen(n: NewsItemDto, onClose: () -> Unit) {
         "news" -> Lx.Campaign to ElectroColors.Info
         else -> Lx.Notifications to ElectroColors.Accent
     }
-    val kindTitle = when (n.kind) { "alert" -> "Важное"; "news" -> "Новость"; else -> "Уведомление" }
+    val kindTitle = when (n.kind) { "alert" -> S("Важное"); "news" -> S("Новость"); else -> S("Уведомление") }
     Column(Modifier.fillMaxSize().background(ElectroColors.Background)) {
         Row(Modifier.fillMaxWidth().padding(Space.x4), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Lx.ArrowBack, "Назад", tint = ElectroColors.TextPrimary,
+            Icon(Lx.ArrowBack, S("Назад"), tint = ElectroColors.TextPrimary,
                 modifier = Modifier.size(26.dp).clickable(onClick = onClose))
             Spacer(Modifier.width(Space.x3))
             Text(kindTitle, style = ElectroType.Headline, color = ElectroColors.TextPrimary, modifier = Modifier.weight(1f))
-            Icon(Lx.Close, "Закрыть", tint = ElectroColors.TextSecondary,
+            Icon(Lx.Close, S("Закрыть"), tint = ElectroColors.TextSecondary,
                 modifier = Modifier.size(24.dp).clickable(onClick = onClose))
         }
         Column(
@@ -153,7 +154,7 @@ fun NewsDetailScreen(n: NewsItemDto, onClose: () -> Unit) {
             if (n.body.isNotBlank()) Text(n.body, style = ElectroType.Body, color = ElectroColors.TextSecondary)
         }
         uz.electro.remote.ui.components.ElectroButton(
-            "Закрыть", Modifier.fillMaxWidth().padding(horizontal = Space.x5).padding(bottom = Space.x4),
+            S("Закрыть"), Modifier.fillMaxWidth().padding(horizontal = Space.x5).padding(bottom = Space.x4),
             style = uz.electro.remote.ui.components.ButtonStyle.Secondary, onClick = onClose,
         )
     }

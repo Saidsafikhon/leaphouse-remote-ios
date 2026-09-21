@@ -1,5 +1,6 @@
 package uz.electro.remote.ui
 
+import uz.electro.remote.i18n.S
 import uz.electro.remote.ui.components.Lx
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -45,13 +46,13 @@ fun PairScreen(vm: CarViewModel, onPaired: () -> Unit) {
         scope.launch {
             vm.claimPairing(payload)
                 .onSuccess { note = it; onPaired() }
-                .onFailure { error = it.message ?: "Не удалось привязать машину" }
+                .onFailure { error = it.message ?: S("Не удалось привязать машину") }
             busy = false
         }
     }
 
     Column(Modifier.fillMaxSize().background(ElectroColors.Background).padding(Space.x6)) {
-        Text("Подключение авто", color = ElectroColors.TextPrimary, fontSize = 18.sp,
+        Text(S("Подключение авто"), color = ElectroColors.TextPrimary, fontSize = 18.sp,
             fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = Space.x2))
 
         Spacer(Modifier.weight(1f))
@@ -68,10 +69,10 @@ fun PairScreen(vm: CarViewModel, onPaired: () -> Unit) {
             }
 
             Spacer(Modifier.height(Space.x6))
-            Text("Подключите машину", color = ElectroColors.TextPrimary, fontSize = 22.sp,
+            Text(S("Подключите машину"), color = ElectroColors.TextPrimary, fontSize = 22.sp,
                 fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(Space.x2))
-            Text("Откройте на экране машины «Привязать телефон» и отсканируйте QR",
+            Text(S("Откройте на экране машины «Привязать телефон» и отсканируйте QR"),
                 color = ElectroColors.TextSecondary, fontSize = 14.sp, textAlign = TextAlign.Center)
         }
 
@@ -87,13 +88,13 @@ fun PairScreen(vm: CarViewModel, onPaired: () -> Unit) {
         Spacer(Modifier.weight(1.4f))
 
         ElectroButton(
-            text = if (busy) "Привязываем…" else "Сканировать QR машины",
+            text = if (busy) S("Привязываем…") else S("Сканировать QR машины"),
             enabled = !busy,
             loading = busy,
             modifier = Modifier.fillMaxWidth(),
         ) {
             scanLauncher.launch(
-                ScanOptions().setPrompt("Наведите на QR на экране машины")
+                ScanOptions().setPrompt(S("Наведите на QR на экране машины"))
                     .setBeepEnabled(false).setOrientationLocked(false)
             )
         }
@@ -101,7 +102,7 @@ fun PairScreen(vm: CarViewModel, onPaired: () -> Unit) {
         // иначе с этого экрана некуда деться, кроме как переустанавливать.
         Spacer(Modifier.height(Space.x2))
         ElectroButton(
-            text = "Выйти из аккаунта",
+            text = S("Выйти из аккаунта"),
             style = ButtonStyle.Ghost,
             enabled = !busy,
             modifier = Modifier.fillMaxWidth(),

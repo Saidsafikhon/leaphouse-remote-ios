@@ -18,7 +18,7 @@ enum JSONValue: Codable, Equatable {
         if let s = try? c.decode(String.self) { self = .string(s); return }
         if let a = try? c.decode([JSONValue].self) { self = .array(a); return }
         if let o = try? c.decode([String: JSONValue].self) { self = .object(o); return }
-        throw DecodingError.dataCorruptedError(in: c, debugDescription: "неизвестный JSON")
+        throw DecodingError.dataCorruptedError(in: c, debugDescription: L("неизвестный JSON"))
     }
 
     func encode(to encoder: Encoder) throws {
@@ -265,8 +265,8 @@ enum ApiError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .http(let code, _): return "HTTP \(code)"
-        case .decode: return "Ошибка разбора ответа"
-        case .badUrl: return "Неверный адрес сервера"
+        case .decode: return L("Ошибка разбора ответа")
+        case .badUrl: return L("Неверный адрес сервера")
         }
     }
 

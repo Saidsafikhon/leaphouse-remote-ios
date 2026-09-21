@@ -1,5 +1,6 @@
 package uz.electro.remote.ui
 
+import uz.electro.remote.i18n.S
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -43,18 +44,18 @@ fun HelpDialog(support: SupportDto?, onFeedback: (() -> Unit)? = null, onDismiss
         onDismissRequest = onDismiss,
         containerColor = ElectroColors.SurfaceElevated,
         tonalElevation = 0.dp,
-        title = { Text("Помощь", color = ElectroColors.TextPrimary) },
+        title = { Text(S("Помощь"), color = ElectroColors.TextPrimary) },
         text = {
             Column {
                 if (!any) {
-                    Text("Контакты поддержки пока не заданы.",
+                    Text(S("Контакты поддержки пока не заданы."),
                         color = ElectroColors.TextMuted, fontSize = 13.sp)
                 } else {
-                    Text("Свяжитесь с поддержкой удобным способом:",
+                    Text(S("Свяжитесь с поддержкой удобным способом:"),
                         color = ElectroColors.TextSecondary, fontSize = 13.sp)
                     Spacer(Modifier.height(8.dp))
                     if (s!!.phone.isNotBlank())
-                        HelpLine("Телефон", s.phone) {
+                        HelpLine(S("Телефон"), s.phone) {
                             runCatching { uri.openUri("tel:" + s.phone.filter { it == '+' || it.isDigit() }) }
                         }
                     if (s.telegram.isNotBlank())
@@ -62,20 +63,20 @@ fun HelpDialog(support: SupportDto?, onFeedback: (() -> Unit)? = null, onDismiss
                     if (s.instagram.isNotBlank())
                         HelpLine("Instagram", s.instagram) { runCatching { uri.openUri(igLink(s.instagram)) } }
                     if (s.site.isNotBlank())
-                        HelpLine("Сайт", s.site) { runCatching { uri.openUri(webLink(s.site)) } }
+                        HelpLine(S("Сайт"), s.site) { runCatching { uri.openUri(webLink(s.site)) } }
                 }
                 if (onFeedback != null) {
                     Spacer(Modifier.height(12.dp))
-                    Text("Нашли ошибку или есть идея — напишите нам прямо отсюда.",
+                    Text(S("Нашли ошибку или есть идея — напишите нам прямо отсюда."),
                         color = ElectroColors.TextMuted, fontSize = 12.sp)
                 }
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Закрыть", color = ElectroColors.Accent) }
+            TextButton(onClick = onDismiss) { Text(S("Закрыть"), color = ElectroColors.Accent) }
         },
         dismissButton = onFeedback?.let {
-            { TextButton(onClick = { onDismiss(); it() }) { Text("Оставить отзыв", color = ElectroColors.Accent) } }
+            { TextButton(onClick = { onDismiss(); it() }) { Text(S("Оставить отзыв"), color = ElectroColors.Accent) } }
         },
     )
 }

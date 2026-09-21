@@ -1,5 +1,6 @@
 package uz.electro.remote.data
 
+import uz.electro.remote.i18n.S
 import android.net.Uri
 
 /**
@@ -28,12 +29,12 @@ object Pairing {
      */
     suspend fun claim(payload: String, repo: CarRepository): Result<String> {
         val code = parse(payload).code
-            ?: return Result.failure(IllegalArgumentException("Это не QR машины Electro"))
+            ?: return Result.failure(IllegalArgumentException(S("Это не QR машины Electro")))
         if (code.isBlank()) {
-            return Result.failure(IllegalArgumentException("В коде нет кода привязки"))
+            return Result.failure(IllegalArgumentException(S("В коде нет кода привязки")))
         }
         return repo.claimPairing(code)
-            .map { "Машина привязана: ${it.name}" }
+            .map { S("Машина привязана: {0}", it.name) }
             .recoverCatching { throw IllegalStateException(repo.reason(it)) }
     }
 }

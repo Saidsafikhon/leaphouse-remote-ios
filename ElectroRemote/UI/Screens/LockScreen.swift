@@ -16,11 +16,11 @@ struct LockScreen: View {
             Spacer()
             BrandLockup(markSize: 44)
             Spacer().frame(height: Space.x6)
-            Text(failed ? "Не удалось подтвердить. Попробуйте ещё раз." : "Подтвердите, что это вы")
+            Text(failed ? L("Не удалось подтвердить. Попробуйте ещё раз.") : L("Подтвердите, что это вы"))
                 .font(.system(size: 15)).foregroundStyle(failed ? p.danger : p.textSecondary)
                 .multilineTextAlignment(.center)
             Spacer()
-            ElectroButton(text: "Разблокировать") { failed = false; ask() }
+            ElectroButton(text: L("Разблокировать")) { failed = false; ask() }
             Spacer().frame(height: Space.x6)
         }
         .padding(Space.x6)

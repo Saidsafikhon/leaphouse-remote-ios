@@ -1,5 +1,6 @@
 package uz.electro.remote.ui
 
+import uz.electro.remote.i18n.S
 import uz.electro.remote.ui.components.Lx
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
@@ -238,7 +239,7 @@ private fun HomeTab(
         Hero(model, paint)
         CarStatusStrip(car)
 
-        SectionTitle("Панель быстрого доступа")
+        SectionTitle(S("Панель быстрого доступа"))
         QuickRow(
             car, controls, stateOf, onSendAll,
             quick = caps?.quick ?: DEFAULT_QUICK,
@@ -287,8 +288,8 @@ private fun HomeTab(
     blocked?.let { reason ->
         ElectroDialog(
             Lx.Warning, ElectroColors.Warn,
-            "Климат не включаем", reason,
-            confirmText = "Понятно",
+            S("Климат не включаем"), reason,
+            confirmText = S("Понятно"),
             onConfirm = { blocked = null },
             onDismiss = { blocked = null },
             dismissText = null,
@@ -313,11 +314,11 @@ private fun toggleClimate(
 ): String? {
     if (climateOn(controls)) {
         // Только климат — сиденья и массаж не трогаем: это независимая система.
-        onSendAll(Cmd.climateOff(), "Выключить климат")
+        onSendAll(Cmd.climateOff(), S("Выключить климат"))
         return null
     }
     climateBlocker(car, controls)?.let { return it }
-    onSendAll(listOf(VehicleCommand(Cmd.AC, "1", "Климат")), "Включить климат")
+    onSendAll(listOf(VehicleCommand(Cmd.AC, "1", S("Климат"))), S("Включить климат"))
     return null
 }
 
@@ -360,8 +361,8 @@ private fun toggle(current: String?): String = if (current == "1") "0" else "1"
 
 private fun climateSummary(car: CarState, controls: Map<Int, String>): String {
     val on = acOn(controls[Cmd.AC])
-    val cabin = car.cabinTemp?.let { "в салоне ${it.asTemp()}°" } ?: "температура неизвестна"
-    return (if (on) "Включён" else "Выключен") + " · " + cabin
+    val cabin = car.cabinTemp?.let { S("в салоне {0}°", it.asTemp()) } ?: S("температура неизвестна")
+    return (if (on) S("Включён") else S("Выключен")) + " · " + cabin
 }
 
 internal fun seatSummary(controls: Map<Int, String>): String {
@@ -376,10 +377,10 @@ internal fun seatSummary(controls: Map<Int, String>): String {
     ))
     // коротко — подпись живёт в узкой плитке на главной, ей нельзя переноситься
     return when {
-        heat == 0 && vent == 0 -> "Выключены"
-        vent == 0 -> "Обогрев · $heat"
-        heat == 0 -> "Обдув · $vent"
-        else -> "Обогрев $heat · обдув $vent"
+        heat == 0 && vent == 0 -> S("Выключены")
+        vent == 0 -> S("Обогрев · {0}", heat)
+        heat == 0 -> S("Обдув · {0}", vent)
+        else -> S("Обогрев {0} · обдув {1}", heat, vent)
     }
 }
 
@@ -485,14 +486,14 @@ private fun DisconnectChip(onDisconnect: () -> Unit) {
             tint = ElectroColors.TextSecondary, modifier = Modifier.size(16.dp),
         )
         Spacer(Modifier.width(6.dp))
-        Text("Отключиться", style = ElectroType.Caption, color = ElectroColors.TextSecondary)
+        Text(S("Отключиться"), style = ElectroType.Caption, color = ElectroColors.TextSecondary)
     }
 }
 
 private fun updatedText(car: CarState): String = when {
-    car.updatedAt == 0L -> "Обновление…"
-    car.link == Link.NONE -> "Нет данных с машины"
-    else -> "Обновлено " + SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(car.updatedAt))
+    car.updatedAt == 0L -> S("Обновление…")
+    car.link == Link.NONE -> S("Нет данных с машины")
+    else -> S("Обновлено ") + SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(car.updatedAt))
 }
 
 @Composable
@@ -523,41 +524,41 @@ private fun CarStatusStrip(car: CarState) {
     // Охрана и замки — разные вещи, и подменять одно другим нельзя: снятая с
     // охраны машина с запертыми дверьми раньше показывалась как «на охране».
     val doorLine = when (car.locked) {
-        true -> "двери закрыты"
-        false -> "двери отперты"
-        null -> "состояние дверей неизвестно"
+        true -> S("двери закрыты")
+        false -> S("двери отперты")
+        null -> S("состояние дверей неизвестно")
     }
     val (icon, title, subtitle, accent, tint) = when {
         car.link == Link.NONE -> Quint(
-            Lx.CloudOff, "Нет связи с машиной", "Показаны последние данные",
+            Lx.CloudOff, S("Нет связи с машиной"), S("Показаны последние данные"),
             ElectroColors.TextMuted, ElectroColors.SurfaceElevated,
         )
         open -> Quint(
-            Lx.Warning, "Автомобиль открыт", openDetail(car),
+            Lx.Warning, S("Автомобиль открыт"), openDetail(car),
             ElectroColors.Danger, ElectroColors.DangerTint,
         )
         // Машина на охране с отпертыми дверьми — небезопасное состояние, а не
         // мелочь: именно его сервер компенсирует блокировкой.
         car.security == Security.ARMED && car.locked == false -> Quint(
-            Lx.Warning, "На охране, но двери отперты", "Закройте двери",
+            Lx.Warning, S("На охране, но двери отперты"), S("Закройте двери"),
             ElectroColors.Danger, ElectroColors.DangerTint,
         )
         car.security == Security.ARMED -> Quint(
-            Lx.Shield, "Автомобиль на охране", doorLine,
+            Lx.Shield, S("Автомобиль на охране"), doorLine,
             ElectroColors.Ok, ElectroColors.OkTint,
         )
         car.security == Security.DISARMED -> Quint(
-            Lx.LockOpen, "Снят с охраны", doorLine,
+            Lx.LockOpen, S("Снят с охраны"), doorLine,
             ElectroColors.Warn, ElectroColors.WarnTint,
         )
         // Охрану машина не сообщила — говорим только про замки и не выдаём
         // догадку за факт.
         locked -> Quint(
-            Lx.Lock, "Двери закрыты", "Охрана не сообщается",
+            Lx.Lock, S("Двери закрыты"), S("Охрана не сообщается"),
             ElectroColors.TextSecondary, ElectroColors.SurfaceElevated,
         )
         else -> Quint(
-            Lx.LockOpen, "Двери отперты", "Охрана не сообщается",
+            Lx.LockOpen, S("Двери отперты"), S("Охрана не сообщается"),
             ElectroColors.Warn, ElectroColors.WarnTint,
         )
     }
@@ -565,7 +566,7 @@ private fun CarStatusStrip(car: CarState) {
         icon = icon, title = title, subtitle = subtitle,
         accent = accent, accentTint = tint,
         metrics = listOfNotNull(
-            car.rangeKm?.let { Metric("$it", "км", (it / 500f)) },
+            car.rangeKm?.let { Metric("$it", S("км"), (it / 500f)) },
             car.soc?.let { Metric("$it", "%", it / 100f) },
         ),
     )
@@ -577,10 +578,10 @@ private data class Quint(
 )
 
 private fun openDetail(car: CarState): String = listOfNotNull(
-    if (car.hoodOpen) "капот" else null,
-    if (car.trunkOpen == true) "багажник" else null,
-    if (car.doors.anyOpen) "дверь" else null,
-).joinToString(", ").replaceFirstChar { it.uppercase() }.ifBlank { "Проверьте автомобиль" }
+    if (car.hoodOpen) S("капот") else null,
+    if (car.trunkOpen == true) S("багажник") else null,
+    if (car.doors.anyOpen) S("дверь") else null,
+).joinToString(", ").replaceFirstChar { it.uppercase() }.ifBlank { S("Проверьте автомобиль") }
 
 /**
  * Четыре действия, ради которых открывают приложение: замки, багажник,
@@ -614,32 +615,32 @@ private fun QuickRow(
         when (key) {
             "lock" -> ({
                 ControlTile(
-                    if (locked) "Открыть двери" else "Закрыть двери",
+                    if (locked) S("Открыть двери") else S("Закрыть двери"),
                     if (locked) Lx.Lock else Lx.LockOpen,
                     stateOf(Cmd.LOCK).orActive(!locked),
                     Modifier.weight(1f),
                 ) {
                     if (locked) onConfirm(HomeConfirm(
-                        "Открыть двери?", "Автомобиль будет разблокирован.", "Открыть",
-                        listOf(VehicleCommand(Cmd.LOCK, "1")), "Открыть двери",
-                    )) else onSendAll(listOf(VehicleCommand(Cmd.LOCK, "0")), "Закрыть двери")
+                        S("Открыть двери?"), S("Автомобиль будет разблокирован."), S("Открыть"),
+                        listOf(VehicleCommand(Cmd.LOCK, "1")), S("Открыть двери"),
+                    )) else onSendAll(listOf(VehicleCommand(Cmd.LOCK, "0")), S("Закрыть двери"))
                 }
             })
             "trunk" -> ({
                 ControlTile(
-                    "Багажник", Lx.DirectionsCar,
+                    S("Багажник"), Lx.DirectionsCar,
                     stateOf(Cmd.TRUNK).orActive(trunkOpen), Modifier.weight(1f),
                 ) {
-                    if (trunkOpen) onSendAll(listOf(VehicleCommand(Cmd.TRUNK, "0")), "Закрыть багажник")
+                    if (trunkOpen) onSendAll(listOf(VehicleCommand(Cmd.TRUNK, "0")), S("Закрыть багажник"))
                     else onConfirm(HomeConfirm(
-                        "Открыть багажник?", "Багажник будет разблокирован.", "Открыть",
-                        listOf(VehicleCommand(Cmd.TRUNK, "1")), "Открыть багажник",
+                        S("Открыть багажник?"), S("Багажник будет разблокирован."), S("Открыть"),
+                        listOf(VehicleCommand(Cmd.TRUNK, "1")), S("Открыть багажник"),
                     ))
                 }
             })
             "climate" -> ({
                 ControlTile(
-                    if (climateOn(controls)) "Климат выкл" else "Климат",
+                    if (climateOn(controls)) S("Климат выкл") else S("Климат"),
                     Lx.AcUnit,
                     stateOf(Cmd.AC).orActive(climateOn(controls)),
                     Modifier.weight(1f), onClick = onClimate,
@@ -647,14 +648,14 @@ private fun QuickRow(
             })
             "windows" -> ({
                 ControlTile(
-                    if (windowsOpen) "Закрыть окна" else "Открыть окна",
+                    if (windowsOpen) S("Закрыть окна") else S("Открыть окна"),
                     if (windowsOpen) Lx.ExpandLess else Lx.ExpandMore,
                     stateOf(Cmd.WINDOW_FL).orActive(windowsOpen), Modifier.weight(1f),
                 ) {
                     val value = if (windowsOpen) "0" else "100"
                     onSendAll(
                         Cmd.WINDOWS.map { VehicleCommand(it, value) },
-                        if (windowsOpen) "Закрыть все окна" else "Открыть все окна",
+                        if (windowsOpen) S("Закрыть все окна") else S("Открыть все окна"),
                     )
                 }
             })
@@ -676,9 +677,9 @@ private fun QuickRow(
 @Composable
 private fun EntryRow(caps: CapabilitiesDto?, onOpen: (String) -> Unit) {
     val entries = buildList {
-        if (caps?.scenes != false) add(Triple("scenes", "Мои сцены", Lx.Dashboard))
-        if (caps?.climate_schedule != false) add(Triple("schedule", "Расписание", Lx.Schedule))
-        if (caps?.voice != false) add(Triple("voice", "Голос", Lx.RecordVoiceOver))
+        if (caps?.scenes != false) add(Triple("scenes", S("Мои сцены"), Lx.Dashboard))
+        if (caps?.climate_schedule != false) add(Triple("schedule", S("Расписание"), Lx.Schedule))
+        if (caps?.voice != false) add(Triple("voice", S("Голос"), Lx.RecordVoiceOver))
     }
     if (entries.isEmpty()) return
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Space.x2)) {
@@ -721,13 +722,13 @@ private fun ClimateCard(
     val temp = controls[Cmd.TEMP_L]?.toFloatOrNull()?.toInt() ?: DEFAULT_TEMP
     Surface(color = ElectroColors.Surface, shape = Radius.Md, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(Space.x4), verticalArrangement = Arrangement.spacedBy(Space.x3)) {
-            Text("Климат в салоне", style = ElectroType.Body, color = ElectroColors.TextSecondary,
+            Text(S("Климат в салоне"), style = ElectroType.Body, color = ElectroColors.TextSecondary,
                 modifier = Modifier.clickable(onClick = onOpen))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(Cmd.tempLabel(temp), style = ElectroType.Display, color = ElectroColors.TextPrimary)
                     Text(
-                        car.cabinTemp?.let { "В салоне ${it.asTemp()}°" } ?: "В салоне —",
+                        car.cabinTemp?.let { S("В салоне {0}°", it.asTemp()) } ?: S("В салоне —"),
                         style = ElectroType.Caption, color = ElectroColors.TextMuted,
                     )
                 }
@@ -755,7 +756,7 @@ private fun ClimateCard(
 private fun autoOffNote(car: CarState, controls: Map<Int, String>): String? {
     if (!climateOn(controls)) return null
     val minutes = car.climateAutoOffMinutes
-    return if (minutes > 0) "Сервер погасит климат через $minutes мин" else null
+    return if (minutes > 0) S("Сервер погасит климат через {0} мин", minutes) else null
 }
 
 private fun setBothSides(send: (Int, String) -> Unit, value: Int) {
@@ -792,7 +793,7 @@ private fun GwmClimateCard(
         modifier = modifier.clickable(onClick = onOpen)) {
         Column(Modifier.padding(Space.x4).heightIn(min = 132.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Климат", style = ElectroType.Body, color = ElectroColors.TextPrimary,
+                Text(S("Климат"), style = ElectroType.Body, color = ElectroColors.TextPrimary,
                     modifier = Modifier.weight(1f))
                 Switch(
                     checked = on, onCheckedChange = { onToggle() },
@@ -805,7 +806,7 @@ private fun GwmClimateCard(
             Spacer(Modifier.weight(1f))
             Text(Cmd.tempLabel(temp), style = ElectroType.Display, color = ElectroColors.TextPrimary)
             Text(
-                car.cabinTemp?.let { "в салоне ${it.asTemp()}°" } ?: "уставка",
+                car.cabinTemp?.let { S("в салоне {0}°", it.asTemp()) } ?: S("уставка"),
                 style = ElectroType.Caption, color = ElectroColors.TextMuted,
             )
         }
@@ -840,7 +841,7 @@ private fun GwmSeatsCard(
         modifier = modifier.clickable(onClick = onOpen)) {
         Column(Modifier.padding(Space.x4).heightIn(min = 132.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Сиденья", style = ElectroType.Body, color = ElectroColors.TextPrimary,
+                Text(S("Сиденья"), style = ElectroType.Body, color = ElectroColors.TextPrimary,
                     modifier = Modifier.weight(1f))
                 Switch(
                     // Тумблер работает в обе стороны: вкл — по сохранённому
@@ -903,10 +904,10 @@ private fun BottomNav(tab: String, onSelect: (String) -> Unit) {
             Modifier.fillMaxWidth().padding(top = Space.x3, bottom = Space.x4),
             horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
-            NavItem(Lx.Home, "Главная", tab == "car") { onSelect("car") }
-            NavItem(Lx.AcUnit, "Климат", tab == "climate") { onSelect("climate") }
-            NavItem(Lx.Map, "Карта", tab == "map") { onSelect("map") }
-            NavItem(Lx.Settings, "Настройки", tab == "settings") { onSelect("settings") }
+            NavItem(Lx.Home, S("Главная"), tab == "car") { onSelect("car") }
+            NavItem(Lx.AcUnit, S("Климат"), tab == "climate") { onSelect("climate") }
+            NavItem(Lx.Map, S("Карта"), tab == "map") { onSelect("map") }
+            NavItem(Lx.Settings, S("Настройки"), tab == "settings") { onSelect("settings") }
         }
     }
 }
@@ -928,7 +929,7 @@ private fun NavItem(icon: ImageVector, label: String, active: Boolean, onClick: 
 private fun TempRow(label: String, value: Int?, onSet: (Int) -> Unit) {
     val current = value ?: DEFAULT_TEMP
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text("Темп. $label", style = ElectroType.Body, color = ElectroColors.TextPrimary,
+        Text(S("Темп. {0}", label), style = ElectroType.Body, color = ElectroColors.TextPrimary,
             modifier = Modifier.weight(1f))
         ControlChip("−", Modifier.width(52.dp)) { if (current > Cmd.TEMP_MIN) onSet(current - 1) }
         Text(if (value == null) "—" else Cmd.tempLabel(current), style = ElectroType.Value,
@@ -943,8 +944,8 @@ private const val DEFAULT_TEMP = 22
 private fun WindowRow(name: String, type: Int, send: (Int, String) -> Unit) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(name, style = ElectroType.Body, color = ElectroColors.TextPrimary, modifier = Modifier.weight(1f))
-        ControlChip("Вниз", Modifier.width(74.dp)) { send(type, "100") }
+        ControlChip(S("Вниз"), Modifier.width(74.dp)) { send(type, "100") }
         Spacer(Modifier.width(Space.x2))
-        ControlChip("Вверх", Modifier.width(74.dp)) { send(type, "0") }
+        ControlChip(S("Вверх"), Modifier.width(74.dp)) { send(type, "0") }
     }
 }

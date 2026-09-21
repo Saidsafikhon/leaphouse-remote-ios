@@ -1,5 +1,6 @@
 package uz.electro.remote.ui
 
+import uz.electro.remote.i18n.S
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Text
@@ -32,12 +33,12 @@ fun LockScreen(onPrompt: ((Boolean) -> Unit) -> Unit, onUnlocked: () -> Unit) {
         BrandLockup(markSize = 44.dp)
         Spacer(Modifier.height(Space.x6))
         Text(
-            if (failed) "Не удалось подтвердить. Попробуйте ещё раз." else "Подтвердите, что это вы",
+            if (failed) S("Не удалось подтвердить. Попробуйте ещё раз.") else S("Подтвердите, что это вы"),
             color = if (failed) ElectroColors.Danger else ElectroColors.TextSecondary,
             fontSize = 15.sp, textAlign = TextAlign.Center,
         )
         Spacer(Modifier.weight(1f))
-        ElectroButton(text = "Разблокировать", modifier = Modifier.fillMaxWidth()) { failed = false; ask() }
+        ElectroButton(text = S("Разблокировать"), modifier = Modifier.fillMaxWidth()) { failed = false; ask() }
         Spacer(Modifier.height(Space.x6))
     }
 }

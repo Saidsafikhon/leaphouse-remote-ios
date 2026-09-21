@@ -18,13 +18,13 @@ struct FeedbackView: View {
     @State private var error: String? = nil
     @State private var sent = false
 
-    private static let kinds: [(String, String)] = [("bug", "Ошибка"), ("idea", "Идея"), ("other", "Другое")]
+    private static var kinds: [(String, String)] { [("bug", L("Ошибка")), ("idea", L("Идея")), ("other", L("Другое"))] }
     private static let maxFiles = 3
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.x3) {
             HStack {
-                Text(sent ? "Спасибо!" : "Отзыв").font(ElectroType.headline).foregroundStyle(p.textPrimary)
+                Text(sent ? L("Спасибо!") : L("Отзыв")).font(ElectroType.headline).foregroundStyle(p.textPrimary)
                 Spacer()
                 Button { onClose() } label: {
                     Image(systemName: "xmark").foregroundStyle(p.textSecondary).frame(width: 32, height: 32)
@@ -32,11 +32,11 @@ struct FeedbackView: View {
                 .buttonStyle(.plain).disabled(busy)
             }
             if sent {
-                Text("Отзыв отправлен. Мы читаем каждый.").font(.system(size: 14)).foregroundStyle(p.textSecondary)
+                Text(L("Отзыв отправлен. Мы читаем каждый.")).font(.system(size: 14)).foregroundStyle(p.textSecondary)
                 Spacer()
-                ElectroButton(text: "Закрыть") { onClose() }
+                ElectroButton(text: L("Закрыть")) { onClose() }
             } else {
-                Text("Что не так, чего не хватает или что было бы удобнее — напишите, это уйдёт разработчикам.")
+                Text(L("Что не так, чего не хватает или что было бы удобнее — напишите, это уйдёт разработчикам."))
                     .font(.system(size: 13)).foregroundStyle(p.textSecondary)
                 HStack(spacing: 6) {
                     ForEach(Self.kinds, id: \.0) { code, label in
@@ -63,7 +63,7 @@ struct FeedbackView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                         .disabled(busy)
                     if text.isEmpty {
-                        Text("Например: климат включился сам в 8:10, машина C10")
+                        Text(L("Например: климат включился сам в 8:10, машина C10"))
                             .font(.system(size: 13)).foregroundStyle(p.textMuted)
                             .padding(.horizontal, 13).padding(.top, 16).allowsHitTesting(false)
                     }
@@ -95,13 +95,13 @@ struct FeedbackView: View {
                         .disabled(busy)
                     }
                 }
-                Text(picked.isEmpty ? "Можно приложить скриншот или запись экрана (до \(Self.maxFiles), по 40 МБ)." : "Нажмите на файл, чтобы убрать.")
+                Text(picked.isEmpty ? L("Можно приложить скриншот или запись экрана (до {0}, по 40 МБ).", Self.maxFiles) : L("Нажмите на файл, чтобы убрать."))
                     .font(.system(size: 11)).foregroundStyle(p.textMuted)
                 if let error { Text(error).font(.system(size: 13)).foregroundStyle(p.danger) }
                 Spacer()
                 HStack(spacing: Space.x2) {
-                    ElectroButton(text: "Отмена", style: .ghost, enabled: !busy) { onClose() }
-                    ElectroButton(text: "Отправить", enabled: !busy && text.trimmingCharacters(in: .whitespacesAndNewlines).count >= 3, loading: busy) { send() }
+                    ElectroButton(text: L("Отмена"), style: .ghost, enabled: !busy) { onClose() }
+                    ElectroButton(text: L("Отправить"), enabled: !busy && text.trimmingCharacters(in: .whitespacesAndNewlines).count >= 3, loading: busy) { send() }
                 }
             }
         }

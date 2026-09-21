@@ -1,5 +1,6 @@
 package uz.electro.remote.security
 
+import uz.electro.remote.i18n.S
 import android.app.KeyguardManager
 import android.content.Context
 import androidx.biometric.BiometricManager
@@ -50,7 +51,7 @@ class AppLock(ctx: Context) {
             })
         val info = BiometricPrompt.PromptInfo.Builder()
             .setTitle("LeapRemote")
-            .setSubtitle("Подтвердите, что это вы")
+            .setSubtitle(S("Подтвердите, что это вы"))
             .setAllowedAuthenticators(AUTHENTICATORS)
             .build()
         prompt.authenticate(info)

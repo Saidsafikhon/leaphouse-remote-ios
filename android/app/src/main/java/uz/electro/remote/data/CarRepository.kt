@@ -1,5 +1,6 @@
 package uz.electro.remote.data
 
+import uz.electro.remote.i18n.S
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -60,9 +61,9 @@ class CarRepository(private val settings: Settings) {
      * сервера. Гасит забытый климат сам сервер, а не телефон.
      */
     suspend fun climateOn(runMinutes: Int?): CmdResult = withContext(Dispatchers.IO) {
-        if (!settings.cloudEnabled) return@withContext CmdResult.Failed("Сервер отключён в настройках")
-        if (!settings.loggedIn) return@withContext CmdResult.Failed("Вход в аккаунт не выполнен")
-        val id = resolveVehicleId() ?: return@withContext CmdResult.Failed("Машина не выбрана")
+        if (!settings.cloudEnabled) return@withContext CmdResult.Failed(S("Сервер отключён в настройках"))
+        if (!settings.loggedIn) return@withContext CmdResult.Failed(S("Вход в аккаунт не выполнен"))
+        val id = resolveVehicleId() ?: return@withContext CmdResult.Failed(S("Машина не выбрана"))
         val params = if (runMinutes != null) mapOf("run_minutes" to runMinutes) else emptyMap()
         runCatching { cloud.api.climateOn(id, CommandRequest(params = params)) }
             .map {
@@ -73,9 +74,9 @@ class CarRepository(private val settings: Settings) {
     }
 
     private suspend fun sendViaCloud(cmd: VehicleCommand): CmdResult {
-        if (!settings.cloudEnabled) return CmdResult.Failed("Сервер отключён в настройках")
-        if (!settings.loggedIn) return CmdResult.Failed("Вход в аккаунт не выполнен")
-        val id = resolveVehicleId() ?: return CmdResult.Failed("Машина не выбрана")
+        if (!settings.cloudEnabled) return CmdResult.Failed(S("Сервер отключён в настройках"))
+        if (!settings.loggedIn) return CmdResult.Failed(S("Вход в аккаунт не выполнен"))
+        val id = resolveVehicleId() ?: return CmdResult.Failed(S("Машина не выбрана"))
 
         // Замок и климат — своими эндпоинтами: у них на сервере отдельные права
         // и своя проверка. Всё остальное уходит одной командой кузова: карту
@@ -171,7 +172,7 @@ class CarRepository(private val settings: Settings) {
         // host leapmotor.evon.uz», «Failed to connect to /62.171.159.63») — их
         // на экран показывать нельзя. Переводим в обобщённую причину.
         friendlyNetworkError(error)?.let { return it }
-        return scrubAddresses(error.message) ?: "Сервер недоступен"
+        return scrubAddresses(error.message) ?: S("Сервер недоступен")
     }
 
     /**
@@ -193,9 +194,9 @@ class CarRepository(private val settings: Settings) {
     }
 
     private fun channelName(channel: String?): String = when (channel) {
-        "WAKE_DEVICE" -> "через пробуждалку в машине"
-        "LEAPMOTOR_CLOUD" -> "через облако"
-        else -> "через сервер"
+        "WAKE_DEVICE" -> S("через пробуждалку в машине")
+        "LEAPMOTOR_CLOUD" -> S("через облако")
+        else -> S("через сервер")
     }
 
     // --- вход в аккаунт --------------------------------------------------
@@ -335,18 +336,18 @@ class CarRepository(private val settings: Settings) {
     suspend fun createScene(name: String, steps: List<SceneStepDto>): Result<SceneTemplateDto> =
         withContext(Dispatchers.IO) {
             val id = resolveVehicleId()
-                ?: return@withContext Result.failure(IllegalStateException("Машина не выбрана"))
+                ?: return@withContext Result.failure(IllegalStateException(S("Машина не выбрана")))
             runCatching { cloud.api.createScene(id, SceneTemplateRequest(name, steps)) }
         }
 
     suspend fun deleteScene(templateId: String): Result<Unit> = withContext(Dispatchers.IO) {
         val id = resolveVehicleId()
-            ?: return@withContext Result.failure(IllegalStateException("Машина не выбрана"))
+            ?: return@withContext Result.failure(IllegalStateException(S("Машина не выбрана")))
         runCatching { cloud.api.deleteScene(id, templateId); Unit }
     }
 
     suspend fun runScene(templateId: String): CmdResult = withContext(Dispatchers.IO) {
-        val id = resolveVehicleId() ?: return@withContext CmdResult.Failed("Машина не выбрана")
+        val id = resolveVehicleId() ?: return@withContext CmdResult.Failed(S("Машина не выбрана"))
         runCatching { cloud.api.runScene(id, templateId, CommandRequest()) }
             .map {
                 if (it.status.startsWith("SUCCESS")) CmdResult.Ok
@@ -363,21 +364,21 @@ class CarRepository(private val settings: Settings) {
     suspend fun createClimateSchedule(body: ClimateScheduleRequest): Result<ClimateScheduleDto> =
         withContext(Dispatchers.IO) {
             val id = resolveVehicleId()
-                ?: return@withContext Result.failure(IllegalStateException("Машина не выбрана"))
+                ?: return@withContext Result.failure(IllegalStateException(S("Машина не выбрана")))
             runCatching { cloud.api.createClimateSchedule(id, body) }
         }
 
     suspend fun setScheduleEnabled(scheduleId: String, enabled: Boolean): Result<Unit> =
         withContext(Dispatchers.IO) {
             val id = resolveVehicleId()
-                ?: return@withContext Result.failure(IllegalStateException("Машина не выбрана"))
+                ?: return@withContext Result.failure(IllegalStateException(S("Машина не выбрана")))
             runCatching { cloud.api.setScheduleEnabled(id, scheduleId, EnabledRequest(enabled)); Unit }
         }
 
     suspend fun deleteClimateSchedule(scheduleId: String): Result<Unit> =
         withContext(Dispatchers.IO) {
             val id = resolveVehicleId()
-                ?: return@withContext Result.failure(IllegalStateException("Машина не выбрана"))
+                ?: return@withContext Result.failure(IllegalStateException(S("Машина не выбрана")))
             runCatching { cloud.api.deleteClimateSchedule(id, scheduleId); Unit }
         }
 
@@ -391,7 +392,7 @@ class CarRepository(private val settings: Settings) {
     }
 
     suspend fun runVoice(intent: String): CmdResult = withContext(Dispatchers.IO) {
-        val id = resolveVehicleId() ?: return@withContext CmdResult.Failed("Машина не выбрана")
+        val id = resolveVehicleId() ?: return@withContext CmdResult.Failed(S("Машина не выбрана"))
         runCatching { cloud.api.voice(id, VoiceRequestBody(intent)) }
             .map {
                 if (it.status.startsWith("SUCCESS")) CmdResult.Ok

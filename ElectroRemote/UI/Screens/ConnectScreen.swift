@@ -30,6 +30,7 @@ struct ConnectScreen: View {
         let chosen = vm.selectedVehicle
         return VStack(spacing: 0) {
             HStack(spacing: Space.x2) {
+                LangPicker(compact: true)
                 Spacer()
                 NewsBell(unread: vm.unreadNews) { showNews = true }
                 HelpFab { showHelp = true }
@@ -71,23 +72,23 @@ struct ConnectScreen: View {
             VStack(spacing: Space.x2) {
                 switch status.phase {
                 case .idle:
-                    ElectroButton(text: "Подключиться") { start() }
-                    ElectroButton(text: "Найти машину", style: .secondary, enabled: !vm.busy) { vm.findCar() }
+                    ElectroButton(text: L("Подключиться")) { start() }
+                    ElectroButton(text: L("Найти машину"), style: .secondary, enabled: !vm.busy) { vm.findCar() }
                 case .sending, .waiting:
-                    ElectroButton(text: "Подключение", loading: true) {}
+                    ElectroButton(text: L("Подключение"), loading: true) {}
                 case .timeout:
-                    ElectroButton(text: "Разбудить ещё раз") { start() }
-                    ElectroButton(text: "Всё равно открыть", style: .secondary) { vm.enterAnyway() }
+                    ElectroButton(text: L("Разбудить ещё раз")) { start() }
+                    ElectroButton(text: L("Всё равно открыть"), style: .secondary) { vm.enterAnyway() }
                 case .error:
-                    ElectroButton(text: "Повторить") { start() }
-                    ElectroButton(text: "Всё равно открыть", style: .ghost) { vm.enterAnyway() }
+                    ElectroButton(text: L("Повторить")) { start() }
+                    ElectroButton(text: L("Всё равно открыть"), style: .ghost) { vm.enterAnyway() }
                 case .connected:
                     EmptyView()
                 }
             }
 
             Spacer().frame(height: Space.x3)
-            ElectroButton(text: vm.wakeConfigured ? "Настройки" : "Настроить подключение", style: .ghost) { showSettings = true }
+            ElectroButton(text: vm.wakeConfigured ? L("Настройки") : L("Настроить подключение"), style: .ghost) { showSettings = true }
             Spacer().frame(height: Space.x3)
             Text(appVersion()).font(ElectroType.caption).foregroundStyle(p.textMuted)
             Spacer().frame(height: Space.x3)
@@ -105,21 +106,21 @@ private struct PhaseBadge: View {
     let status: ConnectStatus
     var body: some View {
         switch status.phase {
-        case .idle: StatusBadge(kind: .offline, text: "СПИТ")
-        case .sending, .waiting: StatusBadge(kind: .info, text: "ПОДКЛЮЧЕНИЕ")
-        case .timeout: StatusBadge(kind: .failed, text: "ОШИБКА")
-        case .error: StatusBadge(kind: .failed, text: "ОШИБКА")
-        case .connected: StatusBadge(kind: .online, text: "НА СВЯЗИ")
+        case .idle: StatusBadge(kind: .offline, text: L("СПИТ"))
+        case .sending, .waiting: StatusBadge(kind: .info, text: L("ПОДКЛЮЧЕНИЕ"))
+        case .timeout: StatusBadge(kind: .failed, text: L("ОШИБКА"))
+        case .error: StatusBadge(kind: .failed, text: L("ОШИБКА"))
+        case .connected: StatusBadge(kind: .online, text: L("НА СВЯЗИ"))
         }
     }
 }
 
 /// Коротко: без объяснений, что происходит под капотом — только статус.
 private func hint(_ status: ConnectStatus, _ configured: Bool) -> String {
-    if !configured && status.phase == .idle { return "Войдите на сервер в настройках." }
+    if !configured && status.phase == .idle { return L("Войдите на сервер в настройках.") }
     switch status.phase {
-    case .sending, .waiting: return "Подключение…"
-    case .timeout, .error: return "Ошибка: подключение не удалось"
+    case .sending, .waiting: return L("Подключение…")
+    case .timeout, .error: return L("Ошибка: подключение не удалось")
     case .idle, .connected: return ""
     }
 }

@@ -1,5 +1,6 @@
 package uz.electro.remote.ui
 
+import uz.electro.remote.i18n.S
 import android.net.Uri
 import android.os.Build
 import android.util.Size
@@ -32,9 +33,9 @@ import uz.electro.remote.ui.theme.ElectroColors
 
 /** Виды отзыва — те же коды, что ждёт сервер (`POST /api/v1/feedback`). */
 private val FEEDBACK_KINDS = listOf(
-    "bug" to "Ошибка",
-    "idea" to "Идея",
-    "other" to "Другое",
+    "bug" to S("Ошибка"),
+    "idea" to S("Идея"),
+    "other" to S("Другое"),
 )
 
 /** Сколько файлов можно приложить — совпадает с сервером. */
@@ -73,15 +74,15 @@ fun FeedbackDialog(
         onDismissRequest = { if (!busy) onDismiss() },
         containerColor = ElectroColors.SurfaceElevated,
         tonalElevation = 0.dp,
-        title = { Text(if (sent) "Спасибо!" else "Отзыв", color = ElectroColors.TextPrimary) },
+        title = { Text(if (sent) S("Спасибо!") else S("Отзыв"), color = ElectroColors.TextPrimary) },
         text = {
             if (sent) {
-                Text("Отзыв отправлен. Мы читаем каждый.",
+                Text(S("Отзыв отправлен. Мы читаем каждый."),
                     color = ElectroColors.TextSecondary, fontSize = 14.sp)
                 return@AlertDialog
             }
             Column {
-                Text("Что не так, чего не хватает или что было бы удобнее — напишите, это уйдёт разработчикам.",
+                Text(S("Что не так, чего не хватает или что было бы удобнее — напишите, это уйдёт разработчикам."),
                     color = ElectroColors.TextSecondary, fontSize = 13.sp)
                 Spacer(Modifier.height(10.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -108,7 +109,7 @@ fun FeedbackDialog(
                 OutlinedTextField(
                     value = text, onValueChange = { if (it.length <= 2000) text = it },
                     minLines = 4, maxLines = 8,
-                    placeholder = { Text("Например: климат включился сам в 8:10, машина C10", fontSize = 13.sp) },
+                    placeholder = { Text(S("Например: климат включился сам в 8:10, машина C10"), fontSize = 13.sp) },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !busy,
                     colors = OutlinedTextFieldDefaults.colors(
@@ -130,8 +131,8 @@ fun FeedbackDialog(
                     onRemove = { uri -> files = files - uri },
                 )
                 Text(
-                    if (files.isEmpty()) "Можно приложить скриншот или запись экрана (до $MAX_ATTACHMENTS, по 40 МБ)."
-                    else "Нажмите на файл, чтобы убрать.",
+                    if (files.isEmpty()) S("Можно приложить скриншот или запись экрана (до {0}, по 40 МБ).", MAX_ATTACHMENTS)
+                    else S("Нажмите на файл, чтобы убрать."),
                     color = ElectroColors.TextMuted, fontSize = 11.sp,
                     modifier = Modifier.padding(top = 4.dp),
                 )
@@ -143,7 +144,7 @@ fun FeedbackDialog(
         },
         confirmButton = {
             if (sent) {
-                TextButton(onClick = onDismiss) { Text("Закрыть", color = ElectroColors.Accent) }
+                TextButton(onClick = onDismiss) { Text(S("Закрыть"), color = ElectroColors.Accent) }
             } else {
                 TextButton(
                     enabled = !busy && text.trim().length >= 3,
@@ -157,13 +158,13 @@ fun FeedbackDialog(
                 ) {
                     if (busy) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp,
                         color = ElectroColors.Accent)
-                    else Text("Отправить", color = ElectroColors.Accent)
+                    else Text(S("Отправить"), color = ElectroColors.Accent)
                 }
             }
         },
         dismissButton = {
             if (!sent) TextButton(enabled = !busy, onClick = onDismiss) {
-                Text("Отмена", color = ElectroColors.TextSecondary)
+                Text(S("Отмена"), color = ElectroColors.TextSecondary)
             }
         },
     )
@@ -183,7 +184,7 @@ private fun AttachmentsRow(
                     .clickable(enabled = enabled, onClick = onAdd),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(Icons.Outlined.AddCircleOutline, "Приложить файл",
+                Icon(Icons.Outlined.AddCircleOutline, S("Приложить файл"),
                     tint = ElectroColors.Accent, modifier = Modifier.size(26.dp))
             }
         }
@@ -217,7 +218,7 @@ private fun AttachmentThumb(uri: Uri, enabled: Boolean, onRemove: () -> Unit) {
             Image(it, null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
         }
         if (isVideo) {
-            Icon(Icons.Outlined.PlayCircleOutline, "запись экрана",
+            Icon(Icons.Outlined.PlayCircleOutline, S("запись экрана"),
                 tint = ElectroColors.OnAccent, modifier = Modifier.size(28.dp))
         } else if (bitmap == null) {
             Text("IMG", color = ElectroColors.TextMuted, fontSize = 11.sp)

@@ -16,10 +16,10 @@ struct QRScannerScreen: View {
             if denied {
                 VStack(spacing: Space.x4) {
                     Image(systemName: "camera.fill").font(.system(size: 40)).foregroundStyle(p.textMuted)
-                    Text("Нет доступа к камере").font(ElectroType.headline).foregroundStyle(.white)
-                    Text("Разрешите камеру в Настройках iOS → LeapRemote, чтобы сканировать QR.")
+                    Text(L("Нет доступа к камере")).font(ElectroType.headline).foregroundStyle(.white)
+                    Text(L("Разрешите камеру в Настройках iOS → LeapRemote, чтобы сканировать QR."))
                         .font(ElectroType.body).foregroundStyle(p.textSecondary).multilineTextAlignment(.center)
-                    ElectroButton(text: "Открыть настройки", style: .secondary) {
+                    ElectroButton(text: L("Открыть настройки"), style: .secondary) {
                         if let u = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(u) }
                     }
                 }
@@ -37,7 +37,7 @@ struct QRScannerScreen: View {
                     .frame(width: 240, height: 240)
                 VStack {
                     Spacer()
-                    Text("Наведите на QR на экране машины").font(ElectroType.body).foregroundStyle(.white)
+                    Text(L("Наведите на QR на экране машины")).font(ElectroType.body).foregroundStyle(.white)
                         .padding(.horizontal, Space.x4).padding(.vertical, Space.x2)
                         .background(Color.black.opacity(0.5)).clipShape(Capsule())
                         .padding(.bottom, 120)

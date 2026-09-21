@@ -1,5 +1,6 @@
 package uz.electro.remote.ui
 
+import uz.electro.remote.i18n.S
 import uz.electro.remote.ui.components.Lx
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -43,29 +44,29 @@ fun SeatsScreen(
 ) {
     fun level(type: Int) = controls[type]?.toFloatOrNull()?.toInt()?.coerceIn(0, SEAT_LEVELS) ?: 0
 
-    ScreenScaffold("Сиденья", onBack) {
+    ScreenScaffold(S("Сиденья"), onBack) {
         Surface(color = ElectroColors.Surface, shape = Radius.Lg, modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(Space.x4)) {
                 // нос машины сверху — как в салоне вид сверху у GWM
-                Text("▲ перёд", style = ElectroType.Caption, color = ElectroColors.TextMuted,
+                Text(S("▲ перёд"), style = ElectroType.Caption, color = ElectroColors.TextMuted,
                     modifier = Modifier.align(Alignment.CenterHorizontally))
                 Spacer(Modifier.height(Space.x3))
 
                 CabinRow(
-                    left = SeatSpec("Водитель", Cmd.SEAT_HEAT_DRIVER, Cmd.SEAT_VENT_DRIVER),
-                    right = SeatSpec("Пассажир", Cmd.SEAT_HEAT_PASSENGER, Cmd.SEAT_VENT_PASSENGER),
+                    left = SeatSpec(S("Водитель"), Cmd.SEAT_HEAT_DRIVER, Cmd.SEAT_VENT_DRIVER),
+                    right = SeatSpec(S("Пассажир"), Cmd.SEAT_HEAT_PASSENGER, Cmd.SEAT_VENT_PASSENGER),
                     level = ::level, send = send,
                 )
                 Spacer(Modifier.height(Space.x4))
                 CabinRow(
-                    left = SeatSpec("Заднее левое", Cmd.SEAT_HEAT_REAR_L, Cmd.SEAT_VENT_REAR_L),
-                    right = SeatSpec("Заднее правое", Cmd.SEAT_HEAT_REAR_R, Cmd.SEAT_VENT_REAR_R),
+                    left = SeatSpec(S("Заднее левое"), Cmd.SEAT_HEAT_REAR_L, Cmd.SEAT_VENT_REAR_L),
+                    right = SeatSpec(S("Заднее правое"), Cmd.SEAT_HEAT_REAR_R, Cmd.SEAT_VENT_REAR_R),
                     level = ::level, send = send,
                 )
             }
         }
         Text(
-            "Слева обогрев, справа вентиляция. Нажатие добавляет ступень, четвёртое — выключает.",
+            S("Слева обогрев, справа вентиляция. Нажатие добавляет ступень, четвёртое — выключает."),
             style = ElectroType.Caption, color = ElectroColors.TextMuted,
         )
     }

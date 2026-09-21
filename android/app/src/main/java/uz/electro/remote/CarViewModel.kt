@@ -1,5 +1,6 @@
 package uz.electro.remote
 
+import uz.electro.remote.i18n.S
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -219,11 +220,11 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
             if (failure != null) {
                 _connect.value = ConnectStatus(
                     ConnectPhase.Error,
-                    scrubAddresses(failure.message) ?: "Не удалось разбудить машину",
+                    scrubAddresses(failure.message) ?: S("Не удалось разбудить машину"),
                 )
                 return@launch
             }
-            val how = woken.getOrDefault("Команда отправлена")
+            val how = woken.getOrDefault(S("Команда отправлена"))
 
             // машина может уже быть в сети — тогда ждать нечего.
             // Время считаем по часам: сам опрос головы занимает несколько секунд,
@@ -262,7 +263,7 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
             }
             _connect.value = ConnectStatus(
                 ConnectPhase.Timeout,
-                "Машина не ответила за $WAKE_WAIT_SEC с",
+                S("Машина не ответила за {0} с", WAKE_WAIT_SEC),
                 waitedSec(),
             )
         }
@@ -277,10 +278,10 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
      * которых никто не проверяет. Сервер хотя бы отвечает, дошла ли команда.
      */
     private suspend fun wakeUp(): Result<String> = when (val viaServer = repo.wake()) {
-        is WakeResult.Sent -> Result.success("Разбудили ${viaServer.how}")
+        is WakeResult.Sent -> Result.success(S("Разбудили {0}", viaServer.how))
         is WakeResult.Failed -> Result.failure(IllegalStateException(viaServer.reason))
         WakeResult.NoServer -> Result.failure(
-            IllegalStateException("Будить нечем: нет входа на сервер")
+            IllegalStateException(S("Будить нечем: нет входа на сервер"))
         )
     }
 
@@ -295,9 +296,9 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
         _busy.value = true
         val result = try { repo.sleep() } finally { _busy.value = false }
         val note = when (result) {
-            is WakeResult.Sent -> "Машина отпущена в сон"
-            is WakeResult.Failed -> "Не отключилось: ${result.reason}"
-            WakeResult.NoServer -> "Не отключилось: нет входа на сервер"
+            is WakeResult.Sent -> S("Машина отпущена в сон")
+            is WakeResult.Failed -> S("Не отключилось: {0}", result.reason)
+            WakeResult.NoServer -> S("Не отключилось: нет входа на сервер")
         }
         // Итог показываем на экране подключения, а не всплывающим сообщением:
         // всплывашка живёт на главном экране, а мы с него как раз уходим — и
@@ -313,7 +314,7 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
     fun findCar() = viewModelScope.launch {
         _busy.value = true
         try { repeat(3) { repo.sleep() } } finally { _busy.value = false }
-        _connect.value = ConnectStatus(ConnectPhase.Idle, "Команда отправлена 3 раза")
+        _connect.value = ConnectStatus(ConnectPhase.Idle, S("Команда отправлена 3 раза"))
     }
 
     /** Войти, не дождавшись машины: данные будут последними известными. */
@@ -368,10 +369,10 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
         val r = repo.climateOn(runMinutes)
         _pending.update { it - Cmd.AC }
         when (r) {
-            is CmdResult.Ok -> emit(EventKind.Success, "Климат включён",
-                if (runMinutes != null && runMinutes > 0) "Выключу через $runMinutes мин" else "Выполнено")
-            is CmdResult.Failed -> { _optimistic.update { it - Cmd.AC }; emit(EventKind.Failed, "Климат", r.reason) }
-            is CmdResult.Unsupported -> emit(EventKind.Unsupported, "Климат", r.reason)
+            is CmdResult.Ok -> emit(EventKind.Success, S("Климат включён"),
+                if (runMinutes != null && runMinutes > 0) S("Выключу через {0} мин", runMinutes) else S("Выполнено"))
+            is CmdResult.Failed -> { _optimistic.update { it - Cmd.AC }; emit(EventKind.Failed, S("Климат"), r.reason) }
+            is CmdResult.Unsupported -> emit(EventKind.Unsupported, S("Климат"), r.reason)
         }
     }
 
@@ -394,8 +395,8 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
 
     fun createScene(name: String, steps: List<SceneStepDto>) = viewModelScope.launch {
         repo.createScene(name, steps).fold(
-            onSuccess = { _scenes.value = repo.scenes(); emit(EventKind.Success, "Сцена сохранена", it.name) },
-            onFailure = { emit(EventKind.Failed, "Не сохранилось", it.message) },
+            onSuccess = { _scenes.value = repo.scenes(); emit(EventKind.Success, S("Сцена сохранена"), it.name) },
+            onFailure = { emit(EventKind.Failed, S("Не сохранилось"), it.message) },
         )
     }
 
@@ -406,7 +407,7 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
 
     fun runScene(template: SceneTemplateDto) = viewModelScope.launch {
         when (val r = repo.runScene(template.template_id)) {
-            is CmdResult.Ok -> emit(EventKind.Success, template.name, "Выполнено")
+            is CmdResult.Ok -> emit(EventKind.Success, template.name, S("Выполнено"))
             is CmdResult.Failed -> emit(EventKind.Failed, template.name, r.reason)
             is CmdResult.Unsupported -> emit(EventKind.Unsupported, template.name, r.reason)
         }
@@ -414,8 +415,8 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
 
     fun createSchedule(body: ClimateScheduleRequest) = viewModelScope.launch {
         repo.createClimateSchedule(body).fold(
-            onSuccess = { _schedules.value = repo.climateSchedules(); emit(EventKind.Success, "Расписание сохранено", null) },
-            onFailure = { emit(EventKind.Failed, "Не сохранилось", it.message) },
+            onSuccess = { _schedules.value = repo.climateSchedules(); emit(EventKind.Success, S("Расписание сохранено"), null) },
+            onFailure = { emit(EventKind.Failed, S("Не сохранилось"), it.message) },
         )
     }
 
@@ -431,7 +432,7 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
 
     fun runVoice(intent: VoiceIntentDto) = viewModelScope.launch {
         when (val r = repo.runVoice(intent.intent)) {
-            is CmdResult.Ok -> emit(EventKind.Success, intent.phrases.firstOrNull() ?: intent.intent, "Выполнено")
+            is CmdResult.Ok -> emit(EventKind.Success, intent.phrases.firstOrNull() ?: intent.intent, S("Выполнено"))
             is CmdResult.Failed -> emit(EventKind.Failed, intent.intent, r.reason)
             is CmdResult.Unsupported -> emit(EventKind.Unsupported, intent.intent, r.reason)
         }
@@ -462,11 +463,11 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
         }
 
         val title = label.ifBlank { cmds.firstOrNull()?.label.orEmpty() }
-            .ifBlank { "Команда" }
+            .ifBlank { S("Команда") }
         val failure = results.firstOrNull { !it.ok }
         val failed = results.count { !it.ok }
         if (failure == null) {
-            _events.emit(CmdEvent(title, "Выполнено", EventKind.Success))
+            _events.emit(CmdEvent(title, S("Выполнено"), EventKind.Success))
             refreshNow()
         } else if (failed < results.size) {
             // Часть пачки не прошла. Для «Выключить всё» это нормально: в машине
@@ -484,7 +485,7 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
             }
             // Частичный неуспех человеку не показываем: что прошло — прошло,
             // непрошедшее откатили выше. Счётчик «N из M» только пугал.
-            _events.emit(CmdEvent(title, "Выполнено", EventKind.Success))
+            _events.emit(CmdEvent(title, S("Выполнено"), EventKind.Success))
             refreshNow()
         } else {
             // не прошло ничего — откатываем оптимистичное состояние обратно
@@ -515,7 +516,7 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
             uz.electro.remote.push.Push.forget(getApplication())
             logout()
         }
-        return r.recoverCatching { throw IllegalStateException(authError(it, "Не удалось удалить аккаунт")) }
+        return r.recoverCatching { throw IllegalStateException(authError(it, S("Не удалось удалить аккаунт"))) }
     }
 
     /** Подтянуть контакты поддержки (тот же экран «Помощь», что на голове). */
@@ -545,8 +546,7 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
         onDone(when {
             failure != null -> failure
             outcome != null && (outcome.failed > 0 || tooBig > 0) ->
-                "Отзыв отправлен, но " + (outcome.failed + tooBig) + " из " + attachments.size +
-                    " вложений не приложились (слишком большие или нет связи)"
+                S("Отзыв отправлен, но {0} из {1} вложений не приложились (слишком большие или нет связи)", outcome.failed + tooBig, attachments.size)
             else -> null
         })
     }
@@ -587,7 +587,7 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
         val (levels, timer) = readSeatPreset()
         if (levels.isEmpty()) {
             viewModelScope.launch {
-                _events.emit(CmdEvent("Сиденья", "Сначала настройте профиль на экране сидений", EventKind.Failed))
+                _events.emit(CmdEvent(S("Сиденья"), S("Сначала настройте профиль на экране сидений"), EventKind.Failed))
             }
             return
         }
@@ -597,13 +597,13 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
     /** Тумблер на главной: выключить все сиденья и снять таймер. */
     fun seatsOff() {
         seatTimer?.cancel(); seatTimer = null
-        send(Cmd.seatsOff(), "Выключить сиденья")
+        send(Cmd.seatsOff(), S("Выключить сиденья"))
     }
 
     private fun sendSeats(levels: Map<Int, Int>, timerMin: Int) {
         // Шлём весь набор мест: нулевые снимают то, чего в профиле нет.
         val cmds = Cmd.SEAT_TYPES.map { t -> VehicleCommand(t, (levels[t] ?: 0).toString()) }
-        send(cmds, "Сиденья")
+        send(cmds, S("Сиденья"))
         startSeatTimer(timerMin)
     }
 
@@ -615,7 +615,7 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
         // приложения ему нечем — для этого нужен серверный планировщик, как у климата.
         seatTimer = viewModelScope.launch {
             delay(min.toLong() * 60_000L)
-            send(Cmd.seatsOff(), "Сиденья: таймер")
+            send(Cmd.seatsOff(), S("Сиденья: таймер"))
         }
     }
 
@@ -654,7 +654,7 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
         _busy.value = true
         val result = signIn(email, password)
         _busy.value = false
-        onDone(result.exceptionOrNull()?.let { authError(it, "Не удалось войти") })
+        onDone(result.exceptionOrNull()?.let { authError(it, S("Не удалось войти")) })
     }
 
     /** Вход с экрана входа. Тот же путь, что и из настроек, но без обратного вызова. */
@@ -702,9 +702,9 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
      */
     fun authError(error: Throwable, fallback: String): String = when {
         (error as? HttpException)?.code() == 409 ->
-            "Этот email уже зарегистрирован — войдите или восстановите пароль"
+            S("Этот email уже зарегистрирован — войдите или восстановите пароль")
         (error as? HttpException)?.code() == 422 ->
-            "Проверьте email и пароль (от 8 знаков)"
+            S("Проверьте email и пароль (от 8 знаков)")
         error is HttpException -> repo.reason(error)
         else -> friendlyNetworkError(error)
             ?: scrubAddresses(error.message)?.takeIf { it.isNotBlank() } ?: fallback
@@ -740,7 +740,7 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
                 _vehicles.value = list
                 _parkKnown.value = true
                 _parkNote.value = if (list.isEmpty()) {
-                    "Аккаунту не выдана ни одна машина — доступ выдаёт мастер"
+                    S("Аккаунту не выдана ни одна машина — доступ выдаёт мастер")
                 } else null
                 // Машина не выбрана — берём C16: команды этого приложения для неё.
                 // Пустой парк — законный ответ, а не сбой: доступ мог ещё не
@@ -769,10 +769,10 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
                     _vehicles.value = emptyList()
                     _vehicleId.value = null
                     _parkKnown.value = false
-                    _parkNote.value = "Сессия недействительна — войдите заново"
+                    _parkNote.value = S("Сессия недействительна — войдите заново")
                 } else {
                     val why = friendlyNetworkError(failure) ?: scrubAddresses(failure.message)
-                    _parkNote.value = "Не удалось получить список машин" + (why?.let { ": $it" } ?: "")
+                    _parkNote.value = S("Не удалось получить список машин") + (why?.let { ": $it" } ?: "")
                 }
             },
         )
@@ -793,9 +793,9 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
         repo.unlinkVehicle(vehicleId).onSuccess {
             if (_vehicleId.value == vehicleId) { _vehicleId.value = null; settings.vehicleId = null }
             loadVehicles()
-            emit(EventKind.Success, "Машина отвязана", null)
+            emit(EventKind.Success, S("Машина отвязана"), null)
         }.onFailure {
-            emit(EventKind.Failed, "Не удалось отвязать", it.message)
+            emit(EventKind.Failed, S("Не удалось отвязать"), it.message)
         }
     }
 

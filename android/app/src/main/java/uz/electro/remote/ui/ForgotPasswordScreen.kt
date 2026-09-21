@@ -1,5 +1,6 @@
 package uz.electro.remote.ui
 
+import uz.electro.remote.i18n.S
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.*
@@ -28,20 +29,19 @@ fun ForgotPasswordScreen(vm: CarViewModel, onBack: () -> Unit) {
     var busy by remember { mutableStateOf(false) }
 
     AuthScaffold(
-        title = "Забыли пароль",
-        subtitle = "Заявка уйдёт мастеру: он выдаст новый пароль и сообщит его вам.",
+        title = S("Забыли пароль"),
+        subtitle = S("Заявка уйдёт мастеру: он выдаст новый пароль и сообщит его вам."),
         action = when {
-            busy -> "Отправляем…"
-            sent -> "Вернуться ко входу"
-            else -> "Отправить заявку"
+            busy -> S("Отправляем…")
+            sent -> S("Вернуться ко входу")
+            else -> S("Отправить заявку")
         },
         busy = busy,
         enabled = sent || email.isNotBlank(),
         onBack = onBack,
         error = error,
         note = if (sent) {
-            "Заявка принята. Мастер сбросит пароль и сообщит новый — " +
-                "если такая учётная запись существует."
+            S("Заявка принята. Мастер сбросит пароль и сообщит новый — если такая учётная запись существует.")
         } else null,
         onAction = {
             if (sent) { onBack(); return@AuthScaffold }
@@ -49,15 +49,15 @@ fun ForgotPasswordScreen(vm: CarViewModel, onBack: () -> Unit) {
             scope.launch {
                 vm.requestPasswordReset(email.trim(), contact.trim())
                     .onSuccess { sent = true }
-                    .onFailure { error = vm.authError(it, "Не получилось отправить заявку") }
+                    .onFailure { error = vm.authError(it, S("Не получилось отправить заявку")) }
                 busy = false
             }
         },
     ) {
         Field("EMAIL", email, { email = it }, KeyboardType.Email)
         Spacer(Modifier.height(Space.x4))
-        Field("ТЕЛЕФОН ИЛИ TELEGRAM", contact, { contact = it }, KeyboardType.Text)
+        Field(S("ТЕЛЕФОН ИЛИ TELEGRAM"), contact, { contact = it }, KeyboardType.Text)
         Spacer(Modifier.height(Space.x1))
-        Hint("Куда сообщить новый пароль. Необязательно, но так быстрее.")
+        Hint(S("Куда сообщить новый пароль. Необязательно, но так быстрее."))
     }
 }

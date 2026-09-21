@@ -40,9 +40,9 @@ final class CarRepository {
     /// Отправить команду. Путь один — сервер.
     func send(_ cmd: VehicleCommand) async -> CmdResult {
         if Demo.enabled { return .ok }
-        guard settings.cloudEnabled else { return .failed("Сервер отключён в настройках") }
-        guard settings.loggedIn else { return .failed("Вход в аккаунт не выполнен") }
-        guard let id = await resolveVehicleId() else { return .failed("Машина не выбрана") }
+        guard settings.cloudEnabled else { return .failed(L("Сервер отключён в настройках")) }
+        guard settings.loggedIn else { return .failed(L("Вход в аккаунт не выполнен")) }
+        guard let id = await resolveVehicleId() else { return .failed(L("Машина не выбрана")) }
 
         // Замок и климат — своими эндпоинтами; остальное — одной командой кузова.
         do {
@@ -63,9 +63,9 @@ final class CarRepository {
     /// Включить климат с таймером авто-выключения; nil — умолчание сервера.
     func climateOn(runMinutes: Int?) async -> CmdResult {
         if Demo.enabled { return .ok }
-        guard settings.cloudEnabled else { return .failed("Сервер отключён в настройках") }
-        guard settings.loggedIn else { return .failed("Вход в аккаунт не выполнен") }
-        guard let id = await resolveVehicleId() else { return .failed("Машина не выбрана") }
+        guard settings.cloudEnabled else { return .failed(L("Сервер отключён в настройках")) }
+        guard settings.loggedIn else { return .failed(L("Вход в аккаунт не выполнен")) }
+        guard let id = await resolveVehicleId() else { return .failed(L("Машина не выбрана")) }
         var req = CommandRequest()
         if let m = runMinutes { req.params = ["run_minutes": .number(Double(m))] }
         do { return Self.outcome(try await cloud.climateOn(id, req)) } catch { return .failed(reasonOf(error)) }
@@ -99,7 +99,7 @@ final class CarRepository {
     }
 
     func wake() async -> WakeResult {
-        if Demo.enabled { return .sent("через пробуждалку в машине") }
+        if Demo.enabled { return .sent(L("через пробуждалку в машине")) }
         guard settings.cloudEnabled, settings.loggedIn else { return .noServer }
         guard let id = await resolveVehicleId() else { return .noServer }
         do {
@@ -111,7 +111,7 @@ final class CarRepository {
 
     /// Отпустить машину обратно в сон — через ту же железку.
     func sleep() async -> WakeResult {
-        if Demo.enabled { return .sent("через пробуждалку в машине") }
+        if Demo.enabled { return .sent(L("через пробуждалку в машине")) }
         guard settings.cloudEnabled, settings.loggedIn else { return .noServer }
         guard let id = await resolveVehicleId() else { return .noServer }
         do {
@@ -123,9 +123,9 @@ final class CarRepository {
 
     private func channelName(_ channel: String?) -> String {
         switch channel {
-        case "WAKE_DEVICE": return "через пробуждалку в машине"
-        case "LEAPMOTOR_CLOUD": return "через облако"
-        default: return "через сервер"
+        case "WAKE_DEVICE": return L("через пробуждалку в машине")
+        case "LEAPMOTOR_CLOUD": return L("через облако")
+        default: return L("через сервер")
         }
     }
 
@@ -139,8 +139,8 @@ final class CarRepository {
             if let text { return scrubAddresses(text) ?? text }
         }
         if let f = friendlyNetworkError(error) { return f }
-        if let e = error as? ApiError { return scrubAddresses(e.errorDescription) ?? "Сервер недоступен" }
-        return scrubAddresses(error.localizedDescription) ?? "Сервер недоступен"
+        if let e = error as? ApiError { return scrubAddresses(e.errorDescription) ?? L("Сервер недоступен") }
+        return scrubAddresses(error.localizedDescription) ?? L("Сервер недоступен")
     }
 
     func reason(_ error: Error) -> String { reasonOf(error) }
@@ -221,17 +221,17 @@ final class CarRepository {
     }
 
     func createScene(name: String, steps: [SceneStepDto]) async throws -> SceneTemplateDto {
-        guard let id = await resolveVehicleId() else { throw RepoError("Машина не выбрана") }
+        guard let id = await resolveVehicleId() else { throw RepoError(L("Машина не выбрана")) }
         return try await cloud.createScene(id, SceneTemplateRequest(name: name, steps: steps))
     }
 
     func deleteScene(_ templateId: String) async throws {
-        guard let id = await resolveVehicleId() else { throw RepoError("Машина не выбрана") }
+        guard let id = await resolveVehicleId() else { throw RepoError(L("Машина не выбрана")) }
         try await cloud.deleteScene(id, templateId)
     }
 
     func runScene(_ templateId: String) async -> CmdResult {
-        guard let id = await resolveVehicleId() else { return .failed("Машина не выбрана") }
+        guard let id = await resolveVehicleId() else { return .failed(L("Машина не выбрана")) }
         do { return Self.outcome(try await cloud.runScene(id, templateId)) } catch { return .failed(reasonOf(error)) }
     }
 
@@ -242,17 +242,17 @@ final class CarRepository {
     }
 
     func createClimateSchedule(_ body: ClimateScheduleRequest) async throws -> ClimateScheduleDto {
-        guard let id = await resolveVehicleId() else { throw RepoError("Машина не выбрана") }
+        guard let id = await resolveVehicleId() else { throw RepoError(L("Машина не выбрана")) }
         return try await cloud.createClimateSchedule(id, body)
     }
 
     func setScheduleEnabled(_ scheduleId: String, _ enabled: Bool) async throws {
-        guard let id = await resolveVehicleId() else { throw RepoError("Машина не выбрана") }
+        guard let id = await resolveVehicleId() else { throw RepoError(L("Машина не выбрана")) }
         _ = try await cloud.setScheduleEnabled(id, scheduleId, enabled)
     }
 
     func deleteClimateSchedule(_ scheduleId: String) async throws {
-        guard let id = await resolveVehicleId() else { throw RepoError("Машина не выбрана") }
+        guard let id = await resolveVehicleId() else { throw RepoError(L("Машина не выбрана")) }
         try await cloud.deleteClimateSchedule(id, scheduleId)
     }
 
@@ -262,7 +262,7 @@ final class CarRepository {
     func voiceIntents() async -> [VoiceIntentDto] { Demo.enabled ? Demo.voice : ((try? await cloud.voiceIntents()) ?? []) }
 
     func runVoice(_ intent: String) async -> CmdResult {
-        guard let id = await resolveVehicleId() else { return .failed("Машина не выбрана") }
+        guard let id = await resolveVehicleId() else { return .failed(L("Машина не выбрана")) }
         do { return Self.outcome(try await cloud.voice(id, intent)) } catch { return .failed(reasonOf(error)) }
     }
 }
@@ -278,11 +278,11 @@ enum Pairing {
 
     /// Привязывает машину по отсканированному коду; результат — текст для показа.
     static func claim(_ payload: String, repo: CarRepository) async throws -> String {
-        guard let code = parse(payload) else { throw RepoError("Это не QR машины Electro") }
-        if code.trimmingCharacters(in: .whitespaces).isEmpty { throw RepoError("В коде нет кода привязки") }
+        guard let code = parse(payload) else { throw RepoError(L("Это не QR машины Electro")) }
+        if code.trimmingCharacters(in: .whitespaces).isEmpty { throw RepoError(L("В коде нет кода привязки")) }
         do {
             let v = try await repo.claimPairing(code: code)
-            return "Машина привязана: \(v.name)"
+            return L("Машина привязана: {0}", v.name)
         } catch {
             throw RepoError(repo.reason(error), code: (error as? ApiError)?.code)
         }

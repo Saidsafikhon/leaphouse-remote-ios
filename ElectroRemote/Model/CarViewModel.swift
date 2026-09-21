@@ -136,12 +136,12 @@ final class CarViewModel: ObservableObject {
 
             let how: String
             switch await self.repo.wake() {
-            case .sent(let h): how = "Разбудили \(h)"
+            case .sent(let h): how = L("Разбудили {0}", h)
             case .failed(let reason):
-                self.connectStatus = ConnectStatus(phase: .error, message: scrubAddresses(reason) ?? "Не удалось разбудить машину")
+                self.connectStatus = ConnectStatus(phase: .error, message: scrubAddresses(reason) ?? L("Не удалось разбудить машину"))
                 return
             case .noServer:
-                self.connectStatus = ConnectStatus(phase: .error, message: "Будить нечем: нет входа на сервер")
+                self.connectStatus = ConnectStatus(phase: .error, message: L("Будить нечем: нет входа на сервер"))
                 return
             }
 
@@ -172,7 +172,7 @@ final class CarViewModel: ObservableObject {
                 try? await Task.sleep(nanoseconds: Self.probeStepNs)
             }
             if Task.isCancelled { return }
-            self.connectStatus = ConnectStatus(phase: .timeout, message: "Машина не ответила за \(Self.wakeWaitSec) с", waitedSec: waited())
+            self.connectStatus = ConnectStatus(phase: .timeout, message: L("Машина не ответила за {0} с", Self.wakeWaitSec), waitedSec: waited())
         }
     }
 
@@ -184,9 +184,9 @@ final class CarViewModel: ObservableObject {
             busy = false
             let note: String
             switch result {
-            case .sent: note = "Машина отпущена в сон"
-            case .failed(let r): note = "Не отключилось: \(r)"
-            case .noServer: note = "Не отключилось: нет входа на сервер"
+            case .sent: note = L("Машина отпущена в сон")
+            case .failed(let r): note = L("Не отключилось: {0}", r)
+            case .noServer: note = L("Не отключилось: нет входа на сервер")
             }
             resetConnection()
             connectStatus = ConnectStatus(phase: .idle, message: note)
@@ -199,7 +199,7 @@ final class CarViewModel: ObservableObject {
             busy = true
             for _ in 0..<3 { _ = await repo.sleep() }
             busy = false
-            connectStatus = ConnectStatus(phase: .idle, message: "Команда отправлена 3 раза")
+            connectStatus = ConnectStatus(phase: .idle, message: L("Команда отправлена 3 раза"))
         }
     }
 
@@ -250,12 +250,12 @@ final class CarViewModel: ObservableObject {
             pending.remove(Cmd.AC)
             switch r {
             case .ok:
-                emit(.success, "Климат включён", (runMinutes ?? 0) > 0 ? "Выключу через \(runMinutes!) мин" : "Выполнено")
+                emit(.success, L("Климат включён"), (runMinutes ?? 0) > 0 ? L("Выключу через {0} мин", runMinutes!) : L("Выполнено"))
             case .failed(let reason):
                 optimistic.removeValue(forKey: Cmd.AC)
-                emit(.failed, "Климат", reason)
+                emit(.failed, L("Климат"), reason)
             case .unsupported(let reason):
-                emit(.unsupported, "Климат", reason)
+                emit(.unsupported, L("Климат"), reason)
             }
         }
     }
@@ -284,8 +284,8 @@ final class CarViewModel: ObservableObject {
             do {
                 let created = try await repo.createScene(name: name, steps: steps)
                 scenes = await repo.scenes()
-                emit(.success, "Сцена сохранена", created.name)
-            } catch { emit(.failed, "Не сохранилось", repo.reason(error)) }
+                emit(.success, L("Сцена сохранена"), created.name)
+            } catch { emit(.failed, L("Не сохранилось"), repo.reason(error)) }
         }
     }
 
@@ -296,7 +296,7 @@ final class CarViewModel: ObservableObject {
     func runScene(_ template: SceneTemplateDto) {
         Task {
             switch await repo.runScene(template.template_id) {
-            case .ok: emit(.success, template.name, "Выполнено")
+            case .ok: emit(.success, template.name, L("Выполнено"))
             case .failed(let r): emit(.failed, template.name, r)
             case .unsupported(let r): emit(.unsupported, template.name, r)
             }
@@ -308,8 +308,8 @@ final class CarViewModel: ObservableObject {
             do {
                 _ = try await repo.createClimateSchedule(body)
                 schedules = await repo.climateSchedules()
-                emit(.success, "Расписание сохранено", nil)
-            } catch { emit(.failed, "Не сохранилось", repo.reason(error)) }
+                emit(.success, L("Расписание сохранено"), nil)
+            } catch { emit(.failed, L("Не сохранилось"), repo.reason(error)) }
         }
     }
 
@@ -324,7 +324,7 @@ final class CarViewModel: ObservableObject {
     func runVoice(_ intent: VoiceIntentDto) {
         Task {
             switch await repo.runVoice(intent.intent) {
-            case .ok: emit(.success, intent.phrases.first ?? intent.intent, "Выполнено")
+            case .ok: emit(.success, intent.phrases.first ?? intent.intent, L("Выполнено"))
             case .failed(let r): emit(.failed, intent.intent, r)
             case .unsupported(let r): emit(.unsupported, intent.intent, r)
             }
@@ -360,11 +360,11 @@ final class CarViewModel: ObservableObject {
             pending.subtract(types)
             busy = false
 
-            let title = [label, cmds.first?.label ?? ""].first { !$0.isEmpty } ?? "Команда"
+            let title = [label, cmds.first?.label ?? ""].first { !$0.isEmpty } ?? L("Команда")
             let failure = results.first { !$0.isOk }
             let failed = results.filter { !$0.isOk }.count
             if failure == nil {
-                event = CmdEvent(title: title, message: "Выполнено", kind: .success)
+                event = CmdEvent(title: title, message: L("Выполнено"), kind: .success)
                 refreshNow()
             } else if failed < results.count {
                 // Часть пачки не прошла — откатываем только непрошедшее.
@@ -374,7 +374,7 @@ final class CarViewModel: ObservableObject {
                 }
                 // Частичный неуспех человеку не показываем: что прошло — прошло,
                 // непрошедшее откатили выше. Счётчик «N из M» только пугал.
-                event = CmdEvent(title: title, message: "Выполнено", kind: .success)
+                event = CmdEvent(title: title, message: L("Выполнено"), kind: .success)
                 refreshNow()
             } else {
                 optimistic = previous
@@ -411,7 +411,7 @@ final class CarViewModel: ObservableObject {
     func seatsOn() {
         let (levels, timer) = readSeatPreset()
         if levels.isEmpty {
-            event = CmdEvent(title: "Сиденья", message: "Сначала настройте профиль на экране сидений", kind: .failed)
+            event = CmdEvent(title: L("Сиденья"), message: L("Сначала настройте профиль на экране сидений"), kind: .failed)
             return
         }
         sendSeats(levels, timer)
@@ -420,13 +420,13 @@ final class CarViewModel: ObservableObject {
     /// Тумблер на главной: выключить все сиденья и снять таймер.
     func seatsOff() {
         seatTimer?.cancel(); seatTimer = nil
-        send(Cmd.seatsOff(), label: "Выключить сиденья")
+        send(Cmd.seatsOff(), label: L("Выключить сиденья"))
     }
 
     private func sendSeats(_ levels: [Int: Int], _ timerMin: Int) {
         // Шлём весь набор мест: нулевые снимают то, чего в профиле нет.
         let cmds = Cmd.SEAT_TYPES.map { VehicleCommand(type: $0, value: String(levels[$0] ?? 0)) }
-        send(cmds, label: "Сиденья")
+        send(cmds, label: L("Сиденья"))
         startSeatTimer(timerMin)
     }
 
@@ -437,7 +437,7 @@ final class CarViewModel: ObservableObject {
         seatTimer = Task { [weak self] in
             try? await Task.sleep(nanoseconds: UInt64(min) * 60_000_000_000)
             guard !Task.isCancelled, let self else { return }
-            self.send(Cmd.seatsOff(), label: "Сиденья: таймер")
+            self.send(Cmd.seatsOff(), label: L("Сиденья: таймер"))
         }
     }
 
@@ -469,7 +469,7 @@ final class CarViewModel: ObservableObject {
         Task {
             busy = true
             do { try await signIn(email: email, password: password); busy = false; onDone(nil) }
-            catch { busy = false; onDone(authError(error, fallback: "Не удалось войти")) }
+            catch { busy = false; onDone(authError(error, fallback: L("Не удалось войти"))) }
         }
     }
 
@@ -512,8 +512,8 @@ final class CarViewModel: ObservableObject {
     /// Текст отказа для экранов входа.
     func authError(_ error: Error, fallback: String) -> String {
         if let api = error as? ApiError, let code = api.code {
-            if code == 409 { return "Этот email уже зарегистрирован — войдите или восстановите пароль" }
-            if code == 422 { return "Проверьте email и пароль (от 8 знаков)" }
+            if code == 409 { return L("Этот email уже зарегистрирован — войдите или восстановите пароль") }
+            if code == 422 { return L("Проверьте email и пароль (от 8 знаков)") }
             return repo.reason(error)
         }
         if let f = friendlyNetworkError(error) { return f }
@@ -533,7 +533,7 @@ final class CarViewModel: ObservableObject {
     /// Удаление аккаунта: сервер стирает учётку, приложение выходит.
     func deleteAccount(password: String) async throws {
         do { try await repo.deleteAccount(password: password) }
-        catch { throw RepoError(authError(error, fallback: "Не удалось удалить аккаунт")) }
+        catch { throw RepoError(authError(error, fallback: L("Не удалось удалить аккаунт"))) }
         logout()
     }
 
@@ -559,7 +559,7 @@ final class CarViewModel: ObservableObject {
             let list = try await repo.vehicles()
             vehicles = list
             parkKnown = true
-            parkNote = list.isEmpty ? "Аккаунту не выдана ни одна машина — доступ выдаёт мастер" : nil
+            parkNote = list.isEmpty ? L("Аккаунту не выдана ни одна машина — доступ выдаёт мастер") : nil
             let preferred = list.first { ($0.model ?? "").caseInsensitiveCompare("C16") == .orderedSame } ?? list.first
             if (vehicleId ?? "").isEmpty, let p = preferred { selectVehicle(p.vehicle_id) }
             // Машина, к которой доступ отозван, не должна оставаться выбранной.
@@ -574,10 +574,10 @@ final class CarViewModel: ObservableObject {
                 vehicles = []
                 vehicleId = nil
                 parkKnown = false
-                parkNote = "Сессия недействительна — войдите заново"
+                parkNote = L("Сессия недействительна — войдите заново")
             } else {
                 let why = friendlyNetworkError(error) ?? scrubAddresses(error.localizedDescription)
-                parkNote = "Не удалось получить список машин" + (why.map { ": \($0)" } ?? "")
+                parkNote = L("Не удалось получить список машин") + (why.map { ": \($0)" } ?? "")
             }
         }
     }
@@ -598,8 +598,8 @@ final class CarViewModel: ObservableObject {
                 try await repo.unlinkVehicle(id)
                 if vehicleId == id { vehicleId = nil; settings.vehicleId = nil }
                 await loadVehiclesAsync()
-                emit(.success, "Машина отвязана", nil)
-            } catch { emit(.failed, "Не удалось отвязать", repo.reason(error)) }
+                emit(.success, L("Машина отвязана"), nil)
+            } catch { emit(.failed, L("Не удалось отвязать"), repo.reason(error)) }
         }
     }
 
@@ -626,7 +626,7 @@ final class CarViewModel: ObservableObject {
         do {
             let r = try await repo.sendFeedback(kind: kind, text: text, appVersion: appVersion(), files: files)
             let lost = r.failed + (requested - files.count)
-            if lost > 0 { return "Отзыв отправлен, но \(lost) из \(requested) вложений не приложились (слишком большие или нет связи)" }
+            if lost > 0 { return L("Отзыв отправлен, но {0} из {1} вложений не приложились (слишком большие или нет связи)", lost, requested) }
             return nil
         } catch { return repo.reason(error) }
     }

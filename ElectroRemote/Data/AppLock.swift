@@ -47,7 +47,7 @@ final class AppLock: ObservableObject {
     /// Системный диалог: биометрия, при отказе/отсутствии — код-пароль iPhone.
     func prompt(_ done: @escaping (Bool) -> Void) {
         let ctx = LAContext()
-        ctx.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: "Подтвердите вход в LeapRemote") { ok, _ in
+        ctx.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: L("Подтвердите вход в LeapRemote")) { ok, _ in
             DispatchQueue.main.async { done(ok) }
         }
     }

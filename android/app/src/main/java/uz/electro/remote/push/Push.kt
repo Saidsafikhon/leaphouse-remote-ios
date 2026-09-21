@@ -1,5 +1,6 @@
 package uz.electro.remote.push
 
+import uz.electro.remote.i18n.S
 import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -60,7 +61,7 @@ object Push {
         val nm = ctx.getSystemService(NotificationManager::class.java)
         if (nm.getNotificationChannel(CHANNEL) == null) {
             nm.createNotificationChannel(
-                NotificationChannel(CHANNEL, "Новости и уведомления", NotificationManager.IMPORTANCE_HIGH)
+                NotificationChannel(CHANNEL, S("Новости и уведомления"), NotificationManager.IMPORTANCE_HIGH)
             )
         }
     }

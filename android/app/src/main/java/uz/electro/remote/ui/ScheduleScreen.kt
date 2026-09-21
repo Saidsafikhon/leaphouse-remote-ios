@@ -1,5 +1,6 @@
 package uz.electro.remote.ui
 
+import uz.electro.remote.i18n.S
 import uz.electro.remote.ui.components.Lx
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -26,7 +27,7 @@ import uz.electro.remote.ui.theme.*
  * того, как поставили время, и таймер в телефоне умер бы ровно к утру, когда
  * он нужен. Тут — только редактор.
  */
-private val DAY_LABELS = listOf("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс")
+private val DAY_LABELS: List<String> get() = listOf(S("Пн"), S("Вт"), S("Ср"), S("Чт"), S("Пт"), S("Сб"), S("Вс"))  // геттер: язык может смениться
 
 @Composable
 fun ScheduleScreen(
@@ -38,9 +39,9 @@ fun ScheduleScreen(
 ) {
     var adding by remember { mutableStateOf(false) }
 
-    ScreenScaffold("Климат по расписанию", onBack) {
+    ScreenScaffold(S("Климат по расписанию"), onBack) {
         if (schedules.isEmpty() && !adding) {
-            EmptyNote("Расписаний нет. Задайте время — сервер прогреет или остудит салон к нему.")
+            EmptyNote(S("Расписаний нет. Задайте время — сервер прогреет или остудит салон к нему."))
         }
         schedules.forEach { s ->
             ScheduleRow(s, onToggle = { on -> onToggle(s, on) }, onDelete = { onDelete(s) })
@@ -52,7 +53,7 @@ fun ScheduleScreen(
                 onSave = { req -> onCreate(req); adding = false },
             )
         } else {
-            ElectroButton("Новое расписание", Modifier.fillMaxWidth(), style = ButtonStyle.Secondary) {
+            ElectroButton(S("Новое расписание"), Modifier.fillMaxWidth(), style = ButtonStyle.Secondary) {
                 adding = true
             }
         }
@@ -67,11 +68,11 @@ private fun ScheduleRow(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(
-                    if (s.weekdays.isEmpty()) "Каждый день"
+                    if (s.weekdays.isEmpty()) S("Каждый день")
                     else s.weekdays.sorted().joinToString(" ") { DAY_LABELS[it] },
                     style = ElectroType.Body, color = ElectroColors.TextPrimary,
                 )
-                Text("до ${s.temp_c}°", style = ElectroType.Caption, color = ElectroColors.TextMuted)
+                Text(S("до {0}°", s.temp_c), style = ElectroType.Caption, color = ElectroColors.TextMuted)
             }
             Switch(
                 checked = s.enabled, onCheckedChange = onToggle,
@@ -97,14 +98,14 @@ private fun ScheduleEditor(
     var temp by remember { mutableStateOf(22) }
     val days = remember { mutableStateListOf<Int>() }
 
-    SectionCard("Новое расписание") {
+    SectionCard(S("Новое расписание")) {
         // Время: часы и минуты крупными ± — попасть пальцем в поле ввода в
         // машине неудобнее, чем нажать плюс.
-        StepperRow("Час", "%02d".format(hour)) { hour = ((hour + it) % 24 + 24) % 24 }
-        StepperRow("Минуты", "%02d".format(minute)) { minute = ((minute + it * 5) % 60 + 60) % 60 }
-        StepperRow("Температура", "$temp°") { temp = (temp + it).coerceIn(Cmd.TEMP_MIN, Cmd.TEMP_MAX) }
+        StepperRow(S("Час"), "%02d".format(hour)) { hour = ((hour + it) % 24 + 24) % 24 }
+        StepperRow(S("Минуты"), "%02d".format(minute)) { minute = ((minute + it * 5) % 60 + 60) % 60 }
+        StepperRow(S("Температура"), "$temp°") { temp = (temp + it).coerceIn(Cmd.TEMP_MIN, Cmd.TEMP_MAX) }
 
-        Text("Дни", style = ElectroType.Caption, color = ElectroColors.TextSecondary)
+        Text(S("Дни"), style = ElectroType.Caption, color = ElectroColors.TextSecondary)
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             DAY_LABELS.forEachIndexed { i, label ->
                 val on = days.contains(i)
@@ -114,13 +115,13 @@ private fun ScheduleEditor(
             }
         }
         Text(
-            if (days.isEmpty()) "Ни один день не выбран — сработает каждый день" else "",
+            if (days.isEmpty()) S("Ни один день не выбран — сработает каждый день") else "",
             style = ElectroType.Caption, color = ElectroColors.TextMuted,
         )
 
         Row(horizontalArrangement = Arrangement.spacedBy(Space.x2)) {
-            ElectroButton("Отмена", Modifier.weight(1f), style = ButtonStyle.Ghost, onClick = onCancel)
-            ElectroButton("Сохранить", Modifier.weight(1f), style = ButtonStyle.Primary) {
+            ElectroButton(S("Отмена"), Modifier.weight(1f), style = ButtonStyle.Ghost, onClick = onCancel)
+            ElectroButton(S("Сохранить"), Modifier.weight(1f), style = ButtonStyle.Primary) {
                 onSave(ClimateScheduleRequest(
                     hour = hour, minute = minute, weekdays = days.sorted().toList(),
                     temp_c = temp, enabled = true,

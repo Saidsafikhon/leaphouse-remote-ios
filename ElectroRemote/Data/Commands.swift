@@ -92,36 +92,36 @@ enum Cmd {
     /// «Выключить всё»: климат целиком, включая обогревы, сиденья и массаж.
     static func allOff() -> [VehicleCommand] {
         [
-            VehicleCommand(type: AC, value: "0", label: "Кондиционер"),
-            VehicleCommand(type: AC_MAX_COOL, value: "0", label: "Макс. охлаждение"),
-            VehicleCommand(type: DEFROST_FRONT, value: "0", label: "Обогрев лобового"),
-            VehicleCommand(type: DEFROST_REAR, value: "0", label: "Обогрев заднего"),
-            VehicleCommand(type: MIRROR_HEAT, value: "0", label: "Обогрев зеркал"),
-            VehicleCommand(type: RECIRC, value: "0", label: "Циркуляция"),
-            VehicleCommand(type: SEAT_HEAT_DRIVER, value: "0", label: "Подогрев сиденья водителя"),
-            VehicleCommand(type: SEAT_HEAT_PASSENGER, value: "0", label: "Подогрев сиденья пассажира"),
-            VehicleCommand(type: SEAT_HEAT_REAR_L, value: "0", label: "Подогрев заднего левого"),
-            VehicleCommand(type: SEAT_HEAT_REAR_R, value: "0", label: "Подогрев заднего правого"),
-            VehicleCommand(type: SEAT_VENT_DRIVER, value: "0", label: "Вентиляция сиденья водителя"),
-            VehicleCommand(type: SEAT_VENT_PASSENGER, value: "0", label: "Вентиляция сиденья пассажира"),
-            VehicleCommand(type: SEAT_VENT_REAR_L, value: "0", label: "Вентиляция заднего левого"),
-            VehicleCommand(type: SEAT_VENT_REAR_R, value: "0", label: "Вентиляция заднего правого"),
-            VehicleCommand(type: MASSAGE_DRIVER, value: "0", label: "Массаж водителя"),
-            VehicleCommand(type: MASSAGE_PASSENGER, value: "0", label: "Массаж пассажира"),
-            VehicleCommand(type: FAN, value: "0", label: "Обдув"),
+            VehicleCommand(type: AC, value: "0", label: L("Кондиционер")),
+            VehicleCommand(type: AC_MAX_COOL, value: "0", label: L("Макс. охлаждение")),
+            VehicleCommand(type: DEFROST_FRONT, value: "0", label: L("Обогрев лобового")),
+            VehicleCommand(type: DEFROST_REAR, value: "0", label: L("Обогрев заднего")),
+            VehicleCommand(type: MIRROR_HEAT, value: "0", label: L("Обогрев зеркал")),
+            VehicleCommand(type: RECIRC, value: "0", label: L("Циркуляция")),
+            VehicleCommand(type: SEAT_HEAT_DRIVER, value: "0", label: L("Подогрев сиденья водителя")),
+            VehicleCommand(type: SEAT_HEAT_PASSENGER, value: "0", label: L("Подогрев сиденья пассажира")),
+            VehicleCommand(type: SEAT_HEAT_REAR_L, value: "0", label: L("Подогрев заднего левого")),
+            VehicleCommand(type: SEAT_HEAT_REAR_R, value: "0", label: L("Подогрев заднего правого")),
+            VehicleCommand(type: SEAT_VENT_DRIVER, value: "0", label: L("Вентиляция сиденья водителя")),
+            VehicleCommand(type: SEAT_VENT_PASSENGER, value: "0", label: L("Вентиляция сиденья пассажира")),
+            VehicleCommand(type: SEAT_VENT_REAR_L, value: "0", label: L("Вентиляция заднего левого")),
+            VehicleCommand(type: SEAT_VENT_REAR_R, value: "0", label: L("Вентиляция заднего правого")),
+            VehicleCommand(type: MASSAGE_DRIVER, value: "0", label: L("Массаж водителя")),
+            VehicleCommand(type: MASSAGE_PASSENGER, value: "0", label: L("Массаж пассажира")),
+            VehicleCommand(type: FAN, value: "0", label: L("Обдув")),
         ]
     }
 
     /// Выключить ТОЛЬКО климат — без сидений и массажа.
     static func climateOff() -> [VehicleCommand] {
         [
-            VehicleCommand(type: AC, value: "0", label: "Кондиционер"),
-            VehicleCommand(type: AC_MAX_COOL, value: "0", label: "Макс. охлаждение"),
-            VehicleCommand(type: DEFROST_FRONT, value: "0", label: "Обогрев лобового"),
-            VehicleCommand(type: DEFROST_REAR, value: "0", label: "Обогрев заднего"),
-            VehicleCommand(type: MIRROR_HEAT, value: "0", label: "Обогрев зеркал"),
-            VehicleCommand(type: RECIRC, value: "0", label: "Циркуляция"),
-            VehicleCommand(type: FAN, value: "0", label: "Обдув"),
+            VehicleCommand(type: AC, value: "0", label: L("Кондиционер")),
+            VehicleCommand(type: AC_MAX_COOL, value: "0", label: L("Макс. охлаждение")),
+            VehicleCommand(type: DEFROST_FRONT, value: "0", label: L("Обогрев лобового")),
+            VehicleCommand(type: DEFROST_REAR, value: "0", label: L("Обогрев заднего")),
+            VehicleCommand(type: MIRROR_HEAT, value: "0", label: L("Обогрев зеркал")),
+            VehicleCommand(type: RECIRC, value: "0", label: L("Циркуляция")),
+            VehicleCommand(type: FAN, value: "0", label: L("Обдув")),
         ]
     }
 
@@ -129,25 +129,25 @@ enum Cmd {
     static func maxHeat(_ on: Bool) -> [VehicleCommand] {
         if on {
             var l: [VehicleCommand] = [
-                VehicleCommand(type: AC, value: "1", label: "Климат"),
-                VehicleCommand(type: TEMP_L, value: String(TEMP_MAX), label: "Температура"),
-                VehicleCommand(type: TEMP_R, value: String(TEMP_MAX), label: "Температура"),
-                VehicleCommand(type: FAN, value: String(FAN_MAX), label: "Обдув"),
-                VehicleCommand(type: DEFROST_FRONT, value: "2", label: "Обдув лобового"),
-                VehicleCommand(type: DEFROST_REAR, value: "1", label: "Обогрев заднего стекла"),
-                VehicleCommand(type: MIRROR_HEAT, value: "1", label: "Обогрев зеркал"),
+                VehicleCommand(type: AC, value: "1", label: L("Климат")),
+                VehicleCommand(type: TEMP_L, value: String(TEMP_MAX), label: L("Температура")),
+                VehicleCommand(type: TEMP_R, value: String(TEMP_MAX), label: L("Температура")),
+                VehicleCommand(type: FAN, value: String(FAN_MAX), label: L("Обдув")),
+                VehicleCommand(type: DEFROST_FRONT, value: "2", label: L("Обдув лобового")),
+                VehicleCommand(type: DEFROST_REAR, value: "1", label: L("Обогрев заднего стекла")),
+                VehicleCommand(type: MIRROR_HEAT, value: "1", label: L("Обогрев зеркал")),
             ]
-            l += SEAT_HEATS.map { VehicleCommand(type: $0, value: "3", label: "Подогрев сиденья") }
+            l += SEAT_HEATS.map { VehicleCommand(type: $0, value: "3", label: L("Подогрев сиденья")) }
             return l
         } else {
             var l: [VehicleCommand] = [
-                VehicleCommand(type: FAN, value: "0", label: "Обдув"),
-                VehicleCommand(type: DEFROST_FRONT, value: "0", label: "Обдув лобового"),
-                VehicleCommand(type: DEFROST_REAR, value: "0", label: "Обогрев заднего стекла"),
-                VehicleCommand(type: MIRROR_HEAT, value: "0", label: "Обогрев зеркал"),
+                VehicleCommand(type: FAN, value: "0", label: L("Обдув")),
+                VehicleCommand(type: DEFROST_FRONT, value: "0", label: L("Обдув лобового")),
+                VehicleCommand(type: DEFROST_REAR, value: "0", label: L("Обогрев заднего стекла")),
+                VehicleCommand(type: MIRROR_HEAT, value: "0", label: L("Обогрев зеркал")),
             ]
-            l += SEAT_HEATS.map { VehicleCommand(type: $0, value: "0", label: "Подогрев сиденья") }
-            l.append(VehicleCommand(type: AC, value: "0", label: "Климат"))
+            l += SEAT_HEATS.map { VehicleCommand(type: $0, value: "0", label: L("Подогрев сиденья")) }
+            l.append(VehicleCommand(type: AC, value: "0", label: L("Климат")))
             return l
         }
     }
@@ -156,25 +156,25 @@ enum Cmd {
     static func maxCool(_ on: Bool) -> [VehicleCommand] {
         if on {
             var l: [VehicleCommand] = [
-                VehicleCommand(type: AC, value: "1", label: "Климат"),
-                VehicleCommand(type: AC_MAX_COOL, value: "1", label: "Макс. охлаждение"),
-                VehicleCommand(type: TEMP_L, value: String(TEMP_MIN), label: "Температура"),
-                VehicleCommand(type: TEMP_R, value: String(TEMP_MIN), label: "Температура"),
+                VehicleCommand(type: AC, value: "1", label: L("Климат")),
+                VehicleCommand(type: AC_MAX_COOL, value: "1", label: L("Макс. охлаждение")),
+                VehicleCommand(type: TEMP_L, value: String(TEMP_MIN), label: L("Температура")),
+                VehicleCommand(type: TEMP_R, value: String(TEMP_MIN), label: L("Температура")),
             ]
-            l += SEAT_VENTS.map { VehicleCommand(type: $0, value: "3", label: "Обдув сиденья") }
+            l += SEAT_VENTS.map { VehicleCommand(type: $0, value: "3", label: L("Обдув сиденья")) }
             return l
         } else {
-            var l: [VehicleCommand] = [VehicleCommand(type: AC_MAX_COOL, value: "0", label: "Макс. охлаждение")]
-            l += SEAT_VENTS.map { VehicleCommand(type: $0, value: "0", label: "Обдув сиденья") }
-            l.append(VehicleCommand(type: AC, value: "0", label: "Климат"))
+            var l: [VehicleCommand] = [VehicleCommand(type: AC_MAX_COOL, value: "0", label: L("Макс. охлаждение"))]
+            l += SEAT_VENTS.map { VehicleCommand(type: $0, value: "0", label: L("Обдув сиденья")) }
+            l.append(VehicleCommand(type: AC, value: "0", label: L("Климат")))
             return l
         }
     }
 
     /// Циркуляция: рециркуляция + окна на 25%; выкл — рецирк off и окна закрыть.
     static func recircScene(_ on: Bool) -> [VehicleCommand] {
-        var l = [VehicleCommand(type: RECIRC, value: on ? "1" : "0", label: "Циркуляция")]
-        l += WINDOWS.map { VehicleCommand(type: $0, value: on ? "25" : "0", label: "Окно") }
+        var l = [VehicleCommand(type: RECIRC, value: on ? "1" : "0", label: L("Циркуляция"))]
+        l += WINDOWS.map { VehicleCommand(type: $0, value: on ? "25" : "0", label: L("Окно")) }
         return l
     }
 
@@ -184,16 +184,16 @@ enum Cmd {
     static func defogGlass(_ on: Bool) -> [VehicleCommand] {
         if on {
             return [
-                VehicleCommand(type: AC, value: "1", label: "Климат"),
-                VehicleCommand(type: MIRROR_HEAT, value: "1", label: "Обогрев зеркал"),
-                VehicleCommand(type: DEFROST_FRONT, value: "2", label: "Обдув лобового"),
-                VehicleCommand(type: DEFROST_REAR, value: "1", label: "Обогрев заднего стекла"),
+                VehicleCommand(type: AC, value: "1", label: L("Климат")),
+                VehicleCommand(type: MIRROR_HEAT, value: "1", label: L("Обогрев зеркал")),
+                VehicleCommand(type: DEFROST_FRONT, value: "2", label: L("Обдув лобового")),
+                VehicleCommand(type: DEFROST_REAR, value: "1", label: L("Обогрев заднего стекла")),
             ]
         } else {
             return [
-                VehicleCommand(type: MIRROR_HEAT, value: "0", label: "Обогрев зеркал"),
-                VehicleCommand(type: DEFROST_FRONT, value: "0", label: "Обдув лобового"),
-                VehicleCommand(type: DEFROST_REAR, value: "0", label: "Обогрев заднего стекла"),
+                VehicleCommand(type: MIRROR_HEAT, value: "0", label: L("Обогрев зеркал")),
+                VehicleCommand(type: DEFROST_FRONT, value: "0", label: L("Обдув лобового")),
+                VehicleCommand(type: DEFROST_REAR, value: "0", label: L("Обогрев заднего стекла")),
             ]
         }
     }

@@ -23,23 +23,23 @@ struct SettingsScreen: View {
     @State private var feedback = false
 
     var body: some View {
-        ScreenScaffold(title: "Настройки", onBack: onClose) {
+        ScreenScaffold(title: L("Настройки"), onBack: onClose) {
             if vm.loggedIn {
-                SectionCard(title: "Аккаунт") {
-                    Text("Вход выполнен: " + (vm.settings.email ?? "—")).font(.system(size: 14)).foregroundStyle(p.textPrimary)
+                SectionCard(title: L("Аккаунт")) {
+                    Text(L("Вход выполнен: ") + (vm.settings.email ?? "—")).font(.system(size: 14)).foregroundStyle(p.textPrimary)
                     Button { vm.logout() } label: {
-                        Text("Выйти из аккаунта").font(ElectroType.body).foregroundStyle(p.danger)
+                        Text(L("Выйти из аккаунта")).font(ElectroType.body).foregroundStyle(p.danger)
                     }
                     .buttonStyle(.plain)
                     Button { deletePassword = ""; deleteError = nil; deleting = true } label: {
-                        Text("Удалить аккаунт").font(ElectroType.caption).foregroundStyle(p.textMuted)
+                        Text(L("Удалить аккаунт")).font(ElectroType.caption).foregroundStyle(p.textMuted)
                     }
                     .buttonStyle(.plain)
                 }
 
-                SectionCard(title: "Мои машины", action: "Обновить", onAction: { vm.loadVehicles() }) {
+                SectionCard(title: L("Мои машины"), action: L("Обновить"), onAction: { vm.loadVehicles() }) {
                     if vm.vehicles.isEmpty {
-                        Text(vm.parkNote ?? "Машин нет — добавьте по QR с экрана машины.")
+                        Text(vm.parkNote ?? L("Машин нет — добавьте по QR с экрана машины."))
                             .font(.system(size: 12)).foregroundStyle(p.textMuted)
                     }
                     ForEach(vm.vehicles) { v in
@@ -52,9 +52,9 @@ struct SettingsScreen: View {
                             onDrop: {
                                 let shown = vm.vehicleNick(v.vehicle_id) ?? v.name
                                 dialog = DialogSpec(
-                                    icon: "trash", accent: p.danger, title: "Отвязать машину?",
-                                    message: "«\(shown)» перестанет быть доступной этому аккаунту. Сама машина останется — доступ вернёт новый QR с её экрана.",
-                                    confirmText: "Отвязать", onConfirm: { vm.unlinkVehicle(v.vehicle_id) }
+                                    icon: "trash", accent: p.danger, title: L("Отвязать машину?"),
+                                    message: L("«{0}» перестанет быть доступной этому аккаунту. Сама машина останется — доступ вернёт новый QR с её экрана.", shown),
+                                    confirmText: L("Отвязать"), onConfirm: { vm.unlinkVehicle(v.vehicle_id) }
                                 )
                             }
                         )
@@ -67,7 +67,7 @@ struct SettingsScreen: View {
                     Button { scanning = true } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "plus.circle").font(.system(size: 16)).foregroundStyle(p.accent)
-                            Text("Добавить машину").font(ElectroType.body).foregroundStyle(p.accent)
+                            Text(L("Добавить машину")).font(ElectroType.body).foregroundStyle(p.accent)
                         }
                     }
                     .buttonStyle(.plain)
@@ -76,14 +76,14 @@ struct SettingsScreen: View {
                     }
                 }
             } else {
-                SectionCard(title: "Вход") {
-                    AuthField(label: "ЛОГИН", value: $email, keyboard: .emailAddress, contentType: .username)
-                    AuthField(label: "ПАРОЛЬ", value: $password, secure: true, contentType: .password)
+                SectionCard(title: L("Вход")) {
+                    AuthField(label: L("ЛОГИН"), value: $email, keyboard: .emailAddress, contentType: .username)
+                    AuthField(label: L("ПАРОЛЬ"), value: $password, secure: true, contentType: .password)
                     if let error {
                         Text(error).font(.system(size: 13)).foregroundStyle(p.danger)
                     }
                     ElectroButton(
-                        text: "Войти",
+                        text: L("Войти"),
                         enabled: !vm.busy && !email.trimmingCharacters(in: .whitespaces).isEmpty && !password.isEmpty,
                         loading: vm.busy
                     ) {
@@ -93,6 +93,7 @@ struct SettingsScreen: View {
                 }
             }
 
+            SectionCard(title: L("Язык")) { LangPicker() }
             ThemeSection()
 
             if vm.loggedIn {
@@ -100,13 +101,13 @@ struct SettingsScreen: View {
             }
 
             if vm.loggedIn {
-                SectionCard(title: "Отзыв") {
-                    Text("Замечания, идеи и предложения по приложению — разработчикам напрямую.")
+                SectionCard(title: L("Отзыв")) {
+                    Text(L("Замечания, идеи и предложения по приложению — разработчикам напрямую."))
                         .font(.system(size: 13)).foregroundStyle(p.textSecondary)
                     Button { feedback = true } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "square.and.pencil").font(.system(size: 15)).foregroundStyle(p.accent)
-                            Text("Оставить отзыв").font(ElectroType.body).foregroundStyle(p.accent)
+                            Text(L("Оставить отзыв")).font(ElectroType.body).foregroundStyle(p.accent)
                         }
                     }
                     .buttonStyle(.plain)
@@ -114,8 +115,8 @@ struct SettingsScreen: View {
             }
 
             HStack(spacing: Space.x4) {
-                Link("Политика конфиденциальности", destination: Links.privacy)
-                Link("Поддержка", destination: Links.support)
+                Link(L("Политика конфиденциальности"), destination: Links.privacy)
+                Link(L("Поддержка"), destination: Links.support)
             }
             .font(ElectroType.caption).foregroundStyle(p.textMuted).frame(maxWidth: .infinity)
             Text(appVersion()).font(ElectroType.caption).foregroundStyle(p.textMuted)
@@ -130,7 +131,7 @@ struct SettingsScreen: View {
                 deleteBusy = true; deleteError = nil
                 Task {
                     do { try await vm.deleteAccount(password: deletePassword); deleting = false }
-                    catch { deleteError = (error as? RepoError)?.message ?? "Не удалось удалить аккаунт" }
+                    catch { deleteError = (error as? RepoError)?.message ?? L("Не удалось удалить аккаунт") }
                     deleteBusy = false
                 }
             }
@@ -146,8 +147,8 @@ struct SettingsScreen: View {
                 guard let payload else { return }
                 pairMsg = nil
                 Task {
-                    do { _ = try await vm.claimPairing(payload); pairMsg = "Машина привязана" }
-                    catch { pairMsg = (error as? RepoError)?.message ?? "Не удалось привязать машину" }
+                    do { _ = try await vm.claimPairing(payload); pairMsg = L("Машина привязана") }
+                    catch { pairMsg = (error as? RepoError)?.message ?? L("Не удалось привязать машину") }
                 }
             }
         }
@@ -170,10 +171,10 @@ struct SettingsScreen: View {
 private struct ThemeSection: View {
     @Environment(\.palette) private var p
     @AppStorage("themeMode") private var themeMode = "auto"
-    private let options: [(String, String)] = [("auto", "Авто"), ("light", "Светлая"), ("dark", "Тёмная")]
+    private var options: [(String, String)] { [("auto", L("Авто")), ("light", L("Светлая")), ("dark", L("Тёмная"))] }
 
     var body: some View {
-        SectionCard(title: "Оформление") {
+        SectionCard(title: L("Оформление")) {
             HStack(spacing: 0) {
                 ForEach(options, id: \.0) { code, label in
                     let sel = themeMode == code
@@ -190,7 +191,7 @@ private struct ThemeSection: View {
             .padding(4)
             .background(p.surfaceElevated)
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            Text("Авто — как в системе телефона").font(.system(size: 11)).foregroundStyle(p.textMuted)
+            Text(L("Авто — как в системе телефона")).font(.system(size: 11)).foregroundStyle(p.textMuted)
         }
     }
 }
@@ -203,12 +204,12 @@ private struct LockSection: View {
     var body: some View {
         let available = lock.available()
         let bio = lock.biometricName
-        SectionCard(title: "Защита входа") {
+        SectionCard(title: L("Защита входа")) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Блокировка при входе").font(.system(size: 14)).foregroundStyle(available ? p.textPrimary : p.textMuted)
-                    Text(!available ? "Сначала включите код-пароль в настройках iPhone"
-                         : (bio.map { "\($0), запасной путь — код-пароль iPhone" } ?? "Код-пароль iPhone"))
+                    Text(L("Блокировка при входе")).font(.system(size: 14)).foregroundStyle(available ? p.textPrimary : p.textMuted)
+                    Text(!available ? L("Сначала включите код-пароль в настройках iPhone")
+                         : (bio.map { L("{0}, запасной путь — код-пароль iPhone", $0) } ?? L("Код-пароль iPhone")))
                         .font(.system(size: 11)).foregroundStyle(p.textMuted)
                 }
                 Spacer()
@@ -252,7 +253,7 @@ private struct PaintPicker: View {
                         .buttonStyle(.plain)
                     }
                 }
-                Text("Цвет кузова: " + (paints.first { $0.code == chosen }?.label ?? ""))
+                Text(L("Цвет кузова: ") + (paints.first { $0.code == chosen }?.label ?? ""))
                     .font(.system(size: 11)).foregroundStyle(p.textMuted)
             }
             .padding(.leading, 44).padding(.top, 2).padding(.bottom, 8)
@@ -321,14 +322,14 @@ private struct DeleteAccountSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.x3) {
-            Text("Удалить аккаунт?").font(ElectroType.headline).foregroundStyle(p.textPrimary)
-            Text("Учётная запись, доступ к машинам, сцены и расписания будут удалены с сервера без возможности восстановления. Сами машины останутся в парке.")
+            Text(L("Удалить аккаунт?")).font(ElectroType.headline).foregroundStyle(p.textPrimary)
+            Text(L("Учётная запись, доступ к машинам, сцены и расписания будут удалены с сервера без возможности восстановления. Сами машины останутся в парке."))
                 .font(ElectroType.body).foregroundStyle(p.textSecondary)
-            AuthField(label: "ПАРОЛЬ ДЛЯ ПОДТВЕРЖДЕНИЯ", value: $password, secure: true, contentType: .password)
+            AuthField(label: L("ПАРОЛЬ ДЛЯ ПОДТВЕРЖДЕНИЯ"), value: $password, secure: true, contentType: .password)
             if let error { ElectroToast(kind: .failed, title: error) }
             HStack(spacing: Space.x2) {
-                ElectroButton(text: "Отмена", style: .ghost, enabled: !busy) { dismiss() }
-                ElectroButton(text: "Удалить навсегда", style: .danger, enabled: password.count >= MIN_PASSWORD && !busy, loading: busy, action: onConfirm)
+                ElectroButton(text: L("Отмена"), style: .ghost, enabled: !busy) { dismiss() }
+                ElectroButton(text: L("Удалить навсегда"), style: .danger, enabled: password.count >= MIN_PASSWORD && !busy, loading: busy, action: onConfirm)
             }
             Spacer()
         }
@@ -349,8 +350,8 @@ private struct RenameSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.x3) {
-            Text("Имя машины").font(ElectroType.headline).foregroundStyle(p.textPrimary)
-            Text("Показывается только в этом телефоне.").font(.system(size: 12)).foregroundStyle(p.textMuted)
+            Text(L("Имя машины")).font(ElectroType.headline).foregroundStyle(p.textPrimary)
+            Text(L("Показывается только в этом телефоне.")).font(.system(size: 12)).foregroundStyle(p.textMuted)
             TextField(serverName, text: $name)
                 .font(ElectroType.body).foregroundStyle(p.textPrimary).tint(p.accent)
                 .padding(.horizontal, Space.x4).frame(height: 52)
@@ -358,8 +359,8 @@ private struct RenameSheet: View {
                 .clipShape(RoundedRectangle(cornerRadius: Radius.sm, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: Radius.sm, style: .continuous).stroke(p.outline, lineWidth: 1))
             HStack(spacing: Space.x2) {
-                ElectroButton(text: "Сбросить", style: .ghost) { onDone(false) }
-                ElectroButton(text: "Сохранить", style: .primary) { onDone(true) }
+                ElectroButton(text: L("Сбросить"), style: .ghost) { onDone(false) }
+                ElectroButton(text: L("Сохранить"), style: .primary) { onDone(true) }
             }
             Spacer()
         }

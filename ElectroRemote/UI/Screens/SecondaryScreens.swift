@@ -11,13 +11,13 @@ private struct Ingredient: Identifiable, Equatable {
 }
 
 private let INGREDIENTS: [Ingredient] = [
-    Ingredient(title: "Включить климат", step: SceneStepDto(type: Cmd.AC, value: "1", title: "климат")),
-    Ingredient(title: "Выключить климат", step: SceneStepDto(type: Cmd.AC, value: "0", title: "климат выкл")),
-    Ingredient(title: "Тепло, 24°", step: SceneStepDto(type: Cmd.TEMP_L, value: "24", title: "температура 24°")),
-    Ingredient(title: "Прохладно, 20°", step: SceneStepDto(type: Cmd.TEMP_L, value: "20", title: "температура 20°")),
-    Ingredient(title: "Обдув на максимум", step: SceneStepDto(type: Cmd.FAN, value: "7", title: "обдув 7")),
-    Ingredient(title: "Открыть окна", step: SceneStepDto(type: Cmd.WINDOW_FL, value: "100", title: "окна открыть")),
-    Ingredient(title: "Закрыть окна", step: SceneStepDto(type: Cmd.WINDOW_FL, value: "0", title: "окна закрыть")),
+    Ingredient(title: L("Включить климат"), step: SceneStepDto(type: Cmd.AC, value: "1", title: L("климат"))),
+    Ingredient(title: L("Выключить климат"), step: SceneStepDto(type: Cmd.AC, value: "0", title: L("климат выкл"))),
+    Ingredient(title: L("Тепло, 24°"), step: SceneStepDto(type: Cmd.TEMP_L, value: "24", title: L("температура 24°"))),
+    Ingredient(title: L("Прохладно, 20°"), step: SceneStepDto(type: Cmd.TEMP_L, value: "20", title: L("температура 20°"))),
+    Ingredient(title: L("Обдув на максимум"), step: SceneStepDto(type: Cmd.FAN, value: "7", title: L("обдув 7"))),
+    Ingredient(title: L("Открыть окна"), step: SceneStepDto(type: Cmd.WINDOW_FL, value: "100", title: L("окна открыть"))),
+    Ingredient(title: L("Закрыть окна"), step: SceneStepDto(type: Cmd.WINDOW_FL, value: "0", title: L("окна закрыть"))),
 ]
 
 /// Пользовательские сцены: свой набор команд под одной кнопкой. Живут на сервере.
@@ -31,9 +31,9 @@ struct ScenesScreen: View {
     @State private var building = false
 
     var body: some View {
-        ScreenScaffold(title: "Мои сцены", onBack: onBack) {
+        ScreenScaffold(title: L("Мои сцены"), onBack: onBack) {
             if scenes.isEmpty && !building {
-                EmptyNote(text: "Сцен пока нет. Соберите свою — например «остудить к выходу».")
+                EmptyNote(text: L("Сцен пока нет. Соберите свою — например «остудить к выходу»."))
             }
             ForEach(scenes) { scene in
                 SceneRow(scene: scene, onRun: { onRun(scene) }, onDelete: { onDelete(scene) })
@@ -41,7 +41,7 @@ struct ScenesScreen: View {
             if building {
                 SceneBuilder(onCancel: { building = false }, onSave: { name, steps in onCreate(name, steps); building = false })
             } else {
-                ElectroButton(text: "Новая сцена", style: .secondary) { building = true }
+                ElectroButton(text: L("Новая сцена"), style: .secondary) { building = true }
             }
         }
     }
@@ -55,11 +55,11 @@ private struct SceneRow: View {
 
     var body: some View {
         SectionCard(title: scene.name) {
-            Text(scene.steps.map { $0.title.isEmpty ? "тип \($0.type)" : $0.title }.joined(separator: " · "))
+            Text(scene.steps.map { $0.title.isEmpty ? L("тип {0}", $0.type) : $0.title }.joined(separator: " · "))
                 .font(ElectroType.caption).foregroundStyle(p.textMuted)
             HStack(spacing: Space.x2) {
-                ControlTile(label: "Выполнить", icon: "play", state: .active, action: onRun)
-                ControlTile(label: "Удалить", icon: "trash", action: onDelete)
+                ControlTile(label: L("Выполнить"), icon: "play", state: .active, action: onRun)
+                ControlTile(label: L("Удалить"), icon: "trash", action: onDelete)
             }
         }
     }
@@ -74,13 +74,13 @@ private struct SceneBuilder: View {
     @State private var chosen: [Ingredient] = []
 
     var body: some View {
-        SectionCard(title: "Новая сцена") {
-            TextField("Название", text: $name)
+        SectionCard(title: L("Новая сцена")) {
+            TextField(L("Название"), text: $name)
                 .font(ElectroType.body).foregroundStyle(p.textPrimary).tint(p.accent)
                 .padding(.horizontal, Space.x4).frame(height: 52)
                 .background(p.surfaceElevated)
                 .clipShape(RoundedRectangle(cornerRadius: Radius.sm, style: .continuous))
-            Text("Шаги").font(ElectroType.caption).foregroundStyle(p.textSecondary)
+            Text(L("Шаги")).font(ElectroType.caption).foregroundStyle(p.textSecondary)
             ForEach(INGREDIENTS) { ing in
                 let on = chosen.contains(ing)
                 Button {
@@ -97,9 +97,9 @@ private struct SceneBuilder: View {
                 .buttonStyle(.plain)
             }
             HStack(spacing: Space.x2) {
-                ElectroButton(text: "Отмена", style: .ghost, action: onCancel)
+                ElectroButton(text: L("Отмена"), style: .ghost, action: onCancel)
                 ElectroButton(
-                    text: "Сохранить", style: .primary,
+                    text: L("Сохранить"), style: .primary,
                     enabled: !name.trimmingCharacters(in: .whitespaces).isEmpty && !chosen.isEmpty
                 ) { onSave(name.trimmingCharacters(in: .whitespaces), chosen.map { $0.step }) }
             }
@@ -109,7 +109,7 @@ private struct SceneBuilder: View {
 
 // MARK: - Расписание климата
 
-private let DAY_LABELS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
+private var DAY_LABELS: [String] { [L("Пн"), L("Вт"), L("Ср"), L("Чт"), L("Пт"), L("Сб"), L("Вс")] }  // геттер: язык может смениться
 
 /// Расписание пред-климата: будильник живёт на сервере, тут — только редактор.
 struct ScheduleScreen: View {
@@ -122,9 +122,9 @@ struct ScheduleScreen: View {
     @State private var adding = false
 
     var body: some View {
-        ScreenScaffold(title: "Климат по расписанию", onBack: onBack) {
+        ScreenScaffold(title: L("Климат по расписанию"), onBack: onBack) {
             if schedules.isEmpty && !adding {
-                EmptyNote(text: "Расписаний нет. Задайте время — сервер прогреет или остудит салон к нему.")
+                EmptyNote(text: L("Расписаний нет. Задайте время — сервер прогреет или остудит салон к нему."))
             }
             ForEach(schedules) { s in
                 ScheduleRow(s: s, onToggle: { on in onToggle(s, on) }, onDelete: { onDelete(s) })
@@ -132,7 +132,7 @@ struct ScheduleScreen: View {
             if adding {
                 ScheduleEditor(onCancel: { adding = false }, onSave: { req in onCreate(req); adding = false })
             } else {
-                ElectroButton(text: "Новое расписание", style: .secondary) { adding = true }
+                ElectroButton(text: L("Новое расписание"), style: .secondary) { adding = true }
             }
         }
     }
@@ -148,9 +148,9 @@ private struct ScheduleRow: View {
         SectionCard(title: String(format: "%02d:%02d", s.hour, s.minute)) {
             HStack(spacing: Space.x2) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(s.weekdays.isEmpty ? "Каждый день" : s.weekdays.sorted().map { DAY_LABELS[$0 % 7] }.joined(separator: " "))
+                    Text(s.weekdays.isEmpty ? L("Каждый день") : s.weekdays.sorted().map { DAY_LABELS[$0 % 7] }.joined(separator: " "))
                         .font(ElectroType.body).foregroundStyle(p.textPrimary)
-                    Text("до \(s.temp_c)°").font(ElectroType.caption).foregroundStyle(p.textMuted)
+                    Text(L("до {0}°", s.temp_c)).font(ElectroType.caption).foregroundStyle(p.textMuted)
                 }
                 Spacer()
                 ElectroToggle(isOn: s.enabled, onChange: onToggle)
@@ -174,13 +174,13 @@ private struct ScheduleEditor: View {
     @State private var days: Set<Int> = []
 
     var body: some View {
-        SectionCard(title: "Новое расписание") {
+        SectionCard(title: L("Новое расписание")) {
             // Время: часы и минуты крупными ± — попасть пальцем в плюс проще, чем в поле.
-            StepperRow(label: "Час", value: String(format: "%02d", hour)) { hour = ((hour + $0) % 24 + 24) % 24 }
-            StepperRow(label: "Минуты", value: String(format: "%02d", minute)) { minute = ((minute + $0 * 5) % 60 + 60) % 60 }
-            StepperRow(label: "Температура", value: "\(temp)°") { temp = min(max(temp + $0, Cmd.TEMP_MIN), Cmd.TEMP_MAX) }
+            StepperRow(label: L("Час"), value: String(format: "%02d", hour)) { hour = ((hour + $0) % 24 + 24) % 24 }
+            StepperRow(label: L("Минуты"), value: String(format: "%02d", minute)) { minute = ((minute + $0 * 5) % 60 + 60) % 60 }
+            StepperRow(label: L("Температура"), value: "\(temp)°") { temp = min(max(temp + $0, Cmd.TEMP_MIN), Cmd.TEMP_MAX) }
 
-            Text("Дни").font(ElectroType.caption).foregroundStyle(p.textSecondary)
+            Text(L("Дни")).font(ElectroType.caption).foregroundStyle(p.textSecondary)
             HStack(spacing: 6) {
                 ForEach(0..<7, id: \.self) { i in
                     ControlChip(text: DAY_LABELS[i], selected: days.contains(i)) {
@@ -189,11 +189,11 @@ private struct ScheduleEditor: View {
                 }
             }
             if days.isEmpty {
-                Text("Ни один день не выбран — сработает каждый день").font(ElectroType.caption).foregroundStyle(p.textMuted)
+                Text(L("Ни один день не выбран — сработает каждый день")).font(ElectroType.caption).foregroundStyle(p.textMuted)
             }
             HStack(spacing: Space.x2) {
-                ElectroButton(text: "Отмена", style: .ghost, action: onCancel)
-                ElectroButton(text: "Сохранить", style: .primary) {
+                ElectroButton(text: L("Отмена"), style: .ghost, action: onCancel)
+                ElectroButton(text: L("Сохранить"), style: .primary) {
                     onSave(ClimateScheduleRequest(hour: hour, minute: minute, weekdays: days.sorted(), temp_c: temp, enabled: true))
                 }
             }
@@ -228,11 +228,11 @@ struct VoiceScreen: View {
     let onBack: () -> Void
 
     var body: some View {
-        ScreenScaffold(title: "Голосовые команды", onBack: onBack) {
+        ScreenScaffold(title: L("Голосовые команды"), onBack: onBack) {
             if intents.isEmpty {
-                EmptyNote(text: "У этой машины голосовых команд нет.")
+                EmptyNote(text: L("У этой машины голосовых команд нет."))
             } else {
-                SectionCard(title: "Скажите или нажмите") {
+                SectionCard(title: L("Скажите или нажмите")) {
                     ForEach(intents) { intent in
                         Button { onRun(intent) } label: {
                             HStack(spacing: Space.x3) {
@@ -273,12 +273,12 @@ struct NewsScreen: View {
 
     @State private var filter: String = "all"
     @State private var selected: NewsItem? = nil
-    private let filters: [(String, String)] = [("all", "Все"), ("info", "Уведомления"), ("news", "Новости"), ("alert", "Важное")]
+    private var filters: [(String, String)] { [("all", L("Все")), ("info", L("Уведомления")), ("news", L("Новости")), ("alert", L("Важное"))] }
 
     var body: some View {
         let shown = items.filter { filter == "all" || $0.kind == filter }
         let unread = items.filter { !isRead($0) }.count
-        ScreenScaffold(title: "Новости", onBack: onBack) {
+        ScreenScaffold(title: L("Новости"), onBack: onBack) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 6) {
                     ForEach(filters, id: \.0) { f in
@@ -294,10 +294,10 @@ struct NewsScreen: View {
                 }
             }
             if unread > 0 {
-                ElectroButton(text: "Прочитать всё (\(unread))", style: .secondary, action: onReadAll)
+                ElectroButton(text: L("Прочитать всё ({0})", unread), style: .secondary, action: onReadAll)
             }
             if shown.isEmpty {
-                EmptyNote(text: items.isEmpty ? "Пока ничего нет. Здесь появятся новости и уведомления от оператора." : "В этом разделе пусто.")
+                EmptyNote(text: items.isEmpty ? L("Пока ничего нет. Здесь появятся новости и уведомления от оператора.") : L("В этом разделе пусто."))
             }
             ForEach(shown) { n in
                 let st = style(n.kind)
@@ -311,7 +311,7 @@ struct NewsScreen: View {
                             if !n.body.isEmpty {
                                 Text(n.body).font(ElectroType.caption).foregroundStyle(p.textSecondary)
                             }
-                            Text(newsDate(n.created_at) + (read ? "" : " · не прочитано")).font(ElectroType.unit).foregroundStyle(read ? p.textMuted : p.accent)
+                            Text(newsDate(n.created_at) + (read ? "" : L(" · не прочитано"))).font(ElectroType.unit).foregroundStyle(read ? p.textMuted : p.accent)
                         }
                         Spacer(minLength: 0)
                         if !read { Circle().fill(p.accent).frame(width: 8, height: 8).padding(.top, 6) }
@@ -357,7 +357,7 @@ struct NewsDetailScreen: View {
                         .frame(width: 32, height: 32)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Назад")
+                .accessibilityLabel(L("Назад"))
                 Text(kindTitle(item.kind)).font(ElectroType.headline).foregroundStyle(p.textPrimary)
                 Spacer()
                 Button(action: onClose) {
@@ -365,7 +365,7 @@ struct NewsDetailScreen: View {
                         .frame(width: 32, height: 32)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Закрыть")
+                .accessibilityLabel(L("Закрыть"))
             }
             .padding(Space.x4)
             ScrollView {
@@ -384,7 +384,7 @@ struct NewsDetailScreen: View {
                 .padding(.horizontal, Space.x5)
                 .padding(.bottom, Space.x6)
             }
-            ElectroButton(text: "Закрыть", style: .secondary, action: onClose)
+            ElectroButton(text: L("Закрыть"), style: .secondary, action: onClose)
                 .padding(.horizontal, Space.x5)
                 .padding(.bottom, Space.x4)
         }
@@ -403,9 +403,9 @@ struct NewsDetailScreen: View {
 
 private func kindTitle(_ kind: String) -> String {
     switch kind {
-    case "alert": return "Важное"
-    case "news": return "Новость"
-    default: return "Уведомление"
+    case "alert": return L("Важное")
+    case "news": return L("Новость")
+    default: return L("Уведомление")
     }
 }
 
@@ -427,7 +427,7 @@ struct MapScreen: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: Space.x2) {
-                Text("Карта").font(ElectroType.headline).foregroundStyle(p.textPrimary)
+                Text(L("Карта")).font(ElectroType.headline).foregroundStyle(p.textPrimary)
                 Text("· Leapmotor C16").font(ElectroType.body).foregroundStyle(p.textMuted)
                 Spacer()
             }
@@ -437,10 +437,10 @@ struct MapScreen: View {
                 HStack(spacing: Space.x3) {
                     Image(systemName: "location").font(.system(size: 20)).foregroundStyle(p.accent)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Положение автомобиля").font(ElectroType.caption).foregroundStyle(p.textMuted)
+                        Text(L("Положение автомобиля")).font(ElectroType.caption).foregroundStyle(p.textMuted)
                         Text(String(format: "%.5f, %.5f", loc.lat, loc.lon)).font(ElectroType.body).foregroundStyle(p.textPrimary)
                         if let b = loc.bearing {
-                            Text("Курс: \(compass(b)) \(Int(b))°").font(ElectroType.caption).foregroundStyle(p.textMuted)
+                            Text(L("Курс: {0} {1}°", compass(b), Int(b))).font(ElectroType.caption).foregroundStyle(p.textMuted)
                         }
                     }
                     Spacer()
@@ -464,7 +464,7 @@ struct MapScreen: View {
                 Button { openRoute(loc) } label: {
                     HStack(spacing: Space.x2) {
                         Image(systemName: "arrow.triangle.turn.up.right.diamond").font(.system(size: 18)).foregroundStyle(p.onAccent)
-                        Text("Маршрут").font(ElectroType.body).foregroundStyle(p.onAccent)
+                        Text(L("Маршрут")).font(ElectroType.body).foregroundStyle(p.onAccent)
                     }
                     .frame(maxWidth: .infinity).frame(height: ControlSize.button)
                     .background(p.accent)
@@ -478,8 +478,8 @@ struct MapScreen: View {
                 VStack(spacing: Space.x1) {
                     Image(systemName: "location").font(.system(size: 36)).foregroundStyle(p.textMuted)
                     Spacer().frame(height: Space.x3)
-                    Text("Нет координат").font(ElectroType.body).foregroundStyle(p.textSecondary)
-                    Text("Положение приходит с головы. Разбудите машину и дождитесь связи.")
+                    Text(L("Нет координат")).font(ElectroType.body).foregroundStyle(p.textSecondary)
+                    Text(L("Положение приходит с головы. Разбудите машину и дождитесь связи."))
                         .font(ElectroType.caption).foregroundStyle(p.textMuted).multilineTextAlignment(.center)
                         .padding(.horizontal, Space.x6)
                 }
@@ -500,7 +500,7 @@ struct MapScreen: View {
 }
 
 private func compass(_ bearing: Double) -> String {
-    let dirs = ["С", "СВ", "В", "ЮВ", "Ю", "ЮЗ", "З", "СЗ"]
+    let dirs = [L("С"), L("СВ"), L("В"), L("ЮВ"), L("Ю"), L("ЮЗ"), L("З"), L("СЗ")]
     let normalized = (bearing.truncatingRemainder(dividingBy: 360) + 360).truncatingRemainder(dividingBy: 360)
     return dirs[Int((normalized + 22.5) / 45) % 8]
 }

@@ -1,5 +1,6 @@
 package uz.electro.remote.ui
 
+import uz.electro.remote.i18n.S
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.CircularProgressIndicator
@@ -35,15 +36,15 @@ fun ParkGateScreen(note: String?, onRetry: () -> Unit, onLogout: () -> Unit) {
         if (note == null) {
             CircularProgressIndicator(color = ElectroColors.Accent)
             Spacer(Modifier.height(Space.x4))
-            Text("Спрашиваем сервер о ваших машинах…",
+            Text(S("Спрашиваем сервер о ваших машинах…"),
                 color = ElectroColors.TextSecondary, fontSize = 14.sp, textAlign = TextAlign.Center)
         } else {
             Text(note, color = ElectroColors.TextPrimary, fontSize = 15.sp,
                 textAlign = TextAlign.Center)
             Spacer(Modifier.height(Space.x6))
-            ElectroButton("Повторить", modifier = Modifier.fillMaxWidth(), onClick = onRetry)
+            ElectroButton(S("Повторить"), modifier = Modifier.fillMaxWidth(), onClick = onRetry)
             Spacer(Modifier.height(Space.x2))
-            ElectroButton("Выйти из аккаунта", style = ButtonStyle.Ghost,
+            ElectroButton(S("Выйти из аккаунта"), style = ButtonStyle.Ghost,
                 modifier = Modifier.fillMaxWidth(), onClick = onLogout)
         }
     }

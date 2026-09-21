@@ -1,5 +1,6 @@
 package uz.electro.remote.ui.components
 
+import uz.electro.remote.i18n.S
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -209,7 +210,7 @@ fun ElectroButton(
                 CircularProgressIndicator(Modifier.size(16.dp), color = ink, strokeWidth = 1.5.dp)
                 Spacer(Modifier.width(Space.x2))
             }
-            Text(if (loading) "Отправка…" else text, style = ElectroType.Body, color = ink)
+            Text(if (loading) S("Отправка…") else text, style = ElectroType.Body, color = ink)
         }
     }
 }
@@ -445,7 +446,7 @@ fun ElectroDialog(
     onDismiss: () -> Unit,
     //: у сообщения выбора нет — там «Отмена» рядом с «Понятно» предлагала бы
     //: отменить то, чего не произошло
-    dismissText: String? = "Отмена",
+    dismissText: String? = S("Отмена"),
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,

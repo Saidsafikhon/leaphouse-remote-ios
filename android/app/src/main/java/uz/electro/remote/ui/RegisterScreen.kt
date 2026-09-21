@@ -1,5 +1,6 @@
 package uz.electro.remote.ui
 
+import uz.electro.remote.i18n.S
 import uz.electro.remote.ui.components.Lx
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -40,32 +41,32 @@ fun RegisterScreen(vm: CarViewModel, onRegistered: () -> Unit, onBack: () -> Uni
     var busy by remember { mutableStateOf(false) }
 
     AuthScaffold(
-        title = "Регистрация",
-        subtitle = "Один аккаунт для приложения и для сайта.",
-        action = if (busy) "Создаём…" else "Создать аккаунт",
+        title = S("Регистрация"),
+        subtitle = S("Один аккаунт для приложения и для сайта."),
+        action = if (busy) S("Создаём…") else S("Создать аккаунт"),
         busy = busy,
         enabled = email.isNotBlank() && pass.length >= MIN_PASSWORD && repeat.isNotBlank(),
         onBack = onBack,
         error = error,
         onAction = {
-            if (pass != repeat) { error = "Пароли не совпадают"; return@AuthScaffold }
+            if (pass != repeat) { error = S("Пароли не совпадают"); return@AuthScaffold }
             busy = true; error = null
             scope.launch {
                 vm.register(email.trim(), pass, name.trim(), phone.trim())
                     // Регистрация сразу отдаёт токен — второй раз входить не просим.
                     .onSuccess { onRegistered() }
-                    .onFailure { error = vm.authError(it, "Не получилось создать аккаунт") }
+                    .onFailure { error = vm.authError(it, S("Не получилось создать аккаунт")) }
                 busy = false
             }
         },
     ) {
         Field("EMAIL", email, { email = it }, KeyboardType.Email)
         Spacer(Modifier.height(Space.x4))
-        Field("ИМЯ (необязательно)", name, { name = it }, KeyboardType.Text)
+        Field(S("ИМЯ (необязательно)"), name, { name = it }, KeyboardType.Text)
         Spacer(Modifier.height(Space.x4))
-        Field("ТЕЛЕФОН (необязательно)", phone, { phone = it }, KeyboardType.Phone)
+        Field(S("ТЕЛЕФОН (необязательно)"), phone, { phone = it }, KeyboardType.Phone)
         Spacer(Modifier.height(Space.x4))
-        Field("ПАРОЛЬ", pass, { pass = it }, KeyboardType.Password,
+        Field(S("ПАРОЛЬ"), pass, { pass = it }, KeyboardType.Password,
             visual = if (show) VisualTransformation.None else PasswordVisualTransformation(),
             trailing = {
                 IconButton(onClick = { show = !show }) {
@@ -74,9 +75,9 @@ fun RegisterScreen(vm: CarViewModel, onRegistered: () -> Unit, onBack: () -> Uni
                 }
             })
         Spacer(Modifier.height(Space.x1))
-        Hint("Не короче $MIN_PASSWORD знаков")
+        Hint(S("Не короче {0} знаков", MIN_PASSWORD))
         Spacer(Modifier.height(Space.x4))
-        Field("ПАРОЛЬ ЕЩЁ РАЗ", repeat, { repeat = it }, KeyboardType.Password,
+        Field(S("ПАРОЛЬ ЕЩЁ РАЗ"), repeat, { repeat = it }, KeyboardType.Password,
             visual = if (show) VisualTransformation.None else PasswordVisualTransformation())
     }
 }

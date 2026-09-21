@@ -1,5 +1,6 @@
 package uz.electro.remote.ui
 
+import uz.electro.remote.i18n.S
 import uz.electro.remote.ui.components.Lx
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -50,7 +51,7 @@ internal fun AuthScaffold(
             Icon(Lx.ArrowBack, null,
                 tint = ElectroColors.TextSecondary, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(Space.x2))
-            Text("Назад", color = ElectroColors.TextSecondary, fontSize = 14.sp)
+            Text(S("Назад"), color = ElectroColors.TextSecondary, fontSize = 14.sp)
         }
 
         Spacer(Modifier.height(Space.x5))

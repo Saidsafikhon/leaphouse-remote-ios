@@ -1,5 +1,6 @@
 package uz.electro.remote.ui
 
+import uz.electro.remote.i18n.S
 import uz.electro.remote.ui.components.Lx
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.clickable
@@ -76,27 +77,27 @@ fun SettingsScreen(vm: CarViewModel, onClose: () -> Unit) {
         pairMsg = null
         scope.launch {
             vm.claimPairing(payload)
-                .onSuccess { pairMsg = "Машина привязана" }
-                .onFailure { pairMsg = it.message ?: "Не удалось привязать машину" }
+                .onSuccess { pairMsg = S("Машина привязана") }
+                .onFailure { pairMsg = it.message ?: S("Не удалось привязать машину") }
         }
     }
 
-    ScreenScaffold("Настройки", onClose) {
+    ScreenScaffold(S("Настройки"), onClose) {
         if (loggedIn) {
-            SectionCard("Аккаунт") {
-                Text("Вход выполнен: " + (settings.email ?: "—"),
+            SectionCard(S("Аккаунт")) {
+                Text(S("Вход выполнен: ") + (settings.email ?: "—"),
                     color = ElectroColors.TextPrimary, fontSize = 14.sp)
                 TextButton(onClick = { vm.logout() }, contentPadding = PaddingValues(0.dp)) {
-                    Text("Выйти из аккаунта", color = ElectroColors.Danger)
+                    Text(S("Выйти из аккаунта"), color = ElectroColors.Danger)
                 }
                 TextButton(onClick = { deleting = true }, contentPadding = PaddingValues(0.dp)) {
-                    Text("Удалить аккаунт", color = ElectroColors.TextMuted, fontSize = 12.sp)
+                    Text(S("Удалить аккаунт"), color = ElectroColors.TextMuted, fontSize = 12.sp)
                 }
             }
 
-            SectionCard("Мои машины", action = "Обновить", onAction = { vm.loadVehicles() }) {
+            SectionCard(S("Мои машины"), action = S("Обновить"), onAction = { vm.loadVehicles() }) {
                 if (vehicles.isEmpty()) {
-                    Text(parkNote ?: "Машин нет — добавьте по QR с экрана машины.",
+                    Text(parkNote ?: S("Машин нет — добавьте по QR с экрана машины."),
                         color = ElectroColors.TextMuted, fontSize = 12.sp)
                 }
                 vehicles.forEach { vehicle ->
@@ -122,7 +123,7 @@ fun SettingsScreen(vm: CarViewModel, onClose: () -> Unit) {
                 TextButton(
                     onClick = {
                         scanLauncher.launch(
-                            ScanOptions().setPrompt("Наведите на QR на экране машины")
+                            ScanOptions().setPrompt(S("Наведите на QR на экране машины"))
                                 .setBeepEnabled(false).setOrientationLocked(false)
                         )
                     },
@@ -131,19 +132,19 @@ fun SettingsScreen(vm: CarViewModel, onClose: () -> Unit) {
                     Icon(Lx.AddCircleOutline, null, tint = ElectroColors.Accent,
                         modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Добавить машину", color = ElectroColors.Accent)
+                    Text(S("Добавить машину"), color = ElectroColors.Accent)
                 }
                 pairMsg?.let { Text(it, color = ElectroColors.TextSecondary, fontSize = 12.sp) }
             }
         } else {
-            SectionCard("Вход") {
+            SectionCard(S("Вход")) {
                 OutlinedTextField(
                     value = email, onValueChange = { email = it }, singleLine = true,
-                    label = { Text("Логин") }, modifier = Modifier.fillMaxWidth(), colors = fieldColors(),
+                    label = { Text(S("Логин")) }, modifier = Modifier.fillMaxWidth(), colors = fieldColors(),
                 )
                 OutlinedTextField(
                     value = password, onValueChange = { password = it }, singleLine = true,
-                    label = { Text("Пароль") }, visualTransformation = PasswordVisualTransformation(),
+                    label = { Text(S("Пароль")) }, visualTransformation = PasswordVisualTransformation(),
                     modifier = Modifier.fillMaxWidth(), colors = fieldColors(),
                 )
                 error?.let { Text(it, color = ElectroColors.Danger, fontSize = 13.sp) }
@@ -153,17 +154,18 @@ fun SettingsScreen(vm: CarViewModel, onClose: () -> Unit) {
                     colors = ButtonDefaults.buttonColors(
                         containerColor = ElectroColors.Accent, contentColor = ElectroColors.OnAccent),
                     shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth(),
-                ) { Text("Войти", fontWeight = FontWeight.Bold) }
+                ) { Text(S("Войти"), fontWeight = FontWeight.Bold) }
             }
         }
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-            Text("Политика конфиденциальности", style = ElectroType.Caption, color = ElectroColors.TextMuted,
+            Text(S("Политика конфиденциальности"), style = ElectroType.Caption, color = ElectroColors.TextMuted,
                 modifier = Modifier.clickable { runCatching { uriHandler.openUri(Settings.PRIVACY_URL) } })
             Spacer(Modifier.width(Space.x4))
-            Text("Поддержка", style = ElectroType.Caption, color = ElectroColors.TextMuted,
+            Text(S("Поддержка"), style = ElectroType.Caption, color = ElectroColors.TextMuted,
                 modifier = Modifier.clickable { runCatching { uriHandler.openUri(Settings.SUPPORT_URL) } })
         }
+        SectionCard(S("Язык")) { uz.electro.remote.ui.components.LangPicker() }
         ThemeSection()
 
         if (loggedIn) {
@@ -171,11 +173,11 @@ fun SettingsScreen(vm: CarViewModel, onClose: () -> Unit) {
         }
 
         if (loggedIn) {
-            SectionCard("Отзыв") {
-                Text("Замечания, идеи и предложения по приложению — разработчикам напрямую.",
+            SectionCard(S("Отзыв")) {
+                Text(S("Замечания, идеи и предложения по приложению — разработчикам напрямую."),
                     color = ElectroColors.TextSecondary, fontSize = 13.sp)
                 TextButton(onClick = { showFeedback = true }, contentPadding = PaddingValues(0.dp)) {
-                    Text("Оставить отзыв", color = ElectroColors.Accent)
+                    Text(S("Оставить отзыв"), color = ElectroColors.Accent)
                 }
             }
         }
@@ -192,13 +194,13 @@ fun SettingsScreen(vm: CarViewModel, onClose: () -> Unit) {
         AlertDialog(
             onDismissRequest = { if (!busyDel) deleting = false },
             containerColor = ElectroColors.SurfaceElevated, tonalElevation = 0.dp,
-            title = { Text("Удалить аккаунт?", color = ElectroColors.TextPrimary) },
+            title = { Text(S("Удалить аккаунт?"), color = ElectroColors.TextPrimary) },
             text = {
                 Column {
-                    Text("Учётная запись, доступ к машинам, сцены и расписания будут удалены с сервера без возможности восстановления. Сами машины останутся в парке.",
+                    Text(S("Учётная запись, доступ к машинам, сцены и расписания будут удалены с сервера без возможности восстановления. Сами машины останутся в парке."),
                         color = ElectroColors.TextSecondary, fontSize = 13.sp)
                     Spacer(Modifier.height(12.dp))
-                    OutlinedTextField(pass, { pass = it }, singleLine = true, label = { Text("Пароль для подтверждения") },
+                    OutlinedTextField(pass, { pass = it }, singleLine = true, label = { Text(S("Пароль для подтверждения")) },
                         visualTransformation = PasswordVisualTransformation(),
                         modifier = Modifier.fillMaxWidth(), colors = fieldColors())
                     err?.let { Spacer(Modifier.height(8.dp)); Text(it, color = ElectroColors.Danger, fontSize = 13.sp) }
@@ -210,13 +212,13 @@ fun SettingsScreen(vm: CarViewModel, onClose: () -> Unit) {
                     scope.launch {
                         vm.deleteAccount(pass)
                             .onSuccess { deleting = false }
-                            .onFailure { err = it.message ?: "Не удалось удалить аккаунт" }
+                            .onFailure { err = it.message ?: S("Не удалось удалить аккаунт") }
                         busyDel = false
                     }
-                }) { Text(if (busyDel) "Удаляем…" else "Удалить навсегда", color = ElectroColors.Danger) }
+                }) { Text(if (busyDel) S("Удаляем…") else S("Удалить навсегда"), color = ElectroColors.Danger) }
             },
             dismissButton = {
-                TextButton(enabled = !busyDel, onClick = { deleting = false }) { Text("Отмена", color = ElectroColors.TextSecondary) }
+                TextButton(enabled = !busyDel, onClick = { deleting = false }) { Text(S("Отмена"), color = ElectroColors.TextSecondary) }
             },
         )
     }
@@ -232,10 +234,10 @@ fun SettingsScreen(vm: CarViewModel, onClose: () -> Unit) {
         AlertDialog(
             onDismissRequest = { renaming = null },
             containerColor = ElectroColors.SurfaceElevated, tonalElevation = 0.dp,
-            title = { Text("Имя машины", color = ElectroColors.TextPrimary) },
+            title = { Text(S("Имя машины"), color = ElectroColors.TextPrimary) },
             text = {
                 Column {
-                    Text("Показывается только в этом телефоне.",
+                    Text(S("Показывается только в этом телефоне."),
                         color = ElectroColors.TextMuted, fontSize = 12.sp)
                     Spacer(Modifier.height(8.dp))
                     OutlinedTextField(name, { name = it }, singleLine = true,
@@ -246,12 +248,12 @@ fun SettingsScreen(vm: CarViewModel, onClose: () -> Unit) {
                 TextButton(onClick = {
                     vm.setVehicleNick(v.vehicle_id, name.takeIf { it.isNotBlank() && it != v.name })
                     renaming = null
-                }) { Text("Сохранить", color = ElectroColors.Accent) }
+                }) { Text(S("Сохранить"), color = ElectroColors.Accent) }
             },
             dismissButton = {
                 TextButton(onClick = {
                     vm.setVehicleNick(v.vehicle_id, null); renaming = null
-                }) { Text("Сбросить", color = ElectroColors.TextSecondary) }
+                }) { Text(S("Сбросить"), color = ElectroColors.TextSecondary) }
             },
         )
     }
@@ -260,10 +262,9 @@ fun SettingsScreen(vm: CarViewModel, onClose: () -> Unit) {
     confirmDrop?.let { v ->
         ElectroDialog(
             Lx.Delete, ElectroColors.Danger,
-            "Отвязать машину?",
-            "«" + (vm.vehicleNick(v.vehicle_id) ?: v.name) + "» перестанет быть доступной этому " +
-                "аккаунту. Сама машина останется — доступ вернёт новый QR с её экрана.",
-            confirmText = "Отвязать",
+            S("Отвязать машину?"),
+            S("«{0}» перестанет быть доступной этому аккаунту. Сама машина останется — доступ вернёт новый QR с её экрана.", vm.vehicleNick(v.vehicle_id) ?: v.name),
+            confirmText = S("Отвязать"),
             onConfirm = { vm.unlinkVehicle(v.vehicle_id); confirmDrop = null },
             onDismiss = { confirmDrop = null },
         )
@@ -297,12 +298,12 @@ private fun fieldColors() = OutlinedTextFieldDefaults.colors(
 private fun ThemeSection() {
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val mode = uz.electro.remote.ui.theme.ThemePref.mode.value
-    SectionCard("Оформление") {
+    SectionCard(S("Оформление")) {
         Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(ElectroColors.SurfaceElevated).padding(4.dp)) {
             listOf(
-                uz.electro.remote.ui.theme.ThemeMode.AUTO to "Авто",
-                uz.electro.remote.ui.theme.ThemeMode.LIGHT to "Светлая",
-                uz.electro.remote.ui.theme.ThemeMode.DARK to "Тёмная",
+                uz.electro.remote.ui.theme.ThemeMode.AUTO to S("Авто"),
+                uz.electro.remote.ui.theme.ThemeMode.LIGHT to S("Светлая"),
+                uz.electro.remote.ui.theme.ThemeMode.DARK to S("Тёмная"),
             ).forEach { (m, label) ->
                 val sel = m == mode
                 Box(
@@ -317,7 +318,7 @@ private fun ThemeSection() {
                 }
             }
         }
-        Text("Авто — как в системе телефона", color = ElectroColors.TextMuted, fontSize = 11.sp)
+        Text(S("Авто — как в системе телефона"), color = ElectroColors.TextMuted, fontSize = 11.sp)
     }
 }
 
@@ -331,15 +332,15 @@ private fun LockSection() {
     val available = remember { lock.available() }
     val bio = remember { lock.biometricAvailable() }
 
-    SectionCard("Защита входа") {
+    SectionCard(S("Защита входа")) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("Блокировка при входе", color = if (available) ElectroColors.TextPrimary else ElectroColors.TextMuted, fontSize = 14.sp)
+                Text(S("Блокировка при входе"), color = if (available) ElectroColors.TextPrimary else ElectroColors.TextMuted, fontSize = 14.sp)
                 Text(
                     when {
-                        !available -> "Сначала включите блокировку экрана в настройках телефона"
-                        bio -> "Отпечаток или лицо, запасной путь — код экрана телефона"
-                        else -> "Код, рисунок или пароль экрана телефона"
+                        !available -> S("Сначала включите блокировку экрана в настройках телефона")
+                        bio -> S("Отпечаток или лицо, запасной путь — код экрана телефона")
+                        else -> S("Код, рисунок или пароль экрана телефона")
                     },
                     color = ElectroColors.TextMuted, fontSize = 11.sp,
                 )
@@ -389,7 +390,7 @@ private fun PaintPicker(model: String?, current: String?, onPick: (String) -> Un
                 }
             }
         }
-        Text("Цвет кузова: " + paints.first { it.code == chosen }.label,
+        Text(S("Цвет кузова: ") + paints.first { it.code == chosen }.label,
             color = ElectroColors.TextMuted, fontSize = 11.sp, modifier = Modifier.padding(top = 6.dp))
     }
 }
@@ -423,11 +424,11 @@ private fun VehicleRow(
             )
         }
         IconButton(onClick = onRename) {
-            Icon(Lx.Edit, "Переименовать", tint = ElectroColors.TextSecondary,
+            Icon(Lx.Edit, S("Переименовать"), tint = ElectroColors.TextSecondary,
                 modifier = Modifier.size(20.dp))
         }
         IconButton(onClick = onDrop) {
-            Icon(Lx.Delete, "Отвязать", tint = ElectroColors.Danger,
+            Icon(Lx.Delete, S("Отвязать"), tint = ElectroColors.Danger,
                 modifier = Modifier.size(20.dp))
         }
     }

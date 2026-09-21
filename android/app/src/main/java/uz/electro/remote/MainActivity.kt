@@ -1,5 +1,6 @@
 package uz.electro.remote
 
+import uz.electro.remote.i18n.S
 import android.Manifest
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -44,6 +45,7 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         SignatureGuard.enforce(this)
         uz.electro.remote.ui.theme.ThemePref.load(this)
+        uz.electro.remote.i18n.Lang.load(this)
         Push.ensureChannel(this)
         if (Build.VERSION.SDK_INT >= 33 && !Push.canPost(this)) {
             askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -113,16 +115,16 @@ class MainActivity : FragmentActivity() {
                     androidx.compose.material3.AlertDialog(
                         onDismissRequest = { offer = false; lock.offerDeclined = true },
                         containerColor = uz.electro.remote.ui.theme.ElectroColors.SurfaceElevated, tonalElevation = 0.dp,
-                        title = { androidx.compose.material3.Text("Защитить вход?", color = uz.electro.remote.ui.theme.ElectroColors.TextPrimary) },
-                        text = { androidx.compose.material3.Text("При запуске и возврате в приложение будет запрашиваться блокировка телефона: отпечаток, лицо или код экрана. Можно включить позже в настройках.",
+                        title = { androidx.compose.material3.Text(S("Защитить вход?"), color = uz.electro.remote.ui.theme.ElectroColors.TextPrimary) },
+                        text = { androidx.compose.material3.Text(S("При запуске и возврате в приложение будет запрашиваться блокировка телефона: отпечаток, лицо или код экрана. Можно включить позже в настройках."),
                             color = uz.electro.remote.ui.theme.ElectroColors.TextSecondary) },
                         confirmButton = { androidx.compose.material3.TextButton(onClick = {
                             offer = false
                             // включаем только после успешного подтверждения — иначе можно запереть самого себя
                             lock.prompt(this@MainActivity) { ok -> if (ok) lock.enabled = true else lock.offerDeclined = true }
-                        }) { androidx.compose.material3.Text("Включить", color = uz.electro.remote.ui.theme.ElectroColors.Accent) } },
+                        }) { androidx.compose.material3.Text(S("Включить"), color = uz.electro.remote.ui.theme.ElectroColors.Accent) } },
                         dismissButton = { androidx.compose.material3.TextButton(onClick = { offer = false; lock.offerDeclined = true }) {
-                            androidx.compose.material3.Text("Не сейчас", color = uz.electro.remote.ui.theme.ElectroColors.TextSecondary) } },
+                            androidx.compose.material3.Text(S("Не сейчас"), color = uz.electro.remote.ui.theme.ElectroColors.TextSecondary) } },
                     )
                 }
 

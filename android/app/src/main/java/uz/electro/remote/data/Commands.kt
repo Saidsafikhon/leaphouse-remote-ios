@@ -1,5 +1,6 @@
 package uz.electro.remote.data
 
+import uz.electro.remote.i18n.S
 /**
  * Карта команд кузова Leapmotor C16 (type для ILpCarControl.sendValue).
  * Значения проверены на машине — менять только вместе с проверкой на железе.
@@ -96,23 +97,23 @@ object Cmd {
      * первым, обогревы успеют включить его обратно.
      */
     fun allOff(): List<VehicleCommand> = listOf(
-        VehicleCommand(AC, "0", "Кондиционер"),
-        VehicleCommand(AC_MAX_COOL, "0", "Макс. охлаждение"),
-        VehicleCommand(DEFROST_FRONT, "0", "Обогрев лобового"),
-        VehicleCommand(DEFROST_REAR, "0", "Обогрев заднего"),
-        VehicleCommand(MIRROR_HEAT, "0", "Обогрев зеркал"),
-        VehicleCommand(RECIRC, "0", "Циркуляция"),
-        VehicleCommand(SEAT_HEAT_DRIVER, "0", "Подогрев сиденья водителя"),
-        VehicleCommand(SEAT_HEAT_PASSENGER, "0", "Подогрев сиденья пассажира"),
-        VehicleCommand(SEAT_HEAT_REAR_L, "0", "Подогрев заднего левого"),
-        VehicleCommand(SEAT_HEAT_REAR_R, "0", "Подогрев заднего правого"),
-        VehicleCommand(SEAT_VENT_DRIVER, "0", "Вентиляция сиденья водителя"),
-        VehicleCommand(SEAT_VENT_PASSENGER, "0", "Вентиляция сиденья пассажира"),
-        VehicleCommand(SEAT_VENT_REAR_L, "0", "Вентиляция заднего левого"),
-        VehicleCommand(SEAT_VENT_REAR_R, "0", "Вентиляция заднего правого"),
-        VehicleCommand(MASSAGE_DRIVER, "0", "Массаж водителя"),
-        VehicleCommand(MASSAGE_PASSENGER, "0", "Массаж пассажира"),
-        VehicleCommand(FAN, "0", "Обдув"),
+        VehicleCommand(AC, "0", S("Кондиционер")),
+        VehicleCommand(AC_MAX_COOL, "0", S("Макс. охлаждение")),
+        VehicleCommand(DEFROST_FRONT, "0", S("Обогрев лобового")),
+        VehicleCommand(DEFROST_REAR, "0", S("Обогрев заднего")),
+        VehicleCommand(MIRROR_HEAT, "0", S("Обогрев зеркал")),
+        VehicleCommand(RECIRC, "0", S("Циркуляция")),
+        VehicleCommand(SEAT_HEAT_DRIVER, "0", S("Подогрев сиденья водителя")),
+        VehicleCommand(SEAT_HEAT_PASSENGER, "0", S("Подогрев сиденья пассажира")),
+        VehicleCommand(SEAT_HEAT_REAR_L, "0", S("Подогрев заднего левого")),
+        VehicleCommand(SEAT_HEAT_REAR_R, "0", S("Подогрев заднего правого")),
+        VehicleCommand(SEAT_VENT_DRIVER, "0", S("Вентиляция сиденья водителя")),
+        VehicleCommand(SEAT_VENT_PASSENGER, "0", S("Вентиляция сиденья пассажира")),
+        VehicleCommand(SEAT_VENT_REAR_L, "0", S("Вентиляция заднего левого")),
+        VehicleCommand(SEAT_VENT_REAR_R, "0", S("Вентиляция заднего правого")),
+        VehicleCommand(MASSAGE_DRIVER, "0", S("Массаж водителя")),
+        VehicleCommand(MASSAGE_PASSENGER, "0", S("Массаж пассажира")),
+        VehicleCommand(FAN, "0", S("Обдув")),
     )
 
     /**
@@ -123,13 +124,13 @@ object Cmd {
      * должно остаться). Поэтому тумблер климата шлёт этот набор, а не [allOff].
      */
     fun climateOff(): List<VehicleCommand> = listOf(
-        VehicleCommand(AC, "0", "Кондиционер"),
-        VehicleCommand(AC_MAX_COOL, "0", "Макс. охлаждение"),
-        VehicleCommand(DEFROST_FRONT, "0", "Обогрев лобового"),
-        VehicleCommand(DEFROST_REAR, "0", "Обогрев заднего"),
-        VehicleCommand(MIRROR_HEAT, "0", "Обогрев зеркал"),
-        VehicleCommand(RECIRC, "0", "Циркуляция"),
-        VehicleCommand(FAN, "0", "Обдув"),
+        VehicleCommand(AC, "0", S("Кондиционер")),
+        VehicleCommand(AC_MAX_COOL, "0", S("Макс. охлаждение")),
+        VehicleCommand(DEFROST_FRONT, "0", S("Обогрев лобового")),
+        VehicleCommand(DEFROST_REAR, "0", S("Обогрев заднего")),
+        VehicleCommand(MIRROR_HEAT, "0", S("Обогрев зеркал")),
+        VehicleCommand(RECIRC, "0", S("Циркуляция")),
+        VehicleCommand(FAN, "0", S("Обдув")),
     )
 
     // ---- Составные сцены климата (кнопки-тумблеры во вкладке «Климат») ----
@@ -140,41 +141,41 @@ object Cmd {
     /** Макс. обогрев: HI + вентилятор макс + обдув лобового макс + обогрев зеркал и
      *  заднего стекла + все подогревы сидений на 3. Включает AC. */
     fun maxHeat(on: Boolean): List<VehicleCommand> = if (on) buildList {
-        add(VehicleCommand(AC, "1", "Климат"))
-        add(VehicleCommand(TEMP_L, "$TEMP_MAX", "Температура")); add(VehicleCommand(TEMP_R, "$TEMP_MAX", "Температура"))
-        add(VehicleCommand(FAN, "$FAN_MAX", "Обдув"))
-        add(VehicleCommand(DEFROST_FRONT, "2", "Обдув лобового"))
-        add(VehicleCommand(DEFROST_REAR, "1", "Обогрев заднего стекла"))
-        add(VehicleCommand(MIRROR_HEAT, "1", "Обогрев зеркал"))
-        SEAT_HEATS.forEach { add(VehicleCommand(it, "3", "Подогрев сиденья")) }
+        add(VehicleCommand(AC, "1", S("Климат")))
+        add(VehicleCommand(TEMP_L, "$TEMP_MAX", S("Температура"))); add(VehicleCommand(TEMP_R, "$TEMP_MAX", S("Температура")))
+        add(VehicleCommand(FAN, "$FAN_MAX", S("Обдув")))
+        add(VehicleCommand(DEFROST_FRONT, "2", S("Обдув лобового")))
+        add(VehicleCommand(DEFROST_REAR, "1", S("Обогрев заднего стекла")))
+        add(VehicleCommand(MIRROR_HEAT, "1", S("Обогрев зеркал")))
+        SEAT_HEATS.forEach { add(VehicleCommand(it, "3", S("Подогрев сиденья"))) }
     } else buildList {
-        add(VehicleCommand(FAN, "0", "Обдув"))
-        add(VehicleCommand(DEFROST_FRONT, "0", "Обдув лобового"))
-        add(VehicleCommand(DEFROST_REAR, "0", "Обогрев заднего стекла"))
-        add(VehicleCommand(MIRROR_HEAT, "0", "Обогрев зеркал"))
-        SEAT_HEATS.forEach { add(VehicleCommand(it, "0", "Подогрев сиденья")) }
-        add(VehicleCommand(AC, "0", "Климат"))
+        add(VehicleCommand(FAN, "0", S("Обдув")))
+        add(VehicleCommand(DEFROST_FRONT, "0", S("Обдув лобового")))
+        add(VehicleCommand(DEFROST_REAR, "0", S("Обогрев заднего стекла")))
+        add(VehicleCommand(MIRROR_HEAT, "0", S("Обогрев зеркал")))
+        SEAT_HEATS.forEach { add(VehicleCommand(it, "0", S("Подогрев сиденья"))) }
+        add(VehicleCommand(AC, "0", S("Климат")))
     }
 
     /** Макс. охлаждение: LO + MAX A/C + обдув всех сидений на 3. Включает AC. */
     fun maxCool(on: Boolean): List<VehicleCommand> = if (on) buildList {
-        add(VehicleCommand(AC, "1", "Климат"))
-        add(VehicleCommand(AC_MAX_COOL, "1", "Макс. охлаждение"))
-        add(VehicleCommand(TEMP_L, "$TEMP_MIN", "Температура")); add(VehicleCommand(TEMP_R, "$TEMP_MIN", "Температура"))
-        SEAT_VENTS.forEach { add(VehicleCommand(it, "3", "Обдув сиденья")) }
+        add(VehicleCommand(AC, "1", S("Климат")))
+        add(VehicleCommand(AC_MAX_COOL, "1", S("Макс. охлаждение")))
+        add(VehicleCommand(TEMP_L, "$TEMP_MIN", S("Температура"))); add(VehicleCommand(TEMP_R, "$TEMP_MIN", S("Температура")))
+        SEAT_VENTS.forEach { add(VehicleCommand(it, "3", S("Обдув сиденья"))) }
     } else buildList {
-        add(VehicleCommand(AC_MAX_COOL, "0", "Макс. охлаждение"))
-        SEAT_VENTS.forEach { add(VehicleCommand(it, "0", "Обдув сиденья")) }
-        add(VehicleCommand(AC, "0", "Климат"))
+        add(VehicleCommand(AC_MAX_COOL, "0", S("Макс. охлаждение")))
+        SEAT_VENTS.forEach { add(VehicleCommand(it, "0", S("Обдув сиденья"))) }
+        add(VehicleCommand(AC, "0", S("Климат")))
     }
 
     /** Циркуляция: включает рециркуляцию и приоткрывает все окна на 25%; выкл — рецирк off и окна закрыть. */
     fun recircScene(on: Boolean): List<VehicleCommand> = if (on) buildList {
-        add(VehicleCommand(RECIRC, "1", "Циркуляция"))
-        WINDOWS.forEach { add(VehicleCommand(it, "25", "Окно")) }
+        add(VehicleCommand(RECIRC, "1", S("Циркуляция")))
+        WINDOWS.forEach { add(VehicleCommand(it, "25", S("Окно"))) }
     } else buildList {
-        add(VehicleCommand(RECIRC, "0", "Циркуляция"))
-        WINDOWS.forEach { add(VehicleCommand(it, "0", "Окно")) }
+        add(VehicleCommand(RECIRC, "0", S("Циркуляция")))
+        WINDOWS.forEach { add(VehicleCommand(it, "0", S("Окно"))) }
     }
 
     /** Обогрев стёкол: заднее стекло + зеркала + HI + обдув лобового макс. Включает AC. */
@@ -184,14 +185,14 @@ object Cmd {
      * Выключение гасит только эти три — климат остаётся, как был.
      */
     fun defogGlass(on: Boolean): List<VehicleCommand> = if (on) listOf(
-        VehicleCommand(AC, "1", "Климат"),
-        VehicleCommand(MIRROR_HEAT, "1", "Обогрев зеркал"),
-        VehicleCommand(DEFROST_FRONT, "2", "Обдув лобового"),
-        VehicleCommand(DEFROST_REAR, "1", "Обогрев заднего стекла"),
+        VehicleCommand(AC, "1", S("Климат")),
+        VehicleCommand(MIRROR_HEAT, "1", S("Обогрев зеркал")),
+        VehicleCommand(DEFROST_FRONT, "2", S("Обдув лобового")),
+        VehicleCommand(DEFROST_REAR, "1", S("Обогрев заднего стекла")),
     ) else listOf(
-        VehicleCommand(MIRROR_HEAT, "0", "Обогрев зеркал"),
-        VehicleCommand(DEFROST_FRONT, "0", "Обдув лобового"),
-        VehicleCommand(DEFROST_REAR, "0", "Обогрев заднего стекла"),
+        VehicleCommand(MIRROR_HEAT, "0", S("Обогрев зеркал")),
+        VehicleCommand(DEFROST_FRONT, "0", S("Обдув лобового")),
+        VehicleCommand(DEFROST_REAR, "0", S("Обогрев заднего стекла")),
     )
 
     /** Выключить все сиденья (обогрев и обдув всех мест). */

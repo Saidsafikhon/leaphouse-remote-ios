@@ -1,5 +1,6 @@
 package uz.electro.remote.ui
 
+import uz.electro.remote.i18n.S
 import uz.electro.remote.ui.components.Lx
 import android.content.Intent
 import android.graphics.BitmapFactory
@@ -49,7 +50,7 @@ fun MapScreen(loc: GeoPoint?) {
         runCatching {
             val coords = "%.6f,%.6f".format(Locale.US, point.lat, point.lon)
             val uri = Uri.parse("geo:$coords?q=$coords(Leapmotor C16)")
-            val chooser = Intent.createChooser(Intent(Intent.ACTION_VIEW, uri), "Открыть в…")
+            val chooser = Intent.createChooser(Intent(Intent.ACTION_VIEW, uri), S("Открыть в…"))
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             ctx.startActivity(chooser)
         }
@@ -57,7 +58,7 @@ fun MapScreen(loc: GeoPoint?) {
 
     Column(Modifier.fillMaxSize().background(ElectroColors.Background)) {
         Row(Modifier.fillMaxWidth().padding(Space.x4), verticalAlignment = Alignment.CenterVertically) {
-            Text("Карта", style = ElectroType.Headline, color = ElectroColors.TextPrimary)
+            Text(S("Карта"), style = ElectroType.Headline, color = ElectroColors.TextPrimary)
             Spacer(Modifier.width(Space.x2))
             Text("· Leapmotor C16", style = ElectroType.Body, color = ElectroColors.TextMuted)
         }
@@ -76,12 +77,12 @@ fun MapScreen(loc: GeoPoint?) {
                         modifier = Modifier.size(22.dp))
                     Spacer(Modifier.width(Space.x3))
                     Column(Modifier.weight(1f)) {
-                        Text("Положение автомобиля", style = ElectroType.Caption,
+                        Text(S("Положение автомобиля"), style = ElectroType.Caption,
                             color = ElectroColors.TextMuted)
                         Text("%.5f, %.5f".format(Locale.US, loc.lat, loc.lon),
                             style = ElectroType.Body, color = ElectroColors.TextPrimary)
                         loc.bearing?.let { b ->
-                            Text("Курс: ${compass(b)} ${b.toInt()}°",
+                            Text(S("Курс: {0} {1}°", compass(b), b.toInt()),
                                 style = ElectroType.Caption, color = ElectroColors.TextMuted)
                         }
                     }
@@ -115,20 +116,20 @@ fun MapScreen(loc: GeoPoint?) {
             ) {
                 val img = bmp
                 if (img != null) {
-                    Image(img, "Карта", Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                    Image(img, S("Карта"), Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                 } else {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(Lx.Map, null, tint = ElectroColors.TextMuted,
                             modifier = Modifier.size(40.dp))
                         Spacer(Modifier.height(Space.x3))
-                        Text("Загрузка карты…", style = ElectroType.Caption,
+                        Text(S("Загрузка карты…"), style = ElectroType.Caption,
                             color = ElectroColors.TextMuted, textAlign = TextAlign.Center)
                     }
                 }
             }
             Spacer(Modifier.height(Space.x3))
 
-            MapBtn("Маршрут", Lx.Directions,
+            MapBtn(S("Маршрут"), Lx.Directions,
                 Modifier.fillMaxWidth().padding(horizontal = Space.x4)) { openRoute() }
             Spacer(Modifier.height(Space.x4))
         }
@@ -142,10 +143,10 @@ private fun ColumnScope.EmptyLocation() {
             Icon(Lx.MyLocation, null, tint = ElectroColors.TextMuted,
                 modifier = Modifier.size(40.dp))
             Spacer(Modifier.height(Space.x3))
-            Text("Нет координат", style = ElectroType.Body, color = ElectroColors.TextSecondary)
+            Text(S("Нет координат"), style = ElectroType.Body, color = ElectroColors.TextSecondary)
             Spacer(Modifier.height(Space.x1))
             Text(
-                "Положение приходит с головы. Разбудите машину и дождитесь связи.",
+                S("Положение приходит с головы. Разбудите машину и дождитесь связи."),
                 style = ElectroType.Caption, color = ElectroColors.TextMuted,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = Space.x6),
@@ -155,7 +156,7 @@ private fun ColumnScope.EmptyLocation() {
 }
 
 private fun compass(bearing: Double): String {
-    val dirs = listOf("С", "СВ", "В", "ЮВ", "Ю", "ЮЗ", "З", "СЗ")
+    val dirs = listOf(S("С"), S("СВ"), S("В"), S("ЮВ"), S("Ю"), S("ЮЗ"), S("З"), S("СЗ"))
     val normalized = ((bearing % 360) + 360) % 360
     return dirs[((normalized + 22.5) / 45).toInt() % 8]
 }

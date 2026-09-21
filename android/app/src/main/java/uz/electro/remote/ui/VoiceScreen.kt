@@ -1,5 +1,6 @@
 package uz.electro.remote.ui
 
+import uz.electro.remote.i18n.S
 import uz.electro.remote.ui.components.Lx
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -30,12 +31,12 @@ fun VoiceScreen(
     onRun: (VoiceIntentDto) -> Unit,
     onBack: () -> Unit,
 ) {
-    ScreenScaffold("Голосовые команды", onBack) {
+    ScreenScaffold(S("Голосовые команды"), onBack) {
         if (intents.isEmpty()) {
-            EmptyNote("У этой машины голосовых команд нет.")
+            EmptyNote(S("У этой машины голосовых команд нет."))
             return@ScreenScaffold
         }
-        SectionCard("Скажите или нажмите") {
+        SectionCard(S("Скажите или нажмите")) {
             intents.forEach { intent ->
                 Row(
                     Modifier.fillMaxWidth().clickable { onRun(intent) }

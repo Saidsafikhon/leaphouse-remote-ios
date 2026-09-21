@@ -20,6 +20,7 @@ struct RootView: View {
     @Environment(\.scenePhase) private var scenePhase
     @ObservedObject var vm: CarViewModel
     @ObservedObject private var lock = AppLock.shared
+    @ObservedObject private var lang = Lang.shared
 
     private enum Branch { case register, forgot }
     @State private var branch: Branch? = nil
@@ -54,6 +55,7 @@ struct RootView: View {
                 PhoneControlScreen(vm: vm)
             }
         }
+        .id(lang.code)   // смена языка пересобирает всё дерево — все L("…") перечитываются
         .environment(\.palette, palette)
         .background(palette.background.ignoresSafeArea())
         .preferredColorScheme(themeMode == "auto" ? nil : (dark ? .dark : .light))
@@ -65,14 +67,14 @@ struct RootView: View {
                 if !lock.enabled && !lock.offerDeclined && lock.available() && !Demo.enabled { offerLock = true }
             }
         }
-        .alert("Защитить вход?", isPresented: $offerLock) {
-            Button("Включить") {
+        .alert(L("Защитить вход?"), isPresented: $offerLock) {
+            Button(L("Включить")) {
                 // включаем только после успешного подтверждения — иначе можно запереть самого себя
                 lock.prompt { ok in if ok { lock.enabled = true } else { lock.offerDeclined = true } }
             }
-            Button("Не сейчас", role: .cancel) { lock.offerDeclined = true }
+            Button(L("Не сейчас"), role: .cancel) { lock.offerDeclined = true }
         } message: {
-            Text("При запуске и возврате в приложение будет запрашиваться Face ID / Touch ID или код-пароль iPhone. Можно включить позже в настройках.")
+            Text(L("При запуске и возврате в приложение будет запрашиваться Face ID / Touch ID или код-пароль iPhone. Можно включить позже в настройках."))
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .background && vm.loggedIn && lock.enabled { lock.locked = true }

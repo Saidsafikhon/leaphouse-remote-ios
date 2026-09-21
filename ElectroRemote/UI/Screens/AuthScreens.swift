@@ -76,7 +76,7 @@ struct AuthScaffold<Content: View>: View {
                 Button(action: onBack) {
                     HStack(spacing: Space.x2) {
                         Image(systemName: "arrow.left").font(.system(size: 16)).foregroundStyle(p.textSecondary)
-                        Text("Назад").font(.system(size: 14)).foregroundStyle(p.textSecondary)
+                        Text(L("Назад")).font(.system(size: 14)).foregroundStyle(p.textSecondary)
                     }
                     .padding(.vertical, Space.x2)
                 }
@@ -136,16 +136,18 @@ struct LoginScreen: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
-                Spacer().frame(height: Space.x8 * 2)
+                Spacer().frame(height: Space.x8)
+                HStack { Spacer(); LangPicker(compact: true) }
+                Spacer().frame(height: Space.x6)
                 BrandLockup(markSize: 44).frame(maxWidth: .infinity)
                 Spacer().frame(height: Space.x1)
-                Text("Управление вашим электромобилем").font(.system(size: 14)).foregroundStyle(p.textSecondary)
+                Text(L("Управление вашим электромобилем")).font(.system(size: 14)).foregroundStyle(p.textSecondary)
                     .multilineTextAlignment(.center).frame(maxWidth: .infinity)
 
                 Spacer().frame(height: Space.x8)
                 AuthField(label: "EMAIL", value: $email, keyboard: .emailAddress, contentType: .username)
                 Spacer().frame(height: Space.x4)
-                AuthField(label: "ПАРОЛЬ", value: $pass, secure: true, contentType: .password)
+                AuthField(label: L("ПАРОЛЬ"), value: $pass, secure: true, contentType: .password)
 
                 if let error {
                     Spacer().frame(height: Space.x3)
@@ -155,12 +157,12 @@ struct LoginScreen: View {
                 Spacer().frame(height: Space.x4)
                 HStack {
                     Button(action: onForgot) {
-                        Text("Забыли пароль?").font(.system(size: 14)).foregroundStyle(p.textSecondary)
+                        Text(L("Забыли пароль?")).font(.system(size: 14)).foregroundStyle(p.textSecondary)
                     }
                     .buttonStyle(.plain).disabled(busy)
                     Spacer()
                     Button(action: onRegister) {
-                        Text("Регистрация").font(.system(size: 14, weight: .semibold)).foregroundStyle(p.accent)
+                        Text(L("Регистрация")).font(.system(size: 14, weight: .semibold)).foregroundStyle(p.accent)
                     }
                     .buttonStyle(.plain).disabled(busy)
                 }
@@ -168,7 +170,7 @@ struct LoginScreen: View {
 
                 Spacer().frame(height: Space.x8)
                 ElectroButton(
-                    text: busy ? "Входим…" : "Войти",
+                    text: busy ? L("Входим…") : L("Войти"),
                     enabled: !email.trimmingCharacters(in: .whitespaces).isEmpty && !pass.isEmpty,
                     loading: busy
                 ) {
@@ -178,13 +180,13 @@ struct LoginScreen: View {
                             try await vm.signIn(email: email.trimmingCharacters(in: .whitespaces), password: pass)
                             onLoggedIn()
                         } catch {
-                            self.error = vm.authError(error, fallback: "Неверный email или пароль")
+                            self.error = vm.authError(error, fallback: L("Неверный email или пароль"))
                         }
                         busy = false
                     }
                 }
                 Spacer().frame(height: Space.x6)
-                Link("Политика конфиденциальности", destination: Links.privacy)
+                Link(L("Политика конфиденциальности"), destination: Links.privacy)
                     .font(ElectroType.caption).foregroundStyle(p.textMuted).frame(maxWidth: .infinity)
                 Spacer().frame(height: Space.x4)
             }
@@ -212,15 +214,15 @@ struct RegisterScreen: View {
 
     var body: some View {
         AuthScaffold(
-            title: "Регистрация",
-            subtitle: "Один аккаунт для приложения и для сайта.",
-            action: busy ? "Создаём…" : "Создать аккаунт",
+            title: L("Регистрация"),
+            subtitle: L("Один аккаунт для приложения и для сайта."),
+            action: busy ? L("Создаём…") : L("Создать аккаунт"),
             busy: busy,
             enabled: !email.trimmingCharacters(in: .whitespaces).isEmpty && pass.count >= MIN_PASSWORD && !repeatPass.isEmpty,
             error: error,
             onBack: onBack,
             onAction: {
-                if pass != repeatPass { error = "Пароли не совпадают"; return }
+                if pass != repeatPass { error = L("Пароли не совпадают"); return }
                 busy = true; error = nil
                 Task {
                     do {
@@ -230,20 +232,20 @@ struct RegisterScreen: View {
                         )
                         onRegistered()
                     } catch {
-                        self.error = vm.authError(error, fallback: "Не получилось создать аккаунт")
+                        self.error = vm.authError(error, fallback: L("Не получилось создать аккаунт"))
                     }
                     busy = false
                 }
             }
         ) {
             AuthField(label: "EMAIL", value: $email, keyboard: .emailAddress, contentType: .username)
-            AuthField(label: "ИМЯ (необязательно)", value: $name, contentType: .name, autocapitalize: true)
-            AuthField(label: "ТЕЛЕФОН (необязательно)", value: $phone, keyboard: .phonePad, contentType: .telephoneNumber)
+            AuthField(label: L("ИМЯ (необязательно)"), value: $name, contentType: .name, autocapitalize: true)
+            AuthField(label: L("ТЕЛЕФОН (необязательно)"), value: $phone, keyboard: .phonePad, contentType: .telephoneNumber)
             VStack(alignment: .leading, spacing: Space.x1) {
-                AuthField(label: "ПАРОЛЬ", value: $pass, secure: true, contentType: .newPassword)
-                Hint(text: "Не короче \(MIN_PASSWORD) знаков")
+                AuthField(label: L("ПАРОЛЬ"), value: $pass, secure: true, contentType: .newPassword)
+                Hint(text: L("Не короче {0} знаков", MIN_PASSWORD))
             }
-            AuthField(label: "ПАРОЛЬ ЕЩЁ РАЗ", value: $repeatPass, secure: true, contentType: .newPassword)
+            AuthField(label: L("ПАРОЛЬ ЕЩЁ РАЗ"), value: $repeatPass, secure: true, contentType: .newPassword)
         }
     }
 }
@@ -267,13 +269,13 @@ struct ForgotPasswordScreen: View {
 
     var body: some View {
         AuthScaffold(
-            title: "Забыли пароль",
-            subtitle: "Заявка уйдёт мастеру: он выдаст новый пароль и сообщит его вам.",
-            action: busy ? "Отправляем…" : (sent ? "Вернуться ко входу" : "Отправить заявку"),
+            title: L("Забыли пароль"),
+            subtitle: L("Заявка уйдёт мастеру: он выдаст новый пароль и сообщит его вам."),
+            action: busy ? L("Отправляем…") : (sent ? L("Вернуться ко входу") : L("Отправить заявку")),
             busy: busy,
             enabled: sent || !email.trimmingCharacters(in: .whitespaces).isEmpty,
             error: error,
-            note: sent ? "Заявка принята. Мастер сбросит пароль и сообщит новый — если такая учётная запись существует." : nil,
+            note: sent ? L("Заявка принята. Мастер сбросит пароль и сообщит новый — если такая учётная запись существует.") : nil,
             onBack: onBack,
             onAction: {
                 if sent { onBack(); return }
@@ -286,7 +288,7 @@ struct ForgotPasswordScreen: View {
                         )
                         sent = true
                     } catch {
-                        self.error = vm.authError(error, fallback: "Не получилось отправить заявку")
+                        self.error = vm.authError(error, fallback: L("Не получилось отправить заявку"))
                     }
                     busy = false
                 }
@@ -294,8 +296,8 @@ struct ForgotPasswordScreen: View {
         ) {
             AuthField(label: "EMAIL", value: $email, keyboard: .emailAddress, contentType: .username)
             VStack(alignment: .leading, spacing: Space.x1) {
-                AuthField(label: "ТЕЛЕФОН ИЛИ TELEGRAM", value: $contact)
-                Hint(text: "Куда сообщить новый пароль. Необязательно, но так быстрее.")
+                AuthField(label: L("ТЕЛЕФОН ИЛИ TELEGRAM"), value: $contact)
+                Hint(text: L("Куда сообщить новый пароль. Необязательно, но так быстрее."))
             }
         }
     }
@@ -314,13 +316,13 @@ struct ParkGateScreen: View {
             if let note {
                 Text(note).font(.system(size: 15)).foregroundStyle(p.textPrimary).multilineTextAlignment(.center)
                 Spacer().frame(height: Space.x6)
-                ElectroButton(text: "Повторить", action: onRetry)
+                ElectroButton(text: L("Повторить"), action: onRetry)
                 Spacer().frame(height: Space.x2)
-                ElectroButton(text: "Выйти из аккаунта", style: .ghost, action: onLogout)
+                ElectroButton(text: L("Выйти из аккаунта"), style: .ghost, action: onLogout)
             } else {
                 ProgressView().tint(p.accent).scaleEffect(1.4)
                 Spacer().frame(height: Space.x4)
-                Text("Спрашиваем сервер о ваших машинах…").font(.system(size: 14)).foregroundStyle(p.textSecondary)
+                Text(L("Спрашиваем сервер о ваших машинах…")).font(.system(size: 14)).foregroundStyle(p.textSecondary)
                     .multilineTextAlignment(.center)
             }
             Spacer()
@@ -344,7 +346,7 @@ struct PairScreen: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Подключение авто").font(.system(size: 18, weight: .semibold)).foregroundStyle(p.textPrimary)
+            Text(L("Подключение авто")).font(.system(size: 18, weight: .semibold)).foregroundStyle(p.textPrimary)
                 .padding(.top, Space.x2)
             Spacer()
             VStack(spacing: 0) {
@@ -354,9 +356,9 @@ struct PairScreen: View {
                     .clipShape(RoundedRectangle(cornerRadius: Radius.xl, style: .continuous))
                     .overlay(RoundedRectangle(cornerRadius: Radius.xl, style: .continuous).stroke(p.accent, lineWidth: 2))
                 Spacer().frame(height: Space.x6)
-                Text("Подключите машину").font(.system(size: 22, weight: .bold)).foregroundStyle(p.textPrimary)
+                Text(L("Подключите машину")).font(.system(size: 22, weight: .bold)).foregroundStyle(p.textPrimary)
                 Spacer().frame(height: Space.x2)
-                Text("Откройте на экране машины «Привязать телефон» и отсканируйте QR")
+                Text(L("Откройте на экране машины «Привязать телефон» и отсканируйте QR"))
                     .font(.system(size: 14)).foregroundStyle(p.textSecondary).multilineTextAlignment(.center)
             }
             .frame(maxWidth: .infinity)
@@ -372,12 +374,12 @@ struct PairScreen: View {
 
             Spacer()
             Spacer().frame(height: Space.x8)
-            ElectroButton(text: busy ? "Привязываем…" : "Сканировать QR машины", enabled: !busy, loading: busy) {
+            ElectroButton(text: busy ? L("Привязываем…") : L("Сканировать QR машины"), enabled: !busy, loading: busy) {
                 scanning = true
             }
             // Выход отсюда же: зашли не в тот аккаунт или QR пока негде взять.
             Spacer().frame(height: Space.x2)
-            ElectroButton(text: "Выйти из аккаунта", style: .ghost, enabled: !busy) { vm.logout() }
+            ElectroButton(text: L("Выйти из аккаунта"), style: .ghost, enabled: !busy) { vm.logout() }
         }
         .padding(Space.x6)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -398,7 +400,7 @@ struct PairScreen: View {
                 note = try await vm.claimPairing(payload)
                 onPaired()
             } catch {
-                self.error = (error as? RepoError)?.message ?? "Не удалось привязать машину"
+                self.error = (error as? RepoError)?.message ?? L("Не удалось привязать машину")
             }
             busy = false
         }
@@ -430,7 +432,7 @@ struct HelpSheet: View {
     private var help: some View {
         VStack(alignment: .leading, spacing: Space.x3) {
             HStack {
-                Text("Помощь").font(ElectroType.headline).foregroundStyle(p.textPrimary)
+                Text(L("Помощь")).font(ElectroType.headline).foregroundStyle(p.textPrimary)
                 Spacer()
                 Button { dismiss() } label: {
                     Image(systemName: "xmark").foregroundStyle(p.textSecondary).frame(width: 32, height: 32)
@@ -438,23 +440,23 @@ struct HelpSheet: View {
                 .buttonStyle(.plain)
             }
             if let s = support, s.any {
-                Text("Свяжитесь с поддержкой удобным способом:").font(.system(size: 13)).foregroundStyle(p.textSecondary)
+                Text(L("Свяжитесь с поддержкой удобным способом:")).font(.system(size: 13)).foregroundStyle(p.textSecondary)
                 if !s.phone.isEmpty {
-                    helpLine("Телефон", s.phone) {
+                    helpLine(L("Телефон"), s.phone) {
                         let digits = s.phone.filter { $0 == "+" || $0.isNumber }
                         if let u = URL(string: "tel:" + digits) { openURL(u) }
                     }
                 }
                 if !s.telegram.isEmpty { helpLine("Telegram", s.telegram) { if let u = URL(string: tgLink(s.telegram)) { openURL(u) } } }
                 if !s.instagram.isEmpty { helpLine("Instagram", s.instagram) { if let u = URL(string: igLink(s.instagram)) { openURL(u) } } }
-                if !s.site.isEmpty { helpLine("Сайт", s.site) { if let u = URL(string: webLink(s.site)) { openURL(u) } } }
+                if !s.site.isEmpty { helpLine(L("Сайт"), s.site) { if let u = URL(string: webLink(s.site)) { openURL(u) } } }
             } else {
-                Text("Контакты поддержки пока не заданы.").font(.system(size: 13)).foregroundStyle(p.textMuted)
+                Text(L("Контакты поддержки пока не заданы.")).font(.system(size: 13)).foregroundStyle(p.textMuted)
             }
             if feedbackVM != nil {
                 Spacer().frame(height: Space.x2)
-                Text("Нашли ошибку или есть идея — напишите нам прямо отсюда.").font(.system(size: 12)).foregroundStyle(p.textMuted)
-                ElectroButton(text: "Оставить отзыв", style: .secondary) { feedback = true }
+                Text(L("Нашли ошибку или есть идея — напишите нам прямо отсюда.")).font(.system(size: 12)).foregroundStyle(p.textMuted)
+                ElectroButton(text: L("Оставить отзыв"), style: .secondary) { feedback = true }
             }
             Spacer()
         }
