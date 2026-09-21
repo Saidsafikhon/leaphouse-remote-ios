@@ -90,42 +90,13 @@ fun MapScreen(loc: GeoPoint?) {
             }
             Spacer(Modifier.height(Space.x3))
 
-            // Кусок карты — статичная картинка Yandex Static Maps (без ключа), грузится
-            // только при заметном смещении (округление до ~11 м).
-            val key = "%.4f,%.4f".format(Locale.US, loc.lat, loc.lon)
-            val mapUrl = remember(key) {
-                val ll = "%.6f,%.6f".format(Locale.US, loc.lon, loc.lat)
-                "https://static-maps.yandex.ru/1.x/?ll=$ll&z=16&size=650,450&l=map&pt=$ll,pm2rdm"
-            }
-            val bmp by produceState<ImageBitmap?>(initialValue = null, key1 = mapUrl) {
-                value = withContext(Dispatchers.IO) {
-                    runCatching {
-                        val conn = (URL(mapUrl).openConnection() as HttpURLConnection).apply {
-                            connectTimeout = 8000; readTimeout = 8000
-                        }
-                        conn.inputStream.use { BitmapFactory.decodeStream(it) }?.asImageBitmap()
-                    }.getOrNull()
-                }
-            }
-
+            // Живая карта: OpenStreetMap через osmdroid (без ключа) — как MapKit на iOS.
+            // Тянется и зумится пальцем, метка — машина; тап по метке открывает маршрут.
             Box(
                 Modifier.fillMaxWidth().weight(1f).padding(horizontal = Space.x4)
-                    .clip(Radius.Lg).background(ElectroColors.Surface)
-                    .clickable { openRoute() },
-                contentAlignment = Alignment.Center,
+                    .clip(Radius.Lg).background(ElectroColors.Surface),
             ) {
-                val img = bmp
-                if (img != null) {
-                    Image(img, S("Карта"), Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                } else {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Lx.Map, null, tint = ElectroColors.TextMuted,
-                            modifier = Modifier.size(40.dp))
-                        Spacer(Modifier.height(Space.x3))
-                        Text(S("Загрузка карты…"), style = ElectroType.Caption,
-                            color = ElectroColors.TextMuted, textAlign = TextAlign.Center)
-                    }
-                }
+                OsmMap(loc.lat, loc.lon, onMarkerTap = { openRoute() }, modifier = Modifier.fillMaxSize())
             }
             Spacer(Modifier.height(Space.x3))
 
@@ -172,4 +143,49 @@ private fun MapBtn(text: String, icon: ImageVector, mod: Modifier, onClick: () -
             Text(text, style = ElectroType.Body, color = ElectroColors.OnAccent)
         }
     }
+}
+
+/** Карта OpenStreetMap (osmdroid): центр и метка — машина; при смене координат метка переезжает, карта следует. */
+@Composable
+private fun OsmMap(lat: Double, lon: Double, onMarkerTap: () -> Unit, modifier: Modifier = Modifier) {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val dark = androidx.compose.foundation.isSystemInDarkTheme()
+    androidx.compose.ui.viewinterop.AndroidView(
+        modifier = modifier,
+        factory = {
+            org.osmdroid.config.Configuration.getInstance().apply {
+                userAgentValue = "LeapRemote/" + uz.electro.remote.BuildConfig.VERSION_NAME   // требование OSM
+                osmdroidBasePath = java.io.File(ctx.cacheDir, "osm"); osmdroidTileCache = java.io.File(ctx.cacheDir, "osm/tiles")
+            }
+            org.osmdroid.views.MapView(ctx).apply {
+                setTileSource(org.osmdroid.tileprovider.tilesource.TileSourceFactory.MAPNIK)
+                setMultiTouchControls(true)
+                zoomController.setVisibility(org.osmdroid.views.CustomZoomButtonsController.Visibility.NEVER)
+                isTilesScaledToDpi = true
+                minZoomLevel = 4.0; maxZoomLevel = 19.0
+                controller.setZoom(16.5)
+                controller.setCenter(org.osmdroid.util.GeoPoint(lat, lon))
+                val m = org.osmdroid.views.overlay.Marker(this).apply {
+                    id = "car"; position = org.osmdroid.util.GeoPoint(lat, lon)
+                    setAnchor(org.osmdroid.views.overlay.Marker.ANCHOR_CENTER, org.osmdroid.views.overlay.Marker.ANCHOR_BOTTOM)
+                    icon = androidx.core.content.ContextCompat.getDrawable(ctx, uz.electro.remote.R.drawable.ic_map_pin)
+                    setOnMarkerClickListener { _, _ -> onMarkerTap(); true }
+                }
+                overlays.add(m)
+                // тёмная тема — инвертируем тайлы, чтобы карта не светила белым
+                if (dark) overlayManager.tilesOverlay.setColorFilter(org.osmdroid.tileprovider.tilesource.TileSourceFactory.MAPNIK.let {
+                    android.graphics.ColorMatrixColorFilter(floatArrayOf(
+                        -1f, 0f, 0f, 0f, 255f, 0f, -1f, 0f, 0f, 255f, 0f, 0f, -1f, 0f, 255f, 0f, 0f, 0f, 1f, 0f))
+                })
+            }
+        },
+        update = { map ->
+            val p = org.osmdroid.util.GeoPoint(lat, lon)
+            (map.overlays.firstOrNull { it is org.osmdroid.views.overlay.Marker && (it as org.osmdroid.views.overlay.Marker).id == "car" } as? org.osmdroid.views.overlay.Marker)?.let {
+                if (it.position.distanceToAsDouble(p) > 5.0) { it.position = p; map.controller.animateTo(p) }
+            }
+            map.invalidate()
+        },
+        onRelease = { it.onDetach() },
+    )
 }

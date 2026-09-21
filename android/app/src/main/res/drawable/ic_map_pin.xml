@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Метка машины на карте: зелёная булавка в цвет акцента. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="36dp" android:height="44dp" android:viewportWidth="36" android:viewportHeight="44">
+    <path android:fillColor="#2F7D14" android:pathData="M18,2C10.3,2 4,8.3 4,16c0,10.5 14,26 14,26s14,-15.5 14,-26C32,8.3 25.7,2 18,2z"/>
+    <path android:fillColor="#FFFFFF" android:pathData="M18,10.5a5.5,5.5 0 1,0 0,11a5.5,5.5 0 1,0 0,-11z"/>
+</vector>
