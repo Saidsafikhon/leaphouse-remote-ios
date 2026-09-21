@@ -123,6 +123,7 @@ struct LoginScreen: View {
     @State private var pass = ""
     @State private var error: String? = nil
     @State private var busy = false
+    @State private var showHelp = false
 
     init(vm: CarViewModel, onLoggedIn: @escaping () -> Void, onRegister: @escaping () -> Void, onForgot: @escaping () -> Void) {
         self.vm = vm
@@ -137,7 +138,7 @@ struct LoginScreen: View {
         ScrollView {
             VStack(spacing: 0) {
                 Spacer().frame(height: Space.x8)
-                HStack { Spacer(); LangPicker(compact: true) }
+                HStack(spacing: Space.x2) { Spacer(); LangPicker(compact: true); HelpFab { showHelp = true } }
                 Spacer().frame(height: Space.x6)
                 BrandLockup(markSize: 44).frame(maxWidth: .infinity)
                 Spacer().frame(height: Space.x1)
@@ -194,6 +195,7 @@ struct LoginScreen: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .background(p.background)
+        .sheet(isPresented: $showHelp) { HelpSheet(support: vm.support, feedbackVM: nil) }
     }
 }
 

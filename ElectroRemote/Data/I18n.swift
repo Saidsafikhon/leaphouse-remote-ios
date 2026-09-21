@@ -57,32 +57,33 @@ func L(_ key: String, _ args: Any...) -> String {
     return s
 }
 
-/// Переключатель языка RU / EN / UZ. `compact` — пилюля с кодами (логин, подключение),
-/// иначе — сегментный ряд на всю ширину с полными названиями (настройки).
+/// Выбор языка — кнопка с текущим языком и выпадающее меню RU / EN / UZ.
+/// `compact` — короткая пилюля с кодом («RU ▾») для логина и подключения,
+/// иначе — строка с полным названием для настроек.
 struct LangPicker: View {
     @Environment(\.palette) private var p
     @ObservedObject private var lang = Lang.shared
     var compact = false
 
     var body: some View {
-        HStack(spacing: 0) {
+        Menu {
             ForEach(Lang.all, id: \.self) { code in
-                let sel = code == lang.code
                 Button { lang.set(code) } label: {
-                    Text(compact ? Lang.short(code) : Lang.title(code))
-                        .font(.system(size: compact ? 12 : 14, weight: sel ? .semibold : .regular))
-                        .foregroundStyle(sel ? p.textPrimary : p.textSecondary)
-                        .frame(maxWidth: compact ? nil : .infinity)
-                        .padding(.horizontal, compact ? 12 : 0)
-                        .padding(.vertical, compact ? 6 : 10)
-                        .background(sel ? p.surface : Color.clear)
-                        .clipShape(RoundedRectangle(cornerRadius: compact ? 999 : 10, style: .continuous))
+                    if code == lang.code { Label(Lang.title(code), systemImage: "checkmark") }
+                    else { Text(Lang.title(code)) }
                 }
-                .buttonStyle(.plain)
             }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "globe").font(.system(size: compact ? 13 : 16)).foregroundStyle(p.textSecondary)
+                Text(compact ? Lang.short(lang.code) : Lang.title(lang.code))
+                    .font(.system(size: compact ? 12 : 14, weight: .semibold)).foregroundStyle(p.textPrimary)
+                Image(systemName: "chevron.down").font(.system(size: 11, weight: .semibold)).foregroundStyle(p.textSecondary)
+            }
+            .padding(.horizontal, compact ? 12 : 14)
+            .padding(.vertical, compact ? 7 : 12)
+            .background(p.surfaceElevated)
+            .clipShape(RoundedRectangle(cornerRadius: compact ? 999 : 12, style: .continuous))
         }
-        .padding(compact ? 3 : 4)
-        .background(p.surfaceElevated)
-        .clipShape(RoundedRectangle(cornerRadius: compact ? 999 : 12, style: .continuous))
     }
 }

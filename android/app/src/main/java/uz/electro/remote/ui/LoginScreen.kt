@@ -48,6 +48,10 @@ fun LoginScreen(
     var error by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
     val uriHandler = LocalUriHandler.current
+    // Помощь (контакты поддержки) доступна и до входа
+    val support by vm.support.collectAsState()
+    var showHelp by remember { mutableStateOf(false) }
+    if (showHelp) HelpDialog(support) { showHelp = false }
 
     Column(
         Modifier.fillMaxSize().background(ElectroColors.Background)
@@ -55,8 +59,10 @@ fun LoginScreen(
             .padding(horizontal = Space.x6),
     ) {
         Spacer(Modifier.height(Space.x8))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
             uz.electro.remote.ui.components.LangPicker(compact = true)
+            Spacer(Modifier.width(Space.x2))
+            HelpFab(onClick = { showHelp = true })
         }
         Spacer(Modifier.height(Space.x6))
 
