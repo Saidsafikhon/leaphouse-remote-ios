@@ -104,7 +104,7 @@ struct CarSceneView: UIViewRepresentable {
     let pitch: Float
 
     /// Камера — как на Android: цель в центре модели (единичный куб), взгляд спереди-слева чуть сверху.
-    static let eye = SCNVector3(-1.45, 0.45, 1.8)
+    static let eye = SCNVector3(-1.23, 0.38, 1.53)
     /// «Правая» ось камеры — вокруг неё наклон, чтобы вертикальный свайп работал как орбита.
     static var rightAxis: SCNVector3 {
         let f = SCNVector3(-eye.x, 0, -eye.z)          // forward без y
@@ -132,7 +132,8 @@ struct CarSceneView: UIViewRepresentable {
         key.light!.castsShadow = false; key.position = SCNVector3(-2, 4, 3); key.look(at: SCNVector3Zero)
         scene.rootNode.addChildNode(key)
         let cam = SCNNode(); cam.name = "cam"; cam.camera = SCNCamera()
-        cam.camera!.fieldOfView = 46; cam.camera!.projectionDirection = .vertical
+        // горизонтальный угол 40°: машина занимает ~3/4 ширины карточки, как на Android
+        cam.camera!.fieldOfView = 40; cam.camera!.projectionDirection = .horizontal
         cam.camera!.zNear = 0.05; cam.camera!.zFar = 50; cam.camera!.wantsHDR = false
         cam.position = eye; cam.look(at: SCNVector3Zero)
         scene.rootNode.addChildNode(cam)
