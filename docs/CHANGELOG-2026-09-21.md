@@ -131,7 +131,22 @@
   Дальше — App Bundle для Google Play (каждому телефону только его ABI, ~11 МБ) или отказ от arm32 (телефоны до 2015).
 - iOS: ~6,6 МБ неподписанный IPA (+ GLTFKit2 xcframework в 0.47).
 
-## 7. Разное
+## 7. Карта и голосовые команды (0.48.0, 22.09)
+
+- **Android карта** — osmdroid 6.1.18 (OpenStreetMap, без ключа) вместо статичной картинки Yandex: `MapScreen.kt → OsmMap`,
+  `MapView` в `AndroidView`, метка `ic_map_pin`, тёмная тема — инверсия тайлов, кеш в `cacheDir/osm`. Тап по метке — маршрут.
+- **Голос**. Набор действий одинаков: `lock, unlock, climate_on, climate_off, trunk, windows_close` → та же пачка команд,
+  что у плиток; `quickAction()` в обоих VM: если не `connected` — `connect()` (пробуждение) и ждём исход, потом `send`.
+  - iOS: `App/VoiceIntents.swift` — `CarCommandIntent` (App Intents, `openAppWhenRun = true`: Siri открывает приложение,
+    действие кладётся в `PendingVoiceAction`, RootView исполняет через `onReceive`), `LeapShortcuts: AppShortcutsProvider`
+    с фразами RU/EN («Закрой машину в LeapRemote»…). URL-схема `leapremote://action/<имя>` (`CFBundleURLTypes`, `onOpenURL`).
+    Работает без публикации.
+  - Android: `VoiceActions.kt` + intent-filter `leapremote://action/<имя>` (`launchMode=singleTask`, `onNewIntent`),
+    `res/xml/shortcuts.xml` — статические ярлыки (долгий тап по иконке) и App Actions custom intents
+    (`custom.actions.intent.LOCK_CAR`… с `queryPatterns` из `values/voice.xml`, RU/EN/UZ). **Ассистент подхватывает
+    App Actions только у приложений в Google Play** — до публикации работают ярлыки и ссылки (виджет/NFC).
+
+## 8. Разное
 
 - **GitHub: «connect to github» при каждом push.** Одна из команд открыла окно Git Credential Manager, его закрыли —
   и GCM стёр сохранённый токен (`fatal: User cancelled dialog`). Восстановлено `gh auth login -h github.com -p https -w`
@@ -140,8 +155,8 @@
   api.github.com» — просто повторить.
 - Samsung SM-G960F периодически отваливается от adb (USB) — перед установкой проверять `adb devices`.
 
-## 8. Версии и сборки
+## 9. Версии и сборки
 
-- Android 0.47.0 (104) и iOS 0.47.0 (104). На рабочем столе `LeapRemote-0.47.0-104-android.apk` и
-  `LeapRemote-0.47.0-104-ios-unsigned.ipa`; iOS собирает CI (`.github/workflows/ios.yml`, релиз `latest`).
-- Samsung SM-G960F (adb `27e48d88bc1c7ece`) — стоит 0.46.0.
+- Android 0.48.0 (105) и iOS 0.48.0 (105). На рабочем столе `LeapRemote-0.48.0-105-android.apk` и
+  `LeapRemote-0.48.0-105-ios-unsigned.ipa`; iOS собирает CI (`.github/workflows/ios.yml`, релиз `latest`).
+- Samsung SM-G960F (adb `27e48d88bc1c7ece`) — стоит 0.48.0.
