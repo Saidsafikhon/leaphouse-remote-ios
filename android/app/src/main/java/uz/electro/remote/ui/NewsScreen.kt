@@ -30,8 +30,9 @@ import java.util.Locale
 import java.util.TimeZone
 
 /**
- * Лента из админки: уведомления, новости, важное. Непрочитанное — с точкой,
- * тап отмечает прочитанным, «Прочитать всё» гасит бейдж.
+ * Лента: карточки с обложкой (как в макете Figma «Новости»), разделы — обновления,
+ * инструкции, события, новости (в т.ч. автоновости из RSS с пометкой источника).
+ * Непрочитанное — бейдж NEW; тап открывает запись, «Подробнее» — ссылку источника.
  */
 @Composable
 fun NewsScreen(
@@ -43,7 +44,10 @@ fun NewsScreen(
 ) {
     var filter by remember { mutableStateOf("all") }
     var selected by remember { mutableStateOf<NewsItemDto?>(null) }
-    val filters = listOf("all" to S("Все"), "info" to S("Уведомления"), "news" to S("Новости"), "alert" to S("Важное"))
+    val filters = listOf(
+        "all" to S("Все"), "update" to S("Обновления"), "guide" to S("Инструкции"),
+        "event" to S("События"), "news" to S("Новости"), "alert" to S("Важное"),
+    )
 
     // Запись на весь экран — вместо ленты, с «назад» и «закрыть».
     selected?.let { n ->
@@ -51,7 +55,14 @@ fun NewsScreen(
         NewsDetailScreen(n, onClose = { selected = null })
         return
     }
-    val shown = items.filter { filter == "all" || it.kind == filter }
+    val shown = items.filter { n ->
+        when (filter) {
+            "all" -> true
+            "alert" -> n.kind == "alert"
+            "news" -> n.category == "news" || (n.category.isBlank() && n.kind == "news")
+            else -> n.category == filter
+        }
+    }
     val unread = items.count { it.id !in read }
 
     ScreenScaffold(S("Новости"), onBack) {
@@ -62,9 +73,9 @@ fun NewsScreen(
             filters.forEach { (k, label) ->
                 val on = filter == k
                 Surface(
-                    color = ElectroColors.SurfaceElevated, shape = Radius.Sm,
+                    color = if (on) ElectroColors.Accent.copy(alpha = 0.14f) else ElectroColors.SurfaceElevated, shape = Radius.Pill,
                     border = if (on) androidx.compose.foundation.BorderStroke(1.dp, ElectroColors.Accent) else null,
-                    modifier = Modifier.height(ControlSize.Chip).clip(Radius.Sm).clickable { filter = k },
+                    modifier = Modifier.height(ControlSize.Chip).clip(Radius.Pill).clickable { filter = k },
                 ) {
                     Box(Modifier.padding(horizontal = Space.x4).fillMaxHeight(), contentAlignment = Alignment.Center) {
                         Text(label, style = ElectroType.Body, color = if (on) ElectroColors.Accent else ElectroColors.TextPrimary, maxLines = 1)
@@ -81,61 +92,87 @@ fun NewsScreen(
         if (shown.isEmpty()) {
             EmptyNote(if (items.isEmpty()) S("Пока ничего нет. Здесь появятся новости и уведомления от оператора.") else S("В этом разделе пусто."))
         }
-        shown.forEach { n ->
-            val isRead = n.id in read
-            val (icon, tint) = when (n.kind) {
-                "alert" -> Lx.Warning to ElectroColors.Warn
-                "news" -> Lx.Campaign to ElectroColors.Info
-                else -> Lx.Notifications to ElectroColors.Accent
-            }
-            Surface(
-                color = ElectroColors.Surface, shape = Radius.Md,
-                border = if (isRead) null else androidx.compose.foundation.BorderStroke(1.dp, ElectroColors.Accent.copy(alpha = 0.35f)),
-                modifier = Modifier.fillMaxWidth().clip(Radius.Md).clickable { onRead(n); selected = n },
-            ) {
-                Row(Modifier.padding(Space.x4), verticalAlignment = Alignment.Top) {
-                    Box(
-                        Modifier.size(36.dp).clip(CircleShape).background(tint.copy(alpha = 0.14f)),
-                        contentAlignment = Alignment.Center,
-                    ) { Icon(icon, null, tint = tint, modifier = Modifier.size(20.dp)) }
-                    Spacer(Modifier.width(Space.x3))
-                    Column(Modifier.weight(1f)) {
-                        Text(n.title, style = ElectroType.Body, color = ElectroColors.TextPrimary)
-                        if (n.body.isNotBlank()) {
-                            Spacer(Modifier.height(4.dp))
-                            Text(n.body, style = ElectroType.Caption, color = ElectroColors.TextSecondary)
-                        }
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            newsDate(n.created_at) + if (isRead) "" else S(" · не прочитано"),
-                            style = ElectroType.Unit, color = if (isRead) ElectroColors.TextMuted else ElectroColors.Accent,
-                        )
+        shown.forEach { n -> NewsCard(n, isRead = n.id in read, onOpen = { onRead(n); selected = n }) }
+    }
+}
+
+/** Подпись раздела карточки: категория, а без неё — тип записи. */
+private fun categoryLabel(n: NewsItemDto): String = when (n.category) {
+    "update" -> S("Обновление ПО"); "guide" -> S("Инструкция"); "event" -> S("Событие"); "news" -> S("Новость")
+    else -> when (n.kind) { "alert" -> S("Важное"); "news" -> S("Новость"); else -> S("Уведомление") }
+}
+
+@Composable
+private fun NewsCard(n: NewsItemDto, isRead: Boolean, onOpen: () -> Unit) {
+    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+    val accent = if (n.kind == "alert") ElectroColors.Warn else ElectroColors.Accent
+    val hasImage = !n.image_url.isNullOrBlank()
+    Surface(
+        color = ElectroColors.Surface, shape = Radius.Md,
+        border = androidx.compose.foundation.BorderStroke(1.dp, if (isRead) ElectroColors.Outline else accent.copy(alpha = 0.6f)),
+        modifier = Modifier.fillMaxWidth().clip(Radius.Md).clickable(onClick = onOpen),
+    ) {
+        Column(Modifier.padding(Space.x3)) {
+            if (hasImage) {
+                Box(Modifier.fillMaxWidth().height(170.dp).clip(Radius.Sm).background(ElectroColors.SurfaceElevated)) {
+                    coil.compose.AsyncImage(
+                        model = n.image_url, contentDescription = null,
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    // источник / раздел — тегом на обложке, NEW — справа
+                    val tag = n.source ?: categoryLabel(n)
+                    Box(Modifier.align(Alignment.TopStart).padding(10.dp).clip(Radius.Sm)
+                        .background(ElectroColors.Background.copy(alpha = 0.85f)).padding(horizontal = 8.dp, vertical = 4.dp)) {
+                        Text(tag.uppercase(), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = ElectroColors.TextPrimary, letterSpacing = 0.5.sp)
                     }
-                    if (!isRead) {
-                        Spacer(Modifier.width(Space.x2))
-                        Box(Modifier.padding(top = 6.dp).size(8.dp).clip(CircleShape).background(ElectroColors.Accent))
+                    if (!isRead) Box(Modifier.align(Alignment.TopEnd).padding(10.dp).clip(Radius.Pill)
+                        .background(ElectroColors.Accent).padding(horizontal = 8.dp, vertical = 3.dp)) {
+                        Text("NEW", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = ElectroColors.OnAccent)
                     }
                 }
+                Spacer(Modifier.height(Space.x3))
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(categoryLabel(n).uppercase(), fontSize = 10.sp, fontWeight = FontWeight.SemiBold,
+                    color = ElectroColors.TextSecondary, letterSpacing = 0.6.sp, modifier = Modifier.weight(1f))
+                if (!hasImage && !isRead) {
+                    Box(Modifier.clip(Radius.Pill).background(ElectroColors.Accent).padding(horizontal = 7.dp, vertical = 2.dp)) {
+                        Text("NEW", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = ElectroColors.OnAccent)
+                    }
+                    Spacer(Modifier.width(Space.x2))
+                }
+                Text(newsDate(n.created_at), style = ElectroType.Unit, color = ElectroColors.TextMuted)
+            }
+            Spacer(Modifier.height(6.dp))
+            Text(n.title, style = ElectroType.Body, fontWeight = FontWeight.SemiBold, color = ElectroColors.TextPrimary,
+                maxLines = 3, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+            if (!hasImage && n.body.isNotBlank()) {
+                Spacer(Modifier.height(4.dp))
+                Text(n.body, style = ElectroType.Caption, color = ElectroColors.TextSecondary, maxLines = 3,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+            }
+            Spacer(Modifier.height(Space.x3))
+            Row(verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.clickable { val l = n.link; if (!l.isNullOrBlank()) runCatching { uriHandler.openUri(l) } else onOpen() }) {
+                Text(S("Подробнее"), style = ElectroType.Body, color = accent, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.weight(1f))
+                Icon(Lx.ArrowForward, null, tint = accent, modifier = Modifier.size(18.dp))
             }
         }
     }
 }
 
-/** Одна запись на весь экран: заголовок, тип, дата, полный текст. */
+/** Одна запись на весь экран: обложка, раздел, дата, полный текст, ссылка на источник. */
 @Composable
 fun NewsDetailScreen(n: NewsItemDto, onClose: () -> Unit) {
-    val (icon, tint) = when (n.kind) {
-        "alert" -> Lx.Warning to ElectroColors.Warn
-        "news" -> Lx.Campaign to ElectroColors.Info
-        else -> Lx.Notifications to ElectroColors.Accent
-    }
-    val kindTitle = when (n.kind) { "alert" -> S("Важное"); "news" -> S("Новость"); else -> S("Уведомление") }
+    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
     Column(Modifier.fillMaxSize().background(ElectroColors.Background)) {
         Row(Modifier.fillMaxWidth().padding(Space.x4), verticalAlignment = Alignment.CenterVertically) {
             Icon(Lx.ArrowBack, S("Назад"), tint = ElectroColors.TextPrimary,
                 modifier = Modifier.size(26.dp).clickable(onClick = onClose))
             Spacer(Modifier.width(Space.x3))
-            Text(kindTitle, style = ElectroType.Headline, color = ElectroColors.TextPrimary, modifier = Modifier.weight(1f))
+            Text(categoryLabel(n), style = ElectroType.Headline, color = ElectroColors.TextPrimary, modifier = Modifier.weight(1f))
             Icon(Lx.Close, S("Закрыть"), tint = ElectroColors.TextSecondary,
                 modifier = Modifier.size(24.dp).clickable(onClick = onClose))
         }
@@ -144,14 +181,23 @@ fun NewsDetailScreen(n: NewsItemDto, onClose: () -> Unit) {
                 .padding(horizontal = Space.x5).padding(bottom = Space.x6),
             verticalArrangement = Arrangement.spacedBy(Space.x4),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.x3)) {
-                Box(Modifier.size(44.dp).clip(CircleShape).background(tint.copy(alpha = 0.14f)), contentAlignment = Alignment.Center) {
-                    Icon(icon, null, tint = tint, modifier = Modifier.size(22.dp))
-                }
-                Text(newsDate(n.created_at), style = ElectroType.Caption, color = ElectroColors.TextMuted)
+            if (!n.image_url.isNullOrBlank()) {
+                coil.compose.AsyncImage(
+                    model = n.image_url, contentDescription = null,
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                    modifier = Modifier.fillMaxWidth().height(200.dp).clip(Radius.Md).background(ElectroColors.SurfaceElevated),
+                )
             }
+            Text(listOfNotNull(n.source, newsDate(n.created_at)).joinToString(" · "), style = ElectroType.Caption, color = ElectroColors.TextMuted)
             Text(n.title, style = ElectroType.Title, color = ElectroColors.TextPrimary)
             if (n.body.isNotBlank()) Text(n.body, style = ElectroType.Body, color = ElectroColors.TextSecondary)
+        }
+        val link = n.link
+        if (!link.isNullOrBlank()) {
+            uz.electro.remote.ui.components.ElectroButton(
+                S("Открыть источник"), Modifier.fillMaxWidth().padding(horizontal = Space.x5).padding(bottom = Space.x2),
+                onClick = { runCatching { uriHandler.openUri(link) } },
+            )
         }
         uz.electro.remote.ui.components.ElectroButton(
             S("Закрыть"), Modifier.fillMaxWidth().padding(horizontal = Space.x5).padding(bottom = Space.x4),
@@ -164,7 +210,7 @@ private fun newsDate(iso: String): String = runCatching {
     val clean = iso.replace(Regex("[.][0-9]+"), "")     // без дробных секунд
     val parser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.US)
     val d = parser.parse(clean) ?: return ""
-    SimpleDateFormat("d MMMM, HH:mm", Locale("ru")).apply { timeZone = TimeZone.getDefault() }.format(d)
+    SimpleDateFormat("d MMMM, HH:mm", Locale(uz.electro.remote.i18n.Lang.current)).apply { timeZone = TimeZone.getDefault() }.format(d)
 }.getOrDefault("")
 
 /** Колокольчик «Новости» с бейджем непрочитанных. */

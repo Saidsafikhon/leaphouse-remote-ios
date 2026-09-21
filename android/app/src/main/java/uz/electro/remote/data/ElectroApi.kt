@@ -52,6 +52,11 @@ data class NewsItemDto(
     val body: String = "",
     val kind: String = "info",      // info | news | alert
     val created_at: String,
+    val category: String = "",      // update | guide | event | news | ""
+    val source: String? = null,     // null — своя новость оператора; иначе имя RSS-источника
+    val image_url: String? = null,
+    val link: String? = null,
+    val lang: String = "ru",
 )
 
 /** Одноразовый код с QR на экране машины. */

@@ -80,6 +80,26 @@ struct NewsItem: Decodable, Identifiable, Equatable {
     let body: String
     let kind: String      // info | news | alert
     let created_at: String
+    var category: String = ""        // update | guide | event | news | ""
+    var source: String? = nil        // nil — своя новость оператора; иначе имя RSS-источника
+    var image_url: String? = nil
+    var link: String? = nil
+    var lang: String = "ru"
+
+    private enum CodingKeys: String, CodingKey { case id, title, body, kind, created_at, category, source, image_url, link, lang }
+    init(from d: Decoder) throws {
+        let c = try d.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        title = try c.decode(String.self, forKey: .title)
+        body = try c.decodeIfPresent(String.self, forKey: .body) ?? ""
+        kind = try c.decodeIfPresent(String.self, forKey: .kind) ?? "info"
+        created_at = try c.decode(String.self, forKey: .created_at)
+        category = try c.decodeIfPresent(String.self, forKey: .category) ?? ""
+        source = try c.decodeIfPresent(String.self, forKey: .source)
+        image_url = try c.decodeIfPresent(String.self, forKey: .image_url)
+        link = try c.decodeIfPresent(String.self, forKey: .link)
+        lang = try c.decodeIfPresent(String.self, forKey: .lang) ?? "ru"
+    }
 }
 struct PasswordResetAccepted: Decodable { let detail: String? }
 

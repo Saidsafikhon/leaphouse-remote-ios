@@ -68,7 +68,25 @@
   `api/routes_news.py: news_public`, бэкапы `backups/*.bak-public`), клиенты до входа грузят его (`loadNews()`).
 - Узбекский: «аккаунт» переводим как *akkaunt* (Akkauntdan chiqish, Akkauntni o‘chirish), не *hisob* — просьба владельца.
 
-## 4. Версии и сборки
+## 4. Новости: карточки по макету Figma и автолента
+
+- Макет: https://www.figma.com/design/T0jd7XOiSDyZJhuHOTZKuO/Untitled?node-id=3-2747 — карточка с обложкой, тег
+  источника/раздела на картинке, бейдж NEW, подпись раздела + дата, заголовок, «Подробнее →». Фильтры: Все /
+  Обновления / Инструкции / События / Новости / Важное. Реализовано в `NewsScreen.kt` (Coil для картинок) и
+  `SecondaryScreens.swift` (`NewsCard`, AsyncImage). Тап по карточке — полный текст, «Подробнее»/«Открыть источник» —
+  ссылка в браузере.
+- Сервер: у `announcements` новые колонки `image_url, link, source, category (update|guide|event|news|''), lang,
+  external_id` (ALTER TABLE вручную — `create_all` колонки не добавляет). `NewsItem`/`AnnouncementResponse` отдают их;
+  админка → «Новая рассылка» получила раздел, картинку и ссылку. Патч: `lp/electro/docs/server-patches-2026-09/patch_newsfeed.py`.
+- **Автоновости** — `services/newsfeed.py` (`NewsFeed`, запускается из `Container.startup`, настройки
+  `ELECTRO_NEWSFEED_ENABLED/INTERVAL_SECONDS/KEEP`, по умолчанию раз в 30 мин, хранить 150): RSS CnEVPost и
+  CarNewsChina (Китай, электромобили — берём всё, до 15 за проход) и Spot.uz / Gazeta.uz / Podrobno.uz (по ключевым
+  словам: электромоб*, зарядн*, Leapmotor, BYD, Zeekr, гибрид…). Дедуп по ссылке (`external_id`), обложка —
+  media:content/enclosure/первая картинка, иначе og:image статьи; `created_at` = дата публикации; push не шлём.
+  Новости с `source != null` подрезаются до `keep` самых свежих. Английские источники показываются как есть (без перевода).
+- Дата в карточках форматируется локалью текущего языка приложения.
+
+## 5. Версии и сборки
 
 - Android 0.46.0 (103) и iOS 0.46.0 (103). APK на рабочем столе `LeapRemote-0.46.0-103-android.apk`; iOS собирает CI
   (`.github/workflows/ios.yml`, релиз `latest`).

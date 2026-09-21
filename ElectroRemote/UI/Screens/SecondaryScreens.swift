@@ -273,21 +273,34 @@ struct NewsScreen: View {
 
     @State private var filter: String = "all"
     @State private var selected: NewsItem? = nil
-    private var filters: [(String, String)] { [("all", L("Все")), ("info", L("Уведомления")), ("news", L("Новости")), ("alert", L("Важное"))] }
+    private var filters: [(String, String)] {
+        [("all", L("Все")), ("update", L("Обновления")), ("guide", L("Инструкции")),
+         ("event", L("События")), ("news", L("Новости")), ("alert", L("Важное"))]
+    }
+
+    private func matches(_ n: NewsItem) -> Bool {
+        switch filter {
+        case "all": return true
+        case "alert": return n.kind == "alert"
+        case "news": return n.category == "news" || (n.category.isEmpty && n.kind == "news")
+        default: return n.category == filter
+        }
+    }
 
     var body: some View {
-        let shown = items.filter { filter == "all" || $0.kind == filter }
+        let shown = items.filter(matches)
         let unread = items.filter { !isRead($0) }.count
         ScreenScaffold(title: L("Новости"), onBack: onBack) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 6) {
                     ForEach(filters, id: \.0) { f in
+                        let on = filter == f.0
                         Button { filter = f.0 } label: {
-                            Text(f.1).font(ElectroType.body).foregroundStyle(filter == f.0 ? p.accent : p.textPrimary)
+                            Text(f.1).font(ElectroType.body).foregroundStyle(on ? p.accent : p.textPrimary)
                                 .padding(.horizontal, Space.x4).frame(height: ControlSize.chip)
-                                .background(p.surfaceElevated)
-                                .clipShape(RoundedRectangle(cornerRadius: Radius.sm, style: .continuous))
-                                .overlay(RoundedRectangle(cornerRadius: Radius.sm, style: .continuous).stroke(filter == f.0 ? p.accent : .clear, lineWidth: 1))
+                                .background(on ? p.accent.opacity(0.14) : p.surfaceElevated)
+                                .clipShape(Capsule())
+                                .overlay(Capsule().stroke(on ? p.accent : .clear, lineWidth: 1))
                         }
                         .buttonStyle(.plain)
                     }
@@ -300,30 +313,7 @@ struct NewsScreen: View {
                 EmptyNote(text: items.isEmpty ? L("Пока ничего нет. Здесь появятся новости и уведомления от оператора.") : L("В этом разделе пусто."))
             }
             ForEach(shown) { n in
-                let st = style(n.kind)
-                let read = isRead(n)
-                Button { onRead(n); selected = n } label: {
-                    HStack(alignment: .top, spacing: Space.x3) {
-                        Image(systemName: st.0).font(.system(size: 17, weight: .medium)).foregroundStyle(st.1)
-                            .frame(width: 36, height: 36).background(st.1.opacity(0.14)).clipShape(Circle())
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(n.title).font(ElectroType.body).foregroundStyle(p.textPrimary)
-                            if !n.body.isEmpty {
-                                Text(n.body).font(ElectroType.caption).foregroundStyle(p.textSecondary)
-                            }
-                            Text(newsDate(n.created_at) + (read ? "" : L(" · не прочитано"))).font(ElectroType.unit).foregroundStyle(read ? p.textMuted : p.accent)
-                        }
-                        Spacer(minLength: 0)
-                        if !read { Circle().fill(p.accent).frame(width: 8, height: 8).padding(.top, 6) }
-                    }
-                    .padding(Space.x4)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(p.surface)
-                    .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).stroke(read ? .clear : p.accent.opacity(0.35), lineWidth: 1))
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
+                NewsCard(item: n, isRead: isRead(n)) { onRead(n); selected = n }
             }
         }
         .refreshable { onRefresh() }
@@ -332,24 +322,100 @@ struct NewsScreen: View {
             NewsDetailScreen(item: n) { selected = nil }
         }
     }
+}
 
-    private func style(_ kind: String) -> (String, Color) {
-        switch kind {
-        case "alert": return ("exclamationmark.triangle", p.warn)
-        case "news": return ("newspaper", p.info)
-        default: return ("bell", p.accent)
-        }
+/// Подпись раздела карточки: категория, а без неё — тип записи.
+private func categoryLabel(_ n: NewsItem) -> String {
+    switch n.category {
+    case "update": return L("Обновление ПО")
+    case "guide": return L("Инструкция")
+    case "event": return L("Событие")
+    case "news": return L("Новость")
+    default: return kindTitle(n.kind)
     }
 }
 
-/// Одна запись на весь экран: заголовок, тип, дата, полный текст.
+/// Карточка ленты как в макете Figma: обложка с тегом источника и бейджем NEW,
+/// раздел + дата, заголовок, «Подробнее →» (ссылка источника или полный текст).
+private struct NewsCard: View {
+    @Environment(\.palette) private var p
+    @Environment(\.openURL) private var openURL
+    let item: NewsItem
+    let isRead: Bool
+    let onOpen: () -> Void
+
+    var body: some View {
+        let accent = item.kind == "alert" ? p.warn : p.accent
+        let hasImage = !(item.image_url ?? "").isEmpty
+        VStack(alignment: .leading, spacing: 0) {
+            if hasImage, let url = URL(string: item.image_url!) {
+                ZStack(alignment: .topLeading) {
+                    AsyncImage(url: url) { phase in
+                        if let img = phase.image { img.resizable().scaledToFill() } else { p.surfaceElevated }
+                    }
+                    .frame(maxWidth: .infinity).frame(height: 170).clipped()
+                    .clipShape(RoundedRectangle(cornerRadius: Radius.sm, style: .continuous))
+                    HStack {
+                        Text((item.source ?? categoryLabel(item)).uppercased())
+                            .font(.system(size: 10, weight: .bold)).tracking(0.5).foregroundStyle(p.textPrimary)
+                            .padding(.horizontal, 8).padding(.vertical, 4)
+                            .background(p.background.opacity(0.85))
+                            .clipShape(RoundedRectangle(cornerRadius: Radius.sm, style: .continuous))
+                        Spacer()
+                        if !isRead {
+                            Text("NEW").font(.system(size: 10, weight: .bold)).foregroundStyle(p.onAccent)
+                                .padding(.horizontal, 8).padding(.vertical, 3).background(p.accent).clipShape(Capsule())
+                        }
+                    }
+                    .padding(10)
+                }
+                .padding(.bottom, Space.x3)
+            }
+            HStack {
+                Text(categoryLabel(item).uppercased()).font(.system(size: 10, weight: .semibold)).tracking(0.6).foregroundStyle(p.textSecondary)
+                Spacer()
+                if !hasImage && !isRead {
+                    Text("NEW").font(.system(size: 9, weight: .bold)).foregroundStyle(p.onAccent)
+                        .padding(.horizontal, 7).padding(.vertical, 2).background(p.accent).clipShape(Capsule())
+                }
+                Text(newsDate(item.created_at)).font(ElectroType.unit).foregroundStyle(p.textMuted)
+            }
+            Text(item.title).font(ElectroType.body.weight(.semibold)).foregroundStyle(p.textPrimary)
+                .lineLimit(3).padding(.top, 6).fixedSize(horizontal: false, vertical: true)
+            if !hasImage && !item.body.isEmpty {
+                Text(item.body).font(ElectroType.caption).foregroundStyle(p.textSecondary).lineLimit(3).padding(.top, 4)
+            }
+            Button {
+                if let l = item.link, let u = URL(string: l) { openURL(u) } else { onOpen() }
+            } label: {
+                HStack {
+                    Text(L("Подробнее")).font(ElectroType.body.weight(.semibold)).foregroundStyle(accent)
+                    Spacer()
+                    Image(systemName: "arrow.right").font(.system(size: 14, weight: .semibold)).foregroundStyle(accent)
+                }
+                .padding(.top, Space.x3)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(Space.x3)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(p.surface)
+        .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).stroke(isRead ? p.outline : accent.opacity(0.6), lineWidth: 1))
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onOpen)
+    }
+}
+
+/// Одна запись на весь экран: обложка, раздел, дата, полный текст, ссылка на источник.
 struct NewsDetailScreen: View {
     @Environment(\.palette) private var p
+    @Environment(\.openURL) private var openURL
     let item: NewsItem
     let onClose: () -> Void
 
     var body: some View {
-        let st = style(item.kind)
         VStack(spacing: 0) {
             HStack(spacing: Space.x3) {
                 Button(action: onClose) {
@@ -358,7 +424,7 @@ struct NewsDetailScreen: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(L("Назад"))
-                Text(kindTitle(item.kind)).font(ElectroType.headline).foregroundStyle(p.textPrimary)
+                Text(categoryLabel(item)).font(ElectroType.headline).foregroundStyle(p.textPrimary)
                 Spacer()
                 Button(action: onClose) {
                     Image(systemName: "xmark").font(.system(size: 18, weight: .medium)).foregroundStyle(p.textSecondary)
@@ -370,11 +436,15 @@ struct NewsDetailScreen: View {
             .padding(Space.x4)
             ScrollView {
                 VStack(alignment: .leading, spacing: Space.x4) {
-                    HStack(spacing: Space.x3) {
-                        Image(systemName: st.0).font(.system(size: 20, weight: .medium)).foregroundStyle(st.1)
-                            .frame(width: 44, height: 44).background(st.1.opacity(0.14)).clipShape(Circle())
-                        Text(newsDate(item.created_at)).font(ElectroType.caption).foregroundStyle(p.textMuted)
+                    if let s = item.image_url, let url = URL(string: s) {
+                        AsyncImage(url: url) { phase in
+                            if let img = phase.image { img.resizable().scaledToFill() } else { p.surfaceElevated }
+                        }
+                        .frame(maxWidth: .infinity).frame(height: 200).clipped()
+                        .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
                     }
+                    Text([item.source, newsDate(item.created_at)].compactMap { $0 }.joined(separator: " · "))
+                        .font(ElectroType.caption).foregroundStyle(p.textMuted)
                     Text(item.title).font(ElectroType.title).foregroundStyle(p.textPrimary)
                     if !item.body.isEmpty {
                         Text(item.body).font(ElectroType.body).foregroundStyle(p.textSecondary)
@@ -384,20 +454,17 @@ struct NewsDetailScreen: View {
                 .padding(.horizontal, Space.x5)
                 .padding(.bottom, Space.x6)
             }
+            if let l = item.link, let u = URL(string: l) {
+                ElectroButton(text: L("Открыть источник")) { openURL(u) }
+                    .padding(.horizontal, Space.x5)
+                    .padding(.bottom, Space.x2)
+            }
             ElectroButton(text: L("Закрыть"), style: .secondary, action: onClose)
                 .padding(.horizontal, Space.x5)
                 .padding(.bottom, Space.x4)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(p.background)
-    }
-
-    private func style(_ kind: String) -> (String, Color) {
-        switch kind {
-        case "alert": return ("exclamationmark.triangle", p.warn)
-        case "news": return ("newspaper", p.info)
-        default: return ("bell", p.accent)
-        }
     }
 }
 
@@ -413,7 +480,7 @@ private func newsDate(_ iso: String) -> String {
     let f = ISO8601DateFormatter(); f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
     let f2 = ISO8601DateFormatter(); f2.formatOptions = [.withInternetDateTime]
     guard let d = f.date(from: iso) ?? f2.date(from: iso) else { return "" }
-    let out = DateFormatter(); out.locale = Locale(identifier: "ru_RU"); out.dateFormat = "d MMMM, HH:mm"
+    let out = DateFormatter(); out.locale = Locale(identifier: Lang.shared.code); out.dateFormat = "d MMMM, HH:mm"
     return out.string(from: d)
 }
 
