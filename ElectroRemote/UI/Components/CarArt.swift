@@ -31,7 +31,7 @@ enum CarArt {
         "C16": ["pearl-white", "metallic-black", "canopy-gray", "jade-green", "glacier-blue"],
         "C10": ["pearl-white", "metallic-black", "canopy-gray", "terra-grey", "jade-green"],
         "C11": ["pearl-white", "metallic-black", "canopy-gray", "galaxy-silver", "walden-green"],
-        "C01": ["metallic-black", "galaxy-silver", "glacier-blue", "walden-green"],
+        "C01": ["metallic-black", "galaxy-silver", "walden-green"],
         "B10": ["pearl-white", "metallic-black", "terra-grey", "glacier-blue"],
         "A10": ["seaweed-green"],
         "D19": ["metallic-black"],

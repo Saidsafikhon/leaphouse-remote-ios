@@ -65,6 +65,9 @@ fun ConnectScreen(vm: CarViewModel, status: ConnectStatus) {
     }
 
     val chosen by vm.selectedVehicle.collectAsState()
+    // 3D-модель для главной качаем заранее, пока пользователь ещё на этом экране
+    val appCtx = androidx.compose.ui.platform.LocalContext.current.applicationContext
+    LaunchedEffect(chosen?.model) { uz.electro.remote.ui.components.CarModels.prefetch(appCtx, chosen?.model) }
     val support by vm.support.collectAsState()
     var showHelp by remember { mutableStateOf(false) }
     val loggedInForFeedback by vm.loggedIn.collectAsState()

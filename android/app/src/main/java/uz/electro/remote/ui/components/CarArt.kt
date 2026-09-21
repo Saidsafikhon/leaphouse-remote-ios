@@ -53,7 +53,6 @@ object CarArt {
         "C01" to mapOf(
             "metallic-black" to R.drawable.car_c01_metallic_black,
             "galaxy-silver" to R.drawable.car_c01_galaxy_silver,
-            "glacier-blue" to R.drawable.car_c01_glacier_blue,
             "walden-green" to R.drawable.car_c01_walden_green,
         ),
         "B10" to mapOf(
