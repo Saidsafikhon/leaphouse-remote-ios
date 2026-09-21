@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 @main
 struct ElectroRemoteApp: App {
@@ -21,6 +22,7 @@ struct RootView: View {
     @ObservedObject var vm: CarViewModel
     @ObservedObject private var lock = AppLock.shared
     @ObservedObject private var lang = Lang.shared
+    @ObservedObject private var voice = PendingVoiceAction.shared
 
     private enum Branch { case register, forgot }
     @State private var branch: Branch? = nil
@@ -59,6 +61,13 @@ struct RootView: View {
         .environment(\.palette, palette)
         .background(palette.background.ignoresSafeArea())
         .preferredColorScheme(themeMode == "auto" ? nil : (dark ? .dark : .light))
+        // Siri / Быстрые команды / ссылка leapremote://action/… — выполнить, как только вошли
+        .onOpenURL { PendingVoiceAction.shared.take(url: $0) }
+        .onReceive(voice.$action.combineLatest(vm.$loggedIn)) { action, on in
+            guard let a = action, on else { return }
+            voice.action = nil
+            vm.quickAction(a)
+        }
         .onChange(of: vm.loggedIn) { _, on in
             if on {
                 branch = nil

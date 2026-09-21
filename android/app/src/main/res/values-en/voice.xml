@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sc_lock">Lock car</string>
+    <string name="sc_lock_long">Lock the car doors</string>
+    <string name="sc_unlock">Unlock car</string>
+    <string name="sc_unlock_long">Unlock the car doors</string>
+    <string name="sc_climate_on">Climate on</string>
+    <string name="sc_climate_on_long">Turn on the climate</string>
+    <string name="sc_trunk">Trunk</string>
+    <string name="sc_trunk_long">Open the trunk</string>
+</resources>

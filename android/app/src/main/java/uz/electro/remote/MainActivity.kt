@@ -41,8 +41,17 @@ class MainActivity : FragmentActivity() {
 
     private var newsReceiver: BroadcastReceiver? = null
 
+    /** Действие из intent-а запуска; исполняется, когда пользователь вошёл. */
+    private val pendingAction = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        VoiceActions.fromIntent(intent)?.let { pendingAction.value = it }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        VoiceActions.fromIntent(intent)?.let { pendingAction.value = it }
         SignatureGuard.enforce(this)
         uz.electro.remote.ui.theme.ThemePref.load(this)
         uz.electro.remote.i18n.Lang.load(this)
@@ -54,6 +63,15 @@ class MainActivity : FragmentActivity() {
         setContent {
             ElectroTheme {
                 val vm: CarViewModel = viewModel()
+                // «Окей Google» / ярлык / ссылка leapremote://action/… — выполнить, как только вошли
+                val voice by pendingAction.collectAsState()
+                val loggedInNow by vm.loggedIn.collectAsState()
+                androidx.compose.runtime.LaunchedEffect(voice, loggedInNow) {
+                    val a = voice ?: return@LaunchedEffect
+                    if (!loggedInNow) return@LaunchedEffect
+                    pendingAction.value = null
+                    vm.quickAction(a)
+                }
                 // пришёл push — перечитать ленту, пока приложение открыто
                 androidx.compose.runtime.DisposableEffect(Unit) {
                     val r = object : BroadcastReceiver() {

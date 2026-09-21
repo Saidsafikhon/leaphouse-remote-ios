@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Подписи ярлыков (системные, переводятся ресурсами Android: values-en, values-uz)
+     и фразы для Google Assistant (queryPatterns в xml/shortcuts.xml). -->
+<resources>
+    <string name="sc_lock">Закрыть машину</string>
+    <string name="sc_lock_long">Закрыть двери машины</string>
+    <string name="sc_unlock">Открыть машину</string>
+    <string name="sc_unlock_long">Открыть двери машины</string>
+    <string name="sc_climate_on">Включить климат</string>
+    <string name="sc_climate_on_long">Включить климат в машине</string>
+    <string name="sc_trunk">Багажник</string>
+    <string name="sc_trunk_long">Открыть багажник</string>
+
+    <string-array name="voice_lock">
+        <item>закрой машину</item><item>закрой двери</item><item>поставь машину на охрану</item>
+        <item>lock the car</item><item>lock my car</item><item>mashinani yop</item>
+    </string-array>
+    <string-array name="voice_unlock">
+        <item>открой машину</item><item>открой двери</item><item>сними машину с охраны</item>
+        <item>unlock the car</item><item>unlock my car</item><item>mashinani och</item>
+    </string-array>
+    <string-array name="voice_climate_on">
+        <item>включи климат</item><item>включи кондиционер</item><item>прогрей машину</item><item>охлади машину</item>
+        <item>turn on the climate</item><item>turn on the air conditioning</item><item>klimatni yoq</item>
+    </string-array>
+    <string-array name="voice_climate_off">
+        <item>выключи климат</item><item>выключи кондиционер</item>
+        <item>turn off the climate</item><item>klimatni o‘chir</item>
+    </string-array>
+    <string-array name="voice_trunk">
+        <item>открой багажник</item><item>open the trunk</item><item>yukxonani och</item>
+    </string-array>
+    <string-array name="voice_windows_close">
+        <item>закрой окна</item><item>подними стёкла</item><item>close the windows</item><item>oynalarni yop</item>
+    </string-array>
+</resources>

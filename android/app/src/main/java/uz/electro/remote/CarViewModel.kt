@@ -445,6 +445,23 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
     fun send(type: Int, value: String, label: String = "") =
         send(listOf(VehicleCommand(type, value, label)))
 
+    /**
+     * Быстрое действие снаружи (Google Assistant / ярлык / ссылка): если машина спит —
+     * будим и ждём как при «Подключиться», потом шлём ту же пачку, что и плитка.
+     * «find» — просто показать карту (обрабатывает экран).
+     */
+    fun quickAction(action: String) = viewModelScope.launch {
+        if (!_loggedIn.value) return@launch
+        val cmds = VoiceActions.commands(action) ?: return@launch
+        if (_connect.value.phase != ConnectPhase.Connected) {
+            connect()
+            // ждём исход подключения (Connected / Timeout / Error)
+            _connect.first { it.phase == ConnectPhase.Connected || it.phase == ConnectPhase.Timeout || it.phase == ConnectPhase.Error }
+            if (_connect.value.phase != ConnectPhase.Connected) return@launch
+        }
+        send(cmds, VoiceActions.label(action))
+    }
+
     /** Отправляет пачку команд как одно действие: одно уведомление на результат. */
     fun send(cmds: List<VehicleCommand>, label: String = "") = viewModelScope.launch {
         if (cmds.isEmpty()) return@launch

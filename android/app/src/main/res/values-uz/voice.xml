@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sc_lock">Mashinani yopish</string>
+    <string name="sc_lock_long">Mashina eshiklarini qulflash</string>
+    <string name="sc_unlock">Mashinani ochish</string>
+    <string name="sc_unlock_long">Mashina eshiklarini ochish</string>
+    <string name="sc_climate_on">Klimatni yoqish</string>
+    <string name="sc_climate_on_long">Mashinada klimatni yoqish</string>
+    <string name="sc_trunk">Yukxona</string>
+    <string name="sc_trunk_long">Yukxonani ochish</string>
+</resources>

@@ -351,6 +351,34 @@ final class CarViewModel: ObservableObject {
     }
 
     /// Отправляет пачку команд как одно действие: одно уведомление на результат.
+    /// Быстрое действие снаружи (Siri / Быстрые команды / ссылка): если машина спит — будим и
+    /// ждём как при «Подключиться», потом шлём ту же пачку, что и плитка на главной.
+    func quickAction(_ action: String) {
+        guard loggedIn, let a = CarAction(rawValue: action) else { return }
+        let cmds: [VehicleCommand]
+        switch a {
+        case .lock: cmds = [VehicleCommand(type: Cmd.LOCK, value: "0", label: L("Закрыть двери"))]
+        case .unlock: cmds = [VehicleCommand(type: Cmd.LOCK, value: "1", label: L("Открыть двери"))]
+        case .climateOn: cmds = [VehicleCommand(type: Cmd.AC, value: "1", label: L("Климат"))]
+        case .climateOff: cmds = Cmd.climateOff()
+        case .trunk: cmds = [VehicleCommand(type: Cmd.TRUNK, value: "1", label: L("Открыть багажник"))]
+        case .windowsClose: cmds = Cmd.WINDOWS.map { VehicleCommand(type: $0, value: "0", label: L("Закрыть окна")) }
+        }
+        let label = CarAction.caseDisplayRepresentations[a].map { String(localized: $0.title) } ?? ""
+        Task { @MainActor in
+            if connectStatus.phase != .connected {
+                connect()
+                // ждём исход подключения: connected / timeout / error (не дольше 100 с)
+                for _ in 0..<200 {
+                    try? await Task.sleep(nanoseconds: 500_000_000)
+                    if [.connected, .timeout, .error].contains(connectStatus.phase) { break }
+                }
+                guard connectStatus.phase == .connected else { return }
+            }
+            send(cmds, label: label)
+        }
+    }
+
     func send(_ cmds: [VehicleCommand], label: String = "") {
         guard !cmds.isEmpty else { return }
         Task {

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Ярлыки по долгому тапу на иконке + App Actions для Google Assistant («Окей Google, …»).
+  Каждый ярлык открывает leapremote://action/<имя>, дальше — CarViewModel.quickAction.
+  Голосовые фразы — custom intents (values/voice.xml, queryPatterns); Ассистент подхватывает их
+  после публикации приложения в Google Play (до этого — только ярлыки и ссылки).
+-->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <capability android:name="custom.actions.intent.LOCK_CAR" app:queryPatterns="@array/voice_lock">
+        <intent android:action="android.intent.action.VIEW" android:data="leapremote://action/lock" android:targetPackage="uz.electro.remote" android:targetClass="uz.electro.remote.MainActivity"/>
+    </capability>
+    <capability android:name="custom.actions.intent.UNLOCK_CAR" app:queryPatterns="@array/voice_unlock">
+        <intent android:action="android.intent.action.VIEW" android:data="leapremote://action/unlock" android:targetPackage="uz.electro.remote" android:targetClass="uz.electro.remote.MainActivity"/>
+    </capability>
+    <capability android:name="custom.actions.intent.CLIMATE_ON" app:queryPatterns="@array/voice_climate_on">
+        <intent android:action="android.intent.action.VIEW" android:data="leapremote://action/climate_on" android:targetPackage="uz.electro.remote" android:targetClass="uz.electro.remote.MainActivity"/>
+    </capability>
+    <capability android:name="custom.actions.intent.CLIMATE_OFF" app:queryPatterns="@array/voice_climate_off">
+        <intent android:action="android.intent.action.VIEW" android:data="leapremote://action/climate_off" android:targetPackage="uz.electro.remote" android:targetClass="uz.electro.remote.MainActivity"/>
+    </capability>
+    <capability android:name="custom.actions.intent.OPEN_TRUNK" app:queryPatterns="@array/voice_trunk">
+        <intent android:action="android.intent.action.VIEW" android:data="leapremote://action/trunk" android:targetPackage="uz.electro.remote" android:targetClass="uz.electro.remote.MainActivity"/>
+    </capability>
+    <capability android:name="custom.actions.intent.CLOSE_WINDOWS" app:queryPatterns="@array/voice_windows_close">
+        <intent android:action="android.intent.action.VIEW" android:data="leapremote://action/windows_close" android:targetPackage="uz.electro.remote" android:targetClass="uz.electro.remote.MainActivity"/>
+    </capability>
+
+    <shortcut android:shortcutId="lock" android:enabled="true" android:icon="@drawable/lx_lock" android:shortcutShortLabel="@string/sc_lock" android:shortcutLongLabel="@string/sc_lock_long">
+        <intent android:action="android.intent.action.VIEW" android:data="leapremote://action/lock" android:targetPackage="uz.electro.remote" android:targetClass="uz.electro.remote.MainActivity"/>
+        <capability-binding android:key="custom.actions.intent.LOCK_CAR"/>
+    </shortcut>
+    <shortcut android:shortcutId="unlock" android:enabled="true" android:icon="@drawable/lx_lock_open" android:shortcutShortLabel="@string/sc_unlock" android:shortcutLongLabel="@string/sc_unlock_long">
+        <intent android:action="android.intent.action.VIEW" android:data="leapremote://action/unlock" android:targetPackage="uz.electro.remote" android:targetClass="uz.electro.remote.MainActivity"/>
+        <capability-binding android:key="custom.actions.intent.UNLOCK_CAR"/>
+    </shortcut>
+    <shortcut android:shortcutId="climate_on" android:enabled="true" android:icon="@drawable/lx_snowflake" android:shortcutShortLabel="@string/sc_climate_on" android:shortcutLongLabel="@string/sc_climate_on_long">
+        <intent android:action="android.intent.action.VIEW" android:data="leapremote://action/climate_on" android:targetPackage="uz.electro.remote" android:targetClass="uz.electro.remote.MainActivity"/>
+        <capability-binding android:key="custom.actions.intent.CLIMATE_ON"/>
+    </shortcut>
+    <shortcut android:shortcutId="trunk" android:enabled="true" android:icon="@drawable/lx_car" android:shortcutShortLabel="@string/sc_trunk" android:shortcutLongLabel="@string/sc_trunk_long">
+        <intent android:action="android.intent.action.VIEW" android:data="leapremote://action/trunk" android:targetPackage="uz.electro.remote" android:targetClass="uz.electro.remote.MainActivity"/>
+        <capability-binding android:key="custom.actions.intent.OPEN_TRUNK"/>
+    </shortcut>
+</shortcuts>

@@ -22,6 +22,15 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>uz.electro.remote.action</string>
+			<key>CFBundleURLSchemes</key>
+			<array><string>leapremote</string></array>
+		</dict>
+	</array>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Face ID нужен, чтобы открывать приложение без ввода кода.</string>
 	<key>NSCameraUsageDescription</key>
