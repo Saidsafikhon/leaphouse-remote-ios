@@ -25,6 +25,13 @@ object CarArt {
         "glacier-blue" to Paint("glacier-blue", "Ледниковый голубой", Color(0xFFB6CDE0)),
         "walden-green" to Paint("walden-green", "Тёмно-зелёный", Color(0xFF2F4A3C)),
         "seaweed-green" to Paint("seaweed-green", "Зелёный", Color(0xFF3D6B4A)),
+        "light-white" to Paint("light-white", "Белый", Color(0xFFF2F3F5)),
+        "sakura-pink" to Paint("sakura-pink", "Сакура розовый", Color(0xFFE8C4C8)),
+        "acorn-brown" to Paint("acorn-brown", "Ореховый коричневый", Color(0xFF6E5A4E)),
+        "berry-blue" to Paint("berry-blue", "Ягодный синий", Color(0xFF3E5A8A)),
+        "star-purple" to Paint("star-purple", "Звёздный фиолетовый", Color(0xFF5A4A6E)),
+        "tundra-grey" to Paint("tundra-grey", "Тундра-серый", Color(0xFFC9C6C0)),
+        "sky-grey" to Paint("sky-grey", "Небесно-серый", Color(0xFF4C5157)),
     )
 
     /** Какие цвета есть у модели — ровно те, на которые есть рендер. */
@@ -49,6 +56,7 @@ object CarArt {
             "canopy-gray" to R.drawable.car_c11_canopy_gray,
             "galaxy-silver" to R.drawable.car_c11_galaxy_silver,
             "walden-green" to R.drawable.car_c11_walden_green,
+            "light-white" to R.drawable.car_c11_light_white,
         ),
         "C01" to mapOf(
             "metallic-black" to R.drawable.car_c01_metallic_black,
@@ -60,9 +68,22 @@ object CarArt {
             "metallic-black" to R.drawable.car_b10_metallic_black,
             "terra-grey" to R.drawable.car_b10_terra_grey,
             "glacier-blue" to R.drawable.car_b10_glacier_blue,
+            "sakura-pink" to R.drawable.car_b10_sakura_pink,
         ),
-        "A10" to mapOf("seaweed-green" to R.drawable.car_a10_seaweed_green),
-        "D19" to mapOf("metallic-black" to R.drawable.car_d19_metallic_black),
+        "A10" to mapOf(
+            "seaweed-green" to R.drawable.car_a10_seaweed_green,
+            "galaxy-silver" to R.drawable.car_a10_galaxy_silver,
+            "tundra-grey" to R.drawable.car_a10_tundra_grey,
+            "berry-blue" to R.drawable.car_a10_berry_blue,
+            "acorn-brown" to R.drawable.car_a10_acorn_brown,
+            "star-purple" to R.drawable.car_a10_star_purple,
+        ),
+        "D19" to mapOf(
+            "metallic-black" to R.drawable.car_d19_metallic_black,
+            "pearl-white" to R.drawable.car_d19_pearl_white,
+            "sky-grey" to R.drawable.car_d19_sky_grey,
+            "jade-green" to R.drawable.car_d19_jade_green,
+        ),
     )
 
     /** Нормализуем «Leapmotor C16», «c16 2025», «C16» → «C16». */

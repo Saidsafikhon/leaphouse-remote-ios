@@ -24,17 +24,24 @@ enum CarArt {
         "glacier-blue": Paint(code: "glacier-blue", label: "Ледниковый голубой", swatch: Color(hex: 0xB6CDE0)),
         "walden-green": Paint(code: "walden-green", label: "Тёмно-зелёный", swatch: Color(hex: 0x2F4A3C)),
         "seaweed-green": Paint(code: "seaweed-green", label: "Зелёный", swatch: Color(hex: 0x3D6B4A)),
+        "light-white": Paint(code: "light-white", label: "Белый", swatch: Color(hex: 0xF2F3F5)),
+        "sakura-pink": Paint(code: "sakura-pink", label: "Сакура розовый", swatch: Color(hex: 0xE8C4C8)),
+        "acorn-brown": Paint(code: "acorn-brown", label: "Ореховый коричневый", swatch: Color(hex: 0x6E5A4E)),
+        "berry-blue": Paint(code: "berry-blue", label: "Ягодный синий", swatch: Color(hex: 0x3E5A8A)),
+        "star-purple": Paint(code: "star-purple", label: "Звёздный фиолетовый", swatch: Color(hex: 0x5A4A6E)),
+        "tundra-grey": Paint(code: "tundra-grey", label: "Тундра-серый", swatch: Color(hex: 0xC9C6C0)),
+        "sky-grey": Paint(code: "sky-grey", label: "Небесно-серый", swatch: Color(hex: 0x4C5157)),
     ]
 
     /// Какие цвета есть у модели — ровно те, на которые есть рендер (порядок = порядок кружков).
     private static let art: [String: [String]] = [
         "C16": ["pearl-white", "metallic-black", "canopy-gray", "jade-green", "glacier-blue"],
         "C10": ["pearl-white", "metallic-black", "canopy-gray", "terra-grey", "jade-green"],
-        "C11": ["pearl-white", "metallic-black", "canopy-gray", "galaxy-silver", "walden-green"],
+        "C11": ["pearl-white", "metallic-black", "canopy-gray", "galaxy-silver", "walden-green", "light-white"],
         "C01": ["metallic-black", "galaxy-silver", "walden-green"],
-        "B10": ["pearl-white", "metallic-black", "terra-grey", "glacier-blue"],
-        "A10": ["seaweed-green"],
-        "D19": ["metallic-black"],
+        "B10": ["pearl-white", "metallic-black", "terra-grey", "glacier-blue", "sakura-pink"],
+        "A10": ["seaweed-green", "galaxy-silver", "tundra-grey", "berry-blue", "acorn-brown", "star-purple"],
+        "D19": ["metallic-black", "pearl-white", "sky-grey", "jade-green"],
     ]
     private static let order = ["C16", "C10", "C11", "C01", "B10", "A10", "D19"]
 
