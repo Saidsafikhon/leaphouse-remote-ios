@@ -105,6 +105,8 @@
   `GET /master/shop/products.xlsx` (openpyxl, файл = шаблон) и `POST /master/shop/products/import` (сырое тело;
   строки с ID обновляются, без ID — создаются; ответ: created/updated/skipped/errors). Колонки:
   id, title, description, price, old_price, currency, category, models, image_url, link, sort, active.
+- Поиск в админке на вкладке «Магазин» (общее поле сверху): по товарам (название, описание, категория, модели, цена)
+  и заявкам (товар, телефон, комментарий, человек, статус); фильтрует на клиенте (`drawShop`).
 
 ## 6. Версии и сборки
 
