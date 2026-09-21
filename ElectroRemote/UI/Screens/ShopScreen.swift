@@ -118,12 +118,12 @@ private struct ProductCard: View {
                 Text(product.title).font(ElectroType.body.weight(.semibold)).foregroundStyle(p.textPrimary)
                     .lineLimit(2).frame(minHeight: 40, alignment: .topLeading).padding(.top, 4)
                 Text(formatPrice(product.price, product.currency)).font(ElectroType.body.weight(.bold)).foregroundStyle(p.accent)
-                if discount, let old = product.old_price {
-                    Text(formatPrice(old, product.currency)).font(ElectroType.unit).foregroundStyle(p.textMuted).strikethrough()
-                }
+                // строка старой цены есть всегда (пустая, если скидки нет) — иначе карточки разной высоты
+                Text(discount ? formatPrice(product.old_price ?? 0, product.currency) : " ")
+                    .font(ElectroType.unit).foregroundStyle(p.textMuted).strikethrough(discount).lineLimit(1)
             }
             .padding(Space.x3)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background(p.surface)
             .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).stroke(p.outline, lineWidth: 1))

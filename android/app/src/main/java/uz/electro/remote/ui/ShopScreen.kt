@@ -93,8 +93,9 @@ fun ShopScreen(
         if (shown.isEmpty()) EmptyNote(when { products.isEmpty() -> S("Товары скоро появятся."); q.isNotEmpty() -> S("Ничего не найдено"); else -> S("В этом разделе пусто.") })
         // сетка 2 в ряд
         shown.chunked(2).forEach { row ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Space.x3)) {
-                row.forEach { p -> ProductCard(p, Modifier.weight(1f)) { selected = p } }
+            // карточки в ряду одной высоты: строка старой цены зарезервирована всегда
+            Row(Modifier.fillMaxWidth().height(IntrinsicSize.Max), horizontalArrangement = Arrangement.spacedBy(Space.x3)) {
+                row.forEach { p -> ProductCard(p, Modifier.weight(1f).fillMaxHeight()) { selected = p } }
                 if (row.size == 1) Spacer(Modifier.weight(1f))
             }
         }
@@ -129,10 +130,10 @@ private fun ProductCard(p: ProductDto, modifier: Modifier, onClick: () -> Unit) 
                 maxLines = 2, minLines = 2, overflow = TextOverflow.Ellipsis)
             Spacer(Modifier.height(4.dp))
             Text(formatPrice(p.price, p.currency), style = ElectroType.Body, fontWeight = FontWeight.Bold, color = ElectroColors.Accent)
-            if (p.old_price != null && p.old_price > p.price) {
-                Text(formatPrice(p.old_price, p.currency), style = ElectroType.Unit, color = ElectroColors.TextMuted,
-                    textDecoration = TextDecoration.LineThrough)
-            }
+            // строка старой цены есть всегда (пустая, если скидки нет) — иначе карточки разной высоты
+            val discount = p.old_price != null && p.old_price > p.price
+            Text(if (discount) formatPrice(p.old_price!!, p.currency) else " ", style = ElectroType.Unit, color = ElectroColors.TextMuted,
+                textDecoration = if (discount) TextDecoration.LineThrough else TextDecoration.None, maxLines = 1)
         }
     }
 }
