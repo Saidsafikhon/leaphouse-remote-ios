@@ -350,11 +350,7 @@ private struct NewsCard: View {
         VStack(alignment: .leading, spacing: 0) {
             if hasImage, let url = URL(string: item.image_url!) {
                 ZStack(alignment: .topLeading) {
-                    AsyncImage(url: url) { phase in
-                        if let img = phase.image { img.resizable().scaledToFill() } else { p.surfaceElevated }
-                    }
-                    .frame(maxWidth: .infinity).frame(height: 170).clipped()
-                    .clipShape(RoundedRectangle(cornerRadius: Radius.sm, style: .continuous))
+                    CoverImage(url: url, height: 170, corner: Radius.sm)
                     HStack {
                         Text((item.source ?? categoryLabel(item)).uppercased())
                             .font(.system(size: 10, weight: .bold)).tracking(0.5).foregroundStyle(p.textPrimary)
@@ -437,11 +433,7 @@ struct NewsDetailScreen: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Space.x4) {
                     if let s = item.image_url, let url = URL(string: s) {
-                        AsyncImage(url: url) { phase in
-                            if let img = phase.image { img.resizable().scaledToFill() } else { p.surfaceElevated }
-                        }
-                        .frame(maxWidth: .infinity).frame(height: 200).clipped()
-                        .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
+                        CoverImage(url: url, height: 200, corner: Radius.md)
                     }
                     Text([item.source, newsDate(item.created_at)].compactMap { $0 }.joined(separator: " · "))
                         .font(ElectroType.caption).foregroundStyle(p.textMuted)

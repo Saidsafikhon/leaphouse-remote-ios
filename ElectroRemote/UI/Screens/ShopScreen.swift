@@ -97,17 +97,7 @@ private struct ProductCard: View {
         Button(action: onTap) {
             VStack(alignment: .leading, spacing: 4) {
                 ZStack(alignment: .topLeading) {
-                    Group {
-                        if let s = product.image_url, let u = URL(string: s) {
-                            AsyncImage(url: u) { phase in
-                                if let img = phase.image { img.resizable().scaledToFill() } else { p.surfaceElevated }
-                            }
-                        } else {
-                            ZStack { p.surfaceElevated; Image(systemName: "bag").font(.system(size: 30)).foregroundStyle(p.textMuted) }
-                        }
-                    }
-                    .aspectRatio(1, contentMode: .fill).frame(maxWidth: .infinity).clipped()
-                    .clipShape(RoundedRectangle(cornerRadius: Radius.sm, style: .continuous))
+                    CoverImage(url: product.image_url.flatMap { URL(string: $0) }, height: nil, corner: Radius.sm, placeholder: "bag")
                     if discount, let old = product.old_price {
                         Text("-\(100 - Int(product.price * 100 / old))%")
                             .font(.system(size: 10, weight: .bold)).foregroundStyle(p.onAccent)
@@ -164,11 +154,7 @@ private struct ProductScreen: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Space.x4) {
                     if let s = product.image_url, let u = URL(string: s) {
-                        AsyncImage(url: u) { phase in
-                            if let img = phase.image { img.resizable().scaledToFill() } else { p.surfaceElevated }
-                        }
-                        .frame(maxWidth: .infinity).frame(height: 240).clipped()
-                        .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
+                        CoverImage(url: u, height: 240, corner: Radius.md)
                     }
                     Text(product.title).font(ElectroType.title).foregroundStyle(p.textPrimary)
                     HStack(alignment: .lastTextBaseline, spacing: Space.x2) {

@@ -482,3 +482,40 @@ struct ElectroToggle: View {
             .disabled(!enabled)
     }
 }
+
+/// Картинка-обложка по URL: заполняет отведённый прямоугольник, НЕ расширяя раскладку.
+/// `resizable().scaledToFill()` внутри VStack предлагает свою ширину и выталкивает
+/// экран за край (так уехал экран товара на iPhone) — поэтому картинка кладётся
+/// overlay-ем на прозрачный прямоугольник фиксированного размера.
+struct CoverImage: View {
+    @Environment(\.palette) private var p
+    let url: URL?
+    var height: CGFloat? = nil          // nil — квадрат по ширине
+    var corner: CGFloat = Radius.sm
+    var placeholder: String? = nil      // SF Symbol, если картинки нет
+
+    var body: some View {
+        Color.clear
+            .frame(maxWidth: .infinity)
+            .modifier(SizeMod(height: height))
+            .background(p.surfaceElevated)
+            .overlay {
+                if let url {
+                    AsyncImage(url: url) { phase in
+                        if let img = phase.image { img.resizable().scaledToFill() } else { Color.clear }
+                    }
+                } else if let ph = placeholder {
+                    Image(systemName: ph).font(.system(size: 30)).foregroundStyle(p.textMuted)
+                }
+            }
+            .clipped()
+            .clipShape(RoundedRectangle(cornerRadius: corner, style: .continuous))
+    }
+
+    private struct SizeMod: ViewModifier {
+        let height: CGFloat?
+        func body(content: Content) -> some View {
+            if let h = height { content.frame(height: h) } else { content.aspectRatio(1, contentMode: .fit) }
+        }
+    }
+}
