@@ -363,14 +363,24 @@ private func updatedText(_ car: CarState) -> String {
 
 /// Рендер — студийная вырезка модели в цвете кузова; состояние дверей
 /// показывает полоса статуса ниже.
+/// 3D-машина (крутится пальцем), пока модель не загрузилась — студийный рендер.
 private struct Hero: View {
     let model: String
     let paint: String?
+    @State private var ready = false
     var body: some View {
-        Image(CarArt.imageName(model, paint))
-            .resizable().scaledToFit()
-            .frame(maxWidth: .infinity).frame(height: 190)
-            .padding(.horizontal, Space.x2)
+        let swatch = CarArt.paints(model).first { $0.code == paint }?.swatch ?? CarArt.paints(model).first?.swatch ?? Color(hex: 0xE9EAEC)
+        ZStack {
+            if !ready {
+                Image(CarArt.imageName(model, paint))
+                    .resizable().scaledToFit()
+                    .frame(maxWidth: .infinity).frame(height: 190)
+                    .padding(.horizontal, Space.x2)
+            }
+            CarModelView(model: model, paint: swatch, onReady: { ready = $0 })
+                .opacity(ready ? 1 : 0)
+        }
+        .frame(maxWidth: .infinity).frame(height: 230)
     }
 }
 

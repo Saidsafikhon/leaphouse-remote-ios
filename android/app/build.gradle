@@ -32,7 +32,7 @@ android {
         //          включил и выключаешь той же плиткой даже после перезахода.
         // 0.39.0: LeapRemote — название и иконка, удаление аккаунта (App Store 5.1.1 /
         //         Google Play), политика и поддержка, лента «Новости», push через FCM.
-        versionCode 103; versionName "0.46.0"
+        versionCode 104; versionName "0.47.0"
         // Адреса backend здесь больше нет: он правится в самом приложении
         // (Настройки → «Адрес сервера»), значение по умолчанию и подмена
         // устаревших адресов живут в data/Settings.kt. Зашитый на сборке адрес
@@ -40,7 +40,9 @@ android {
         // SHA-256 отпечаток release-сертификата. Пусто = проверка выключена.
         // Задать: ./gradlew -PexpectedSig=AA:BB:...  (keytool -printcert), или в gradle.properties.
         def expSig = (project.findProperty("expectedSig") ?: "").toString().replace(":", "").toUpperCase()
-        buildConfigField "String", "EXPECTED_SIG", "\"${expSig}\""
+        buildConfigField "String", "EXPECTED_SIG", "\"${expSig}\""        // Только ARM: x86/x86_64 (эмуляторы, Intel-планшеты) добавляли ~15 МБ нативных
+        // библиотек Filament к APK, а живых телефонов на них нет. Эмулятор 3D всё равно не тянет.
+        ndk { abiFilters "arm64-v8a", "armeabi-v7a" }
     }
     buildFeatures { compose true; buildConfig true }
     composeOptions { kotlinCompilerExtensionVersion '1.5.8' }

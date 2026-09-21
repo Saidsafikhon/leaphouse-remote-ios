@@ -105,6 +105,7 @@ struct ConnectScreen: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(p.background)
         .sheet(isPresented: $showHelp) { HelpSheet(support: vm.support, feedbackVM: vm.loggedIn ? vm : nil) }
+        .onAppear { CarModels.prefetch(vm.selectedVehicle?.model) }   // 3D-модель для главной — заранее
     }
 }
 
