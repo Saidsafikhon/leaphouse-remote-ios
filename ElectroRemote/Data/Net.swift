@@ -13,7 +13,8 @@ func scrubAddresses(_ text: String?) -> String? {
     rep("\\b[a-z0-9-]+(?:\\.[a-z0-9-]+)+\\.[a-z]{2,}\\b", L("сервер"))
     rep("\\b[a-z0-9-]+\\.[a-z]{2,}\\b", L("сервер"))
     rep("/?\\b(?:\\d{1,3}\\.){3}\\d{1,3}(?::\\d+)?\\b", L("сервер"), [])
-    rep(L("(?:сервер[\\s/:]+){1,}сервер"), L("сервер"))
+    let w = NSRegularExpression.escapedPattern(for: L("сервер"))
+    rep("(?:\(w)[\\s/:]+){1,}\(w)", L("сервер"))
     rep("\\s+", " ", [])
     return s.trimmingCharacters(in: .whitespaces)
 }
