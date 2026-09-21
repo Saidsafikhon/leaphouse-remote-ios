@@ -147,6 +147,12 @@ fun PhoneControlScreen(vm: CarViewModel = viewModel()) {
                     onRun = { vm.runVoice(it) },
                     onBack = { tab = "car" },
                 )
+                "shop" -> {
+                    LaunchedEffect(Unit) { vm.loadProducts() }
+                    val products by vm.products.collectAsState()
+                    ShopScreen(products, loggedIn = true, phoneHint = "", model = chosen?.model,
+                        onOrder = { id, qty, phone, comment, done -> vm.order(id, qty, phone, comment, done) }, onBack = { tab = "car" })
+                }
                 "news" -> {
                     LaunchedEffect(Unit) { vm.loadNews() }
                     NewsScreen(news, newsRead, onRead = { vm.markNewsRead(it.id) },
@@ -234,7 +240,7 @@ private fun HomeTab(
         verticalArrangement = Arrangement.spacedBy(Space.x5),
     ) {
         HeaderLockup(car, model, unreadNews,
-            onHelp = { showHelp = true }, onNews = { onOpen("news") },
+            onHelp = { showHelp = true }, onNews = { onOpen("news") }, onShop = { onOpen("shop") },
             onRefresh = onRefresh, onDisconnect = onDisconnect)
         Hero(model, paint)
         CarStatusStrip(car)
@@ -434,7 +440,7 @@ internal fun SeatCell(
 @Composable
 private fun HeaderLockup(
     car: CarState, model: String, unread: Int,
-    onHelp: () -> Unit, onNews: () -> Unit, onRefresh: () -> Unit, onDisconnect: () -> Unit,
+    onHelp: () -> Unit, onNews: () -> Unit, onShop: () -> Unit, onRefresh: () -> Unit, onDisconnect: () -> Unit,
 ) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
         Column(Modifier.weight(1f)) {
@@ -458,6 +464,7 @@ private fun HeaderLockup(
         Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(Space.x2)) {
             DisconnectChip(onDisconnect)
             Row(horizontalArrangement = Arrangement.spacedBy(Space.x2)) {
+                ShopFab(onShop)
                 NewsBell(unread, onNews)
                 HelpFab(onHelp)
             }

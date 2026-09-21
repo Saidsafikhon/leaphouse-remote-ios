@@ -71,6 +71,24 @@ data class VehicleDto(
     val model: String? = null,
 )
 
+/** Товар витрины магазина аксессуаров. Цена в сумах. */
+data class ProductDto(
+    val id: String,
+    val title: String,
+    val description: String = "",
+    val price: Long = 0,
+    val old_price: Long? = null,
+    val currency: String = "UZS",
+    val image_url: String? = null,
+    val link: String? = null,
+    val category: String = "accessory",   // accessory | equipment | care | tuning | other
+    val models: String = "",
+    val active: Boolean = true,
+)
+
+data class OrderRequest(val product_id: String, val qty: Int, val phone: String, val comment: String, val vehicle_id: String?)
+data class OrderDto(val id: String, val product_title: String, val qty: Int, val status: String, val created_at: String)
+
 /** Контакты поддержки — то же, что показывает «Помощь» на голове. */
 data class SupportDto(
     val phone: String = "",
@@ -236,6 +254,12 @@ interface ElectroApi {
     /** Лента без входа — только новости «для всех» (экран логина). */
     @GET("api/v1/news/public")
     suspend fun newsPublic(@Query("limit") limit: Int = 50): List<NewsItemDto>
+
+    @GET("api/v1/shop/products")
+    suspend fun products(): List<ProductDto>
+
+    @POST("api/v1/shop/orders")
+    suspend fun order(@Body body: OrderRequest): OrderDto
 
     @GET("api/v1/agent/support")
     suspend fun support(): SupportDto

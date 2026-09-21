@@ -56,6 +56,16 @@ fun ConnectScreen(vm: CarViewModel, status: ConnectStatus) {
         ) { SettingsScreen(vm) { showSettings = false } }
         return
     }
+    var showShop by remember { mutableStateOf(false) }
+    if (showShop) {
+        LaunchedEffect(Unit) { vm.loadProducts() }
+        val products by vm.products.collectAsState()
+        androidx.compose.material3.Surface(color = ElectroColors.Background, modifier = Modifier.fillMaxSize()) {
+            ShopScreen(products, loggedIn = true, phoneHint = "", model = vm.selectedVehicle.value?.model,
+                        onOrder = { id, qty, phone, comment, done -> vm.order(id, qty, phone, comment, done) }, onBack = { showShop = false })
+        }
+        return
+    }
     if (showNews) {
         LaunchedEffect(Unit) { vm.loadNews() }
         androidx.compose.material3.Surface(color = ElectroColors.Background, modifier = Modifier.fillMaxSize()) {
@@ -89,6 +99,8 @@ fun ConnectScreen(vm: CarViewModel, status: ConnectStatus) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
             uz.electro.remote.ui.components.LangPicker(compact = true)
             Spacer(Modifier.weight(1f))
+            ShopFab(onClick = { showShop = true })
+            Spacer(Modifier.width(Space.x2))
             NewsBell(unreadNews, onClick = { showNews = true })
             Spacer(Modifier.width(Space.x2))
             HelpFab(onClick = { showHelp = true })

@@ -57,7 +57,17 @@ fun LoginScreen(
     val newsRead by vm.newsRead.collectAsState()
     val unreadNews by vm.unreadNews.collectAsState()
     var showNews by remember { mutableStateOf(false) }
+    var showShop by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { vm.loadNews() }
+    if (showShop) {
+        LaunchedEffect(Unit) { vm.loadProducts() }
+        val products by vm.products.collectAsState()
+        androidx.compose.material3.Surface(color = ElectroColors.Background, modifier = Modifier.fillMaxSize()) {
+            ShopScreen(products, loggedIn = false, phoneHint = "", model = null,
+                        onOrder = { id, qty, phone, comment, done -> vm.order(id, qty, phone, comment, done) }, onBack = { showShop = false })
+        }
+        return
+    }
     if (showNews) {
         androidx.compose.material3.Surface(color = ElectroColors.Background, modifier = Modifier.fillMaxSize()) {
             NewsScreen(news, newsRead, onRead = { vm.markNewsRead(it.id) },
@@ -74,6 +84,8 @@ fun LoginScreen(
         Spacer(Modifier.height(Space.x8))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
             uz.electro.remote.ui.components.LangPicker(compact = true)
+            Spacer(Modifier.width(Space.x2))
+            ShopFab(onClick = { showShop = true })
             Spacer(Modifier.width(Space.x2))
             NewsBell(unreadNews, onClick = { showNews = true })
             Spacer(Modifier.width(Space.x2))

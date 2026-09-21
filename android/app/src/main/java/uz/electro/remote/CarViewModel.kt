@@ -508,6 +508,14 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
 
     // --- помощь (контакты поддержки) -------------------------------------
 
+    // --- магазин ---
+    private val _products = MutableStateFlow<List<uz.electro.remote.data.ProductDto>>(emptyList())
+    val products: StateFlow<List<uz.electro.remote.data.ProductDto>> = _products.asStateFlow()
+    fun loadProducts() = viewModelScope.launch { _products.value = repo.products() }
+    /** Заявка: колбэк с текстом ошибки или null при успехе. */
+    fun order(productId: String, qty: Int, phone: String, comment: String, done: (String?) -> Unit) =
+        viewModelScope.launch { done(repo.order(uz.electro.remote.data.OrderRequest(productId, qty, phone, comment, _vehicleId.value))) }
+
     private val _support = MutableStateFlow<SupportDto?>(null)
     val support: StateFlow<SupportDto?> = _support.asStateFlow()
 

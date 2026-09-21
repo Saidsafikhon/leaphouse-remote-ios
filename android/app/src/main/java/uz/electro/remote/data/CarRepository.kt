@@ -108,6 +108,15 @@ class CarRepository(private val settings: Settings) {
      * от SMS, отвечает, дошла ли команда: у SMS обратной связи нет вовсе, и
      * «отправлено» там означало лишь «отдано оператору».
      */
+    suspend fun products(): List<ProductDto> = withContext(Dispatchers.IO) {
+        runCatching { cloud.api.products() }.getOrElse { emptyList() }
+    }
+
+    /** Заявка на товар; null — отправлено, иначе текст ошибки. */
+    suspend fun order(req: OrderRequest): String? = withContext(Dispatchers.IO) {
+        runCatching { cloud.api.order(req); null }.getOrElse { reasonOf(it) }
+    }
+
     /** Контакты поддержки (открытый эндпоинт, ключ не нужен). null — не достали. */
     suspend fun support(): SupportDto? = withContext(Dispatchers.IO) {
         runCatching { cloud.api.support() }.getOrNull()
