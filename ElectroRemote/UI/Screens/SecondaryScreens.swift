@@ -482,6 +482,7 @@ private func newsDate(_ iso: String) -> String {
 struct MapScreen: View {
     @Environment(\.palette) private var p
     let loc: GeoPoint?
+    @State private var chooseApp = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -520,7 +521,7 @@ struct MapScreen: View {
                 .padding(.horizontal, Space.x4)
 
                 Spacer().frame(height: Space.x3)
-                Button { openRoute(loc) } label: {
+                Button { if NavApp.installed.count > 1 { chooseApp = true } else { openRoute(loc) } } label: {
                     HStack(spacing: Space.x2) {
                         Image(systemName: "arrow.triangle.turn.up.right.diamond").font(.system(size: 18)).foregroundStyle(p.onAccent)
                         Text(L("Маршрут")).font(ElectroType.body).foregroundStyle(p.onAccent)
@@ -547,14 +548,57 @@ struct MapScreen: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(p.background)
+        // «Маршрут» — выбор навигатора из установленных на телефоне
+        .confirmationDialog(L("Открыть в…"), isPresented: $chooseApp, titleVisibility: .visible) {
+            ForEach(NavApp.installed) { app in
+                Button(app.name) { if let loc { app.open(loc) } }
+            }
+            Button(L("Отмена"), role: .cancel) {}
+        }
     }
 
-    /// Открыть точку авто в Apple Maps (маршрут «как доехать»).
-    private func openRoute(_ point: GeoPoint) {
-        let coord = CLLocationCoordinate2D(latitude: point.lat, longitude: point.lon)
-        let item = MKMapItem(placemark: MKPlacemark(coordinate: coord))
-        item.name = "Leapmotor C16"
-        item.openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving])
+    /// Единственный навигатор — Apple Maps (маршрут «как доехать»).
+    private func openRoute(_ point: GeoPoint) { NavApp.installed.first?.open(point) }
+}
+
+/// Навигаторы, которые умеем открывать по координатам. Установленные — по `canOpenURL`
+/// (схемы перечислены в Info.plist → LSApplicationQueriesSchemes).
+struct NavApp: Identifiable {
+    let id: String
+    let name: String
+    let scheme: String?                 // nil — Apple Maps, всегда есть
+    let url: (GeoPoint) -> String
+
+    static let all: [NavApp] = [
+        NavApp(id: "apple", name: "Apple Maps", scheme: nil) { _ in "" },
+        NavApp(id: "google", name: "Google Maps", scheme: "comgooglemaps://") {
+            "comgooglemaps://?daddr=\($0.lat),\($0.lon)&directionsmode=driving" },
+        NavApp(id: "yandexnavi", name: "Яндекс Навигатор", scheme: "yandexnavi://") {
+            "yandexnavi://build_route_on_map?lat_to=\($0.lat)&lon_to=\($0.lon)" },
+        NavApp(id: "yandexmaps", name: "Яндекс Карты", scheme: "yandexmaps://") {
+            "yandexmaps://maps.yandex.ru/?rtext=~\($0.lat),\($0.lon)&rtt=auto" },
+        NavApp(id: "2gis", name: "2ГИС", scheme: "dgis://") {
+            "dgis://2gis.ru/routeSearch/rsType/car/to/\($0.lon),\($0.lat)" },
+        NavApp(id: "waze", name: "Waze", scheme: "waze://") {
+            "waze://?ll=\($0.lat),\($0.lon)&navigate=yes" },
+    ]
+
+    static var installed: [NavApp] {
+        all.filter { app in
+            guard let s = app.scheme, let u = URL(string: s) else { return true }
+            return UIApplication.shared.canOpenURL(u)
+        }
+    }
+
+    func open(_ point: GeoPoint) {
+        if scheme == nil {
+            let coord = CLLocationCoordinate2D(latitude: point.lat, longitude: point.lon)
+            let item = MKMapItem(placemark: MKPlacemark(coordinate: coord))
+            item.name = "Leapmotor"
+            item.openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving])
+        } else if let u = URL(string: url(point)) {
+            UIApplication.shared.open(u)
+        }
     }
 }
 
