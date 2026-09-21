@@ -23,6 +23,7 @@ keys = set()
 pat = re.compile(r'(?<![A-Za-z])[SL]\("((?:[^"\\]|\\.)*)"')
 for p in glob.glob(ROOT + '/android/app/src/main/java/**/*.kt', recursive=True) + glob.glob(ROOT + '/ElectroRemote/**/*.swift', recursive=True):
     s = open(p, encoding='utf-8', errors='ignore').read()
+    for m in pat2.finditer(s): keys.add(m.group(1))
     for m in pat.finditer(s):
         k = m.group(1).replace('\\"', '"')
         if re.search('[А-Яа-яЁё]', k) and 'VoiceScreen' not in p: keys.add(k)
