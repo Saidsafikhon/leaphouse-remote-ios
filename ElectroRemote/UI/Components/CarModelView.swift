@@ -172,7 +172,6 @@ struct CarSceneView: UIViewRepresentable {
         yawNode.eulerAngles.y = yaw
         let a = Self.rightAxis
         pitchNode.rotation = SCNVector4(a.x, a.y, a.z, pitch)
-        var c: [CGFloat] = [0, 0, 0, 0]; paint.getRed(&c[0], green: &c[1], blue: &c[2], alpha: &c[3])
         scene.rootNode.enumerateChildNodes { n, _ in
             for m in n.geometry?.materials ?? [] where m.name == "M_Paint" || m.name == "M_CarPaint" {
                 m.diffuse.contents = paint
