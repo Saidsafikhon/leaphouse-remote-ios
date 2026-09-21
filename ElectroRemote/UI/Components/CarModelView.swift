@@ -132,8 +132,8 @@ struct CarSceneView: UIViewRepresentable {
         key.light!.castsShadow = false; key.position = SCNVector3(-2, 4, 3); key.look(at: SCNVector3Zero)
         scene.rootNode.addChildNode(key)
         let cam = SCNNode(); cam.name = "cam"; cam.camera = SCNCamera()
-        // горизонтальный угол 40°: машина занимает ~3/4 ширины карточки, как на Android
-        cam.camera!.fieldOfView = 40; cam.camera!.projectionDirection = .horizontal
+        // 31° по горизонтали: по фото 22.09 при 40° машина была на треть мельче, чем на Android
+        cam.camera!.fieldOfView = 31; cam.camera!.projectionDirection = .horizontal
         cam.camera!.zNear = 0.05; cam.camera!.zFar = 50; cam.camera!.wantsHDR = false
         cam.position = eye; cam.look(at: SCNVector3Zero)
         scene.rootNode.addChildNode(cam)
