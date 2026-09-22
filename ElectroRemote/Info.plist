@@ -58,6 +58,10 @@
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 	</array>
+	<!-- Только портрет. Без этого флага валидатор App Store требует все четыре
+	     ориентации «для многозадачности iPad», хотя приложение только для iPhone. -->
+	<key>UIRequiresFullScreen</key>
+	<true/>
 	<key>UIUserInterfaceStyle</key>
 	<string>Automatic</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
