@@ -144,37 +144,37 @@ jobs:
             -sdk iphoneos -destination 'generic/platform=iOS' -archivePath build/ElectroRemote.xcarchive \
             -allowProvisioningUpdates -allowProvisioningDeviceRegistration \
             -authenticationKeyPath "$PWD/AuthKey.p8" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
-            CODE_SIGN_STYLE=Automatic DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CODE_SIGN_IDENTITY="Apple Distribution" \
+            CODE_SIGN_STYLE=Automatic DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
             CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES \
             archive 2>&1 | tee archive.log | grep -E "error:|ARCHIVE|BUILD" || true
+          # CODE_SIGN_IDENTITY здесь задавать нельзя: при автоподписи архив идёт
+          # development-сертификатом, а Apple Distribution подставляет exportArchive.
+          # Явное указание даёт «conflicting provisioning settings» (Xcode 26).
           grep -q "ARCHIVE SUCCEEDED" archive.log
 
-      - name: Export .ipa for App Store
+      - name: Export and upload to TestFlight
         if: steps.gate.outputs.go == 'yes'
         run: |
+          # destination=upload: xcodebuild сам подписывает Apple Distribution и
+          # отправляет в App Store Connect по API-ключу; altool больше не нужен.
           cat > ExportOptions.plist <<PLIST
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0"><dict>
             <key>method</key><string>app-store-connect</string>
-            <key>destination</key><string>export</string>
+            <key>destination</key><string>upload</string>
             <key>signingStyle</key><string>automatic</string>
             <key>teamID</key><string>${APPLE_TEAM_ID}</string>
             <key>uploadSymbols</key><true/>
+            <key>manageAppVersionAndBuildNumber</key><false/>
           </dict></plist>
           PLIST
           set -o pipefail
           xcodebuild -exportArchive -archivePath build/ElectroRemote.xcarchive -exportPath build/export \
             -exportOptionsPlist ExportOptions.plist -allowProvisioningUpdates \
             -authenticationKeyPath "$PWD/AuthKey.p8" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
-            2>&1 | tee export.log | grep -E "error:|EXPORT" || true
-          ls -la build/export
-
-      - name: Upload to TestFlight
-        if: steps.gate.outputs.go == 'yes'
-        run: |
-          IPA=$(ls build/export/*.ipa | head -1)
-          xcrun altool --upload-app -f "$IPA" -t ios --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
+            2>&1 | tee export.log | grep -E "error:|EXPORT|Upload|upload" || true
+          grep -q "EXPORT SUCCEEDED" export.log
 
       - name: Report errors
         if: failure() && steps.gate.outputs.go == 'yes'
