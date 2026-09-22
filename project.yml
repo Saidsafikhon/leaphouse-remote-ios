@@ -12,7 +12,7 @@ settings:
     SWIFT_VERSION: "5.9"
     SWIFT_STRICT_CONCURRENCY: minimal
     MARKETING_VERSION: "0.48.0"
-    CURRENT_PROJECT_VERSION: "105"
+    CURRENT_PROJECT_VERSION: "106"
     TARGETED_DEVICE_FAMILY: "1"
     ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: ""
@@ -36,6 +36,9 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: uz.electro.remote
         PRODUCT_NAME: LeapRemote
+        # Только iPhone. Настройка на уровне проекта не работает: xcodegen ставит
+        # цели iOS «1,2», и App Store требует снимки для iPad 13".
+        TARGETED_DEVICE_FAMILY: "1"
         INFOPLIST_FILE: ElectroRemote/Info.plist
         GENERATE_INFOPLIST_FILE: NO
         CODE_SIGN_ENTITLEMENTS: ElectroRemote/ElectroRemote.entitlements
