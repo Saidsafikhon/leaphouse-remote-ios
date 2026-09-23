@@ -381,6 +381,10 @@ private struct Hero: View {
                 .opacity(ready ? 1 : 0)
         }
         .frame(maxWidth: .infinity).frame(height: 230)
+        // метка для UI-теста скриншотов: кадр главной снимается, когда 3D-модель уже
+        // на экране, а не плоская заглушка (иначе тёмный и светлый снимки разные)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier(ready ? "car3d-ready" : "car3d-loading")
     }
 }
 

@@ -47,7 +47,11 @@ final class ScreenshotTests: XCTestCase {
 
         // 3. главная
         wait(app.staticTexts["Панель быстрого доступа"], 30)
-        sleep(1)
+        // 3D-модель качается с сервера: ждём её, иначе в кадр попадает плоская заглушка
+        if !app.otherElements["car3d-ready"].waitForExistence(timeout: 90) {
+            print("ВНИМАНИЕ: 3D-модель не загрузилась за 90 с, снимок с заглушкой")
+        }
+        sleep(2)
         shot("03-home")
 
         // 4. климат и сиденья
