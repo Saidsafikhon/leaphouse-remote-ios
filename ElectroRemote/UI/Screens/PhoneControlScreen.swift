@@ -377,14 +377,15 @@ private struct Hero: View {
                     .frame(maxWidth: .infinity).frame(height: 190)
                     .padding(.horizontal, Space.x2)
             }
-            CarModelView(model: model, paint: swatch, onReady: { ready = $0 })
-                .opacity(ready ? 1 : 0)
+            // В режиме скриншотов (-screenshots) 3D не грузим: на сайте и в сторе машина
+            // должна быть одинаковой плоской картинкой в обеих темах, а не зависеть от
+            // того, успела ли скачаться модель.
+            if !Demo.enabled {
+                CarModelView(model: model, paint: swatch, onReady: { ready = $0 })
+                    .opacity(ready ? 1 : 0)
+            }
         }
         .frame(maxWidth: .infinity).frame(height: 230)
-        // метка для UI-теста скриншотов: кадр главной снимается, когда 3D-модель уже
-        // на экране, а не плоская заглушка (иначе тёмный и светлый снимки разные)
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier(ready ? "car3d-ready" : "car3d-loading")
     }
 }
 
