@@ -144,13 +144,19 @@ jobs:
             -sdk iphoneos -destination 'generic/platform=iOS' -archivePath build/ElectroRemote.xcarchive \
             -allowProvisioningUpdates -allowProvisioningDeviceRegistration \
             -authenticationKeyPath "$PWD/AuthKey.p8" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
-            CODE_SIGN_STYLE=Automatic DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            CODE_SIGN_STYLE=Automatic DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CODE_SIGN_IDENTITY="Apple Development" \
             CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES \
-            archive 2>&1 | tee archive.log | grep -E "error:|ARCHIVE|BUILD" || true
+            archive 2>&1 | tee archive.log | grep -E "error:|warning: .*(sign|entitle)|ARCHIVE|BUILD" || true
           # CODE_SIGN_IDENTITY здесь задавать нельзя: при автоподписи архив идёт
           # development-сертификатом, а Apple Distribution подставляет exportArchive.
           # Явное указание даёт «conflicting provisioning settings» (Xcode 26).
           grep -q "ARCHIVE SUCCEEDED" archive.log
+          # В project.yml идентити пустая (сборка без Apple Developer), поэтому без
+          # «Apple Development» архив выходил НЕПОДПИСАННЫМ и терял entitlements:
+          # push не регистрировался (сборки 105/106). Проверяем право прямо в архиве.
+          APP=$(ls -d build/ElectroRemote.xcarchive/Products/Applications/*.app | head -1)
+          codesign -d --entitlements :- "$APP" 2>/dev/null | tee entitlements.txt | grep -q "aps-environment" \
+            || { echo "::error::в архиве нет aps-environment — push работать не будет"; cat entitlements.txt; exit 1; }
 
       - name: Export and upload to TestFlight
         if: steps.gate.outputs.go == 'yes'
