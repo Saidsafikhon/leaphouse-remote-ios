@@ -147,9 +147,9 @@ jobs:
             CODE_SIGN_STYLE=Automatic DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CODE_SIGN_IDENTITY="Apple Development" \
             CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES \
             archive 2>&1 | tee archive.log | grep -E "error:|warning: .*(sign|entitle)|ARCHIVE|BUILD" || true
-          # CODE_SIGN_IDENTITY здесь задавать нельзя: при автоподписи архив идёт
-          # development-сертификатом, а Apple Distribution подставляет exportArchive.
-          # Явное указание даёт «conflicting provisioning settings» (Xcode 26).
+          # Идентити для архива — только «Apple Development»: Apple Distribution при
+          # автоподписи даёт «conflicting provisioning settings» (Xcode 26), а
+          # дистрибутивную подпись подставляет exportArchive.
           grep -q "ARCHIVE SUCCEEDED" archive.log
           # В project.yml идентити пустая (сборка без Apple Developer), поэтому без
           # «Apple Development» архив выходил НЕПОДПИСАННЫМ и терял entitlements:

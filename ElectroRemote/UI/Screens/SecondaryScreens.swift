@@ -443,6 +443,9 @@ struct NewsDetailScreen: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
+                // Без maxWidth колонка сжимается по контенту и ScrollView ставит её
+                // по центру: короткие заголовок и текст уведомления «висели» посередине.
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, Space.x5)
                 .padding(.bottom, Space.x6)
             }
