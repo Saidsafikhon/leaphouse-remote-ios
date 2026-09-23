@@ -19,6 +19,8 @@ object VoiceActions {
     const val HOST = "action"
 
     val all = listOf("lock", "unlock", "climate_on", "climate_off", "trunk", "windows_close", "find")
+    /** Что открывает машину — только после подтверждения на экране (ссылка могла прийти извне). */
+    val needsConfirm = setOf("unlock", "trunk")
 
     fun commands(action: String): List<VehicleCommand>? = when (action) {
         "lock" -> listOf(VehicleCommand(Cmd.LOCK, "0", S("Закрыть двери")))

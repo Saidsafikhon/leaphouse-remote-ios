@@ -63,15 +63,6 @@ class MainActivity : FragmentActivity() {
         setContent {
             ElectroTheme {
                 val vm: CarViewModel = viewModel()
-                // «Окей Google» / ярлык / ссылка leapremote://action/… — выполнить, как только вошли
-                val voice by pendingAction.collectAsState()
-                val loggedInNow by vm.loggedIn.collectAsState()
-                androidx.compose.runtime.LaunchedEffect(voice, loggedInNow) {
-                    val a = voice ?: return@LaunchedEffect
-                    if (!loggedInNow) return@LaunchedEffect
-                    pendingAction.value = null
-                    vm.quickAction(a)
-                }
                 // пришёл push — перечитать ленту, пока приложение открыто
                 androidx.compose.runtime.DisposableEffect(Unit) {
                     val r = object : BroadcastReceiver() {
@@ -152,6 +143,32 @@ class MainActivity : FragmentActivity() {
                         onUnlocked = { locked.value = false },
                     )
                     return@ElectroTheme
+                }
+
+                // «Окей Google» / ярлык / ссылка leapremote://action/… — только после входа И после
+                // снятия блокировки (этот блок стоит ниже LockScreen, пока заперто — его нет в
+                // композиции). Открывание дверей и багажника — с подтверждением: ссылку может
+                // прислать кто угодно, а браузер открывает её без вопросов.
+                val voice by pendingAction.collectAsState()
+                var confirmAction by remember { mutableStateOf<String?>(null) }
+                androidx.compose.runtime.LaunchedEffect(voice, loggedIn) {
+                    val a = voice ?: return@LaunchedEffect
+                    if (!loggedIn) return@LaunchedEffect
+                    pendingAction.value = null
+                    if (a in VoiceActions.needsConfirm) confirmAction = a else vm.quickAction(a)
+                }
+                confirmAction?.let { a ->
+                    androidx.compose.material3.AlertDialog(
+                        onDismissRequest = { confirmAction = null },
+                        containerColor = uz.electro.remote.ui.theme.ElectroColors.SurfaceElevated, tonalElevation = 0.dp,
+                        title = { androidx.compose.material3.Text(VoiceActions.label(a) + "?", color = uz.electro.remote.ui.theme.ElectroColors.TextPrimary) },
+                        text = { androidx.compose.material3.Text(S("Команда пришла по ссылке или из ярлыка. Выполнить?"),
+                            color = uz.electro.remote.ui.theme.ElectroColors.TextSecondary) },
+                        confirmButton = { androidx.compose.material3.TextButton(onClick = { confirmAction = null; vm.quickAction(a) }) {
+                            androidx.compose.material3.Text(S("Выполнить"), color = uz.electro.remote.ui.theme.ElectroColors.Accent) } },
+                        dismissButton = { androidx.compose.material3.TextButton(onClick = { confirmAction = null }) {
+                            androidx.compose.material3.Text(S("Отмена"), color = uz.electro.remote.ui.theme.ElectroColors.TextSecondary) } },
+                    )
                 }
 
                 when (gate) {
