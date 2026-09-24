@@ -12,6 +12,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import uz.electro.remote.push.Push
 import androidx.fragment.app.FragmentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -27,6 +28,14 @@ import uz.electro.remote.ui.ParkGateScreen
 import uz.electro.remote.ui.PhoneControlScreen
 import uz.electro.remote.ui.RegisterScreen
 import uz.electro.remote.ui.theme.ElectroTheme
+
+/** Служебные уходы из приложения (сканер QR, выбор файла), после которых
+ *  блокировку показывать не надо: перед запуском ставим флаг, ON_STOP его съедает. */
+object LockGuard {
+    @Volatile var skipNextStop = false
+    /** сколько можно пробыть в фоне без блокировки */
+    const val GRACE_MS = 10_000L
+}
 
 class MainActivity : FragmentActivity() {
 
@@ -51,6 +60,10 @@ class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Edge-to-edge на всех версиях: с targetSdk 35 Android 15+ включает его сам, и без
+        // явного вызова поведение на старых и новых телефонах расходилось бы. Отступы под
+        // системные панели и клавиатуру добавляет ElectroTheme (safeDrawing).
+        enableEdgeToEdge()
         VoiceActions.fromIntent(intent)?.let { pendingAction.value = it }
         SignatureGuard.enforce(this)
         uz.electro.remote.ui.theme.ThemePref.load(this)
@@ -104,9 +117,22 @@ class MainActivity : FragmentActivity() {
                 // если на телефоне сняли блокировку экрана — запирать нечем, не запираем
                 val lockActive = lock.enabled && remember { lock.available() }
                 val owner = LocalLifecycleOwner.current
+                val stoppedAt = remember { longArrayOf(0L) }
                 DisposableEffect(owner, loggedIn) {
                     val obs = LifecycleEventObserver { _, e ->
-                        if (e == Lifecycle.Event.ON_STOP && loggedIn && lockActive) locked.value = true
+                        when (e) {
+                            // запоминаем момент ухода; сканер QR и прочие свои экраны не считаются
+                            Lifecycle.Event.ON_STOP -> {
+                                if (LockGuard.skipNextStop) { LockGuard.skipNextStop = false; stoppedAt[0] = 0L }
+                                else if (loggedIn && lockActive) stoppedAt[0] = System.currentTimeMillis()
+                            }
+                            // блокируем при возврате, и только если отсутствовали ≥ 10 с
+                            Lifecycle.Event.ON_START -> {
+                                val t = stoppedAt[0]; stoppedAt[0] = 0L
+                                if (t > 0L && loggedIn && lockActive && System.currentTimeMillis() - t >= LockGuard.GRACE_MS) locked.value = true
+                            }
+                            else -> {}
+                        }
                     }
                     if (loggedIn && lockActive) locked.value = true
                     owner.lifecycle.addObserver(obs)

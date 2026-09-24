@@ -1,10 +1,20 @@
 plugins { id 'com.android.application'; id 'org.jetbrains.kotlin.android' }
+
+// -Pplay: сборка для Google Play (ключ загрузки из keystore.properties, отпечаток playSig).
+// Без флага — прежняя раздача файлом: подпись debug.keystore, отпечаток expectedSig.
+def isPlay = project.hasProperty("play")
+def ksProps = new Properties()
+if (isPlay) {
+    def f = rootProject.file("keystore.properties")
+    if (!f.exists()) throw new GradleException("-Pplay: нет android/keystore.properties (ключ загрузки Play)")
+    f.withInputStream { ksProps.load(it) }
+}
 android {
     namespace 'uz.electro.remote'
-    compileSdk 34
+    compileSdk 36
     defaultConfig {
         applicationId "uz.electro.remote"
-        minSdk 26; targetSdk 34
+        minSdk 26; targetSdk 36
         // Нумерация продолжает линию слитых исходников (0.34.0, код 44), а не
         // нашу прежнюю (0.19.0, код 25): в парке уже стоят сборки с кодами 32 и 44,
         // и APK с меньшим кодом Android просто не поставит поверх них.
@@ -34,17 +44,36 @@ android {
         //         Google Play), политика и поддержка, лента «Новости», push через FCM.
         // 0.48.1: действия по ссылке/ярлыку — после снятия блокировки, открытие дверей и
 //         багажника с подтверждением; SignatureGuard включён (отпечаток в gradle.properties).
-        versionCode 106; versionName "0.48.1"
+        // 0.49.0: выход в Google Play — targetSdk 36 (требование Play с 31.08.2026), edge-to-edge,
+        //         подпись ключом загрузки при -Pplay, SignatureGuard принимает список отпечатков.
+        versionCode 107; versionName "0.49.0"
         // Адреса backend здесь больше нет: он правится в самом приложении
         // (Настройки → «Адрес сервера»), значение по умолчанию и подмена
         // устаревших адресов живут в data/Settings.kt. Зашитый на сборке адрес
         // означал бы, что смена сервера — это переустановка APK у всех.
         // SHA-256 отпечаток release-сертификата. Пусто = проверка выключена.
         // Задать: ./gradlew -PexpectedSig=AA:BB:...  (keytool -printcert), или в gradle.properties.
-        def expSig = (project.findProperty("expectedSig") ?: "").toString().replace(":", "").toUpperCase()
+        // Список через запятую: ключ раздачи файлом (debug.keystore) и ключ Google Play. Сборка
+        // -Pplay подписана ключом загрузки; Play переподписывает её ключом подписи приложения,
+        // поэтому в play-сборке ждём отпечаток playSig (= ключ загрузки, если при включении
+        // Play App Signing загрузить его через PEPK; иначе — отпечаток из Play Console).
+        def sigProp = isPlay ? (project.findProperty("playSig") ?: "") : (project.findProperty("expectedSig") ?: "")
+        def expSig = sigProp.toString().replace(":", "").replace(" ", "").toUpperCase()
         buildConfigField "String", "EXPECTED_SIG", "\"${expSig}\""        // Только ARM: x86/x86_64 (эмуляторы, Intel-планшеты) добавляли ~15 МБ нативных
         // библиотек Filament к APK, а живых телефонов на них нет. Эмулятор 3D всё равно не тянет.
         ndk { abiFilters "arm64-v8a", "armeabi-v7a" }
+    }
+    // Ключ загрузки Google Play: android/keystore.properties (в .gitignore; копия ключа в
+    // D:\PROJECT\FINAL\signing-keys). Сборка для Play: sh gradlew -Pplay bundleRelease
+    signingConfigs {
+        if (isPlay) {
+            upload {
+                storeFile file(ksProps['storeFile'])
+                storePassword ksProps['storePassword']
+                keyAlias ksProps['keyAlias']
+                keyPassword ksProps['keyPassword']
+            }
+        }
     }
     buildFeatures { compose true; buildConfig true }
     composeOptions { kotlinCompilerExtensionVersion '1.5.8' }
@@ -59,7 +88,7 @@ android {
             // несовпадению подписи, и APK пришлось бы ставить с потерей
             // настроек и входа. Заменить на настоящий keystore — вместе с
             // выходом в Play, и тогда переустановка у всех разом неизбежна.
-            signingConfig signingConfigs.debug
+            signingConfig isPlay ? signingConfigs.upload : signingConfigs.debug
         }
         debug {
             minifyEnabled false

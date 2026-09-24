@@ -295,7 +295,7 @@ private fun fieldColors() = OutlinedTextFieldDefaults.colors(
 
 /** Оформление: авто (за системой), светлая, тёмная. Применяется сразу. */
 @Composable
-private fun ThemeSection() {
+fun ThemeSection() {
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val mode = uz.electro.remote.ui.theme.ThemePref.mode.value
     SectionCard(S("Оформление")) {

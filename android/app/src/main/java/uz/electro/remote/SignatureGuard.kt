@@ -13,6 +13,7 @@ import kotlin.system.exitProcess
  * подписали своим ключом) — отпечаток не совпадёт и приложение завершится.
  *
  * EXPECTED_SIG пуст → проверка выключена (debug и несконфигурированные сборки).
+ * Несколько отпечатков — через запятую (раздача файлом + Google Play).
  * Эталон брать из release-keystore:  keytool -list -v -keystore ... | grep SHA256
  * и подставлять через ./gradlew -PexpectedSig=... (см. app/build.gradle).
  */
@@ -21,10 +22,12 @@ internal object SignatureGuard {
     private const val TAG = "SignatureGuard"
 
     fun enforce(context: Context) {
-        val expected = uz.electro.remote.BuildConfig.EXPECTED_SIG.trim()
+        // Список через запятую: ключ раздачи файлом и ключ Google Play (см. app/build.gradle).
+        val expected = uz.electro.remote.BuildConfig.EXPECTED_SIG.split(',')
+            .map { it.trim() }.filter { it.isNotEmpty() }
         if (expected.isEmpty()) return                 // проверка отключена
         val actual = currentSignatureSha256(context)
-        if (actual.none { it.equals(expected, ignoreCase = true) }) {
+        if (actual.none { a -> expected.any { it.equals(a, ignoreCase = true) } }) {
             Log.e(TAG, "signature mismatch: refusing to run")
             exitProcess(10)
         }

@@ -119,10 +119,22 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
      * Фактические значения элементов управления: реальный сигнал с машины,
      * а при его отсутствии — последнее отправленное значение.
      */
+    /** До какого момента (мс) эхо команды важнее сигнала с машины. Машина отдаёт
+     *  старое состояние ещё несколько опросов после команды: без выдержки тумблер
+     *  климата сам «выключался», а следующее нажатие снова слало «вкл». */
+    private val _hold = MutableStateFlow<Map<Int, Long>>(emptyMap())
+    private fun hold(types: Collection<Int>) {
+        val until = System.currentTimeMillis() + HOLD_MS
+        _hold.update { it + types.associateWith { until } }
+    }
+    private fun unhold(types: Collection<Int>) { _hold.update { it - types.toSet() } }
+
     val controls: StateFlow<Map<Int, String>> =
-        combine(_car, _optimistic) { car, optimistic ->
+        combine(_car, _optimistic, _hold) { car, optimistic, hold ->
             val merged = optimistic.toMutableMap()
+            val now = System.currentTimeMillis()
             (optimistic.keys + SIGNAL_BACKED).forEach { type ->
+                if ((hold[type] ?: 0L) > now && optimistic.containsKey(type)) return@forEach
                 Cmd.signalFor(type)?.let { car.signal(it) }?.let { merged[type] = it }
             }
             merged
@@ -367,13 +379,14 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
     /** Включить климат с таймером авто-выключения (мин); null — умолчание сервера. */
     fun climateOn(runMinutes: Int?) = viewModelScope.launch {
         _optimistic.update { it + (Cmd.AC to "1") }
+        hold(listOf(Cmd.AC))
         _pending.update { it + Cmd.AC }
         val r = repo.climateOn(runMinutes)
         _pending.update { it - Cmd.AC }
         when (r) {
             is CmdResult.Ok -> emit(EventKind.Success, S("Климат включён"),
                 if (runMinutes != null && runMinutes > 0) S("Выключу через {0} мин", runMinutes) else S("Выполнено"))
-            is CmdResult.Failed -> { _optimistic.update { it - Cmd.AC }; emit(EventKind.Failed, S("Климат"), r.reason) }
+            is CmdResult.Failed -> { _optimistic.update { it - Cmd.AC }; unhold(listOf(Cmd.AC)); emit(EventKind.Failed, S("Климат"), r.reason) }
             is CmdResult.Unsupported -> emit(EventKind.Unsupported, S("Климат"), r.reason)
         }
     }
@@ -469,6 +482,7 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
         val types = cmds.map { it.type }.toSet()
         // сразу показываем ожидаемое состояние, чтобы кнопка не «залипала»
         _optimistic.update { it + cmds.associate { c -> c.type to c.value } }
+        hold(types)
         _pending.update { it + types }
         _busy.value = true
 
@@ -502,6 +516,7 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
                 }
                 restored
             }
+            unhold(broken)
             // Частичный неуспех человеку не показываем: что прошло — прошло,
             // непрошедшее откатили выше. Счётчик «N из M» только пугал.
             _events.emit(CmdEvent(title, S("Выполнено"), EventKind.Success))
@@ -509,6 +524,7 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
         } else {
             // не прошло ничего — откатываем оптимистичное состояние обратно
             _optimistic.value = previous
+            unhold(types)
             val kind = when {
                 failure is CmdResult.Unsupported -> EventKind.Unsupported
                 _car.value.link == Link.NONE -> EventKind.Offline
@@ -860,6 +876,8 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
         const val PROBE_STEP_MS = 3_000L
 
         /** Команды, состояние которых машина отдаёт обратно. */
+        /** сколько эхо команды переживает противоречащий сигнал машины */
+        const val HOLD_MS = 45_000L
         val SIGNAL_BACKED = setOf(
             Cmd.AC, Cmd.TEMP_L, Cmd.TEMP_R, Cmd.FAN, Cmd.TRUNK,
             Cmd.RECIRC, Cmd.DEFROST_FRONT, Cmd.DEFROST_REAR, Cmd.MIRROR_HEAT,

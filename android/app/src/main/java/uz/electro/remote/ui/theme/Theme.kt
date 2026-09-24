@@ -12,6 +12,11 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.ui.Modifier
 
 // Маппинг токенов Electro на роли Material3.
 private fun schemeOf(p: ElectroPalette, dark: Boolean): ColorScheme {
@@ -86,7 +91,15 @@ fun ElectroTheme(content: @Composable () -> Unit) {
         MaterialTheme(
             colorScheme = schemeOf(palette, dark),
             typography = AppTypography,
-            content = content,
-        )
+        ) {
+            // Окно edge-to-edge (MainActivity.enableEdgeToEdge): фон тянем под статусную и
+            // навигационную панели, а содержимое отодвигаем от них и от клавиатуры.
+            // windowInsetsPadding поглощает отступы, поэтому Scaffold внутри их не дублирует.
+            androidx.compose.foundation.layout.Box(
+                Modifier.fillMaxSize()
+                    .background(palette.Background)
+                    .windowInsetsPadding(androidx.compose.foundation.layout.WindowInsets.safeDrawing),
+            ) { content() }
+        }
     }
 }

@@ -58,6 +58,7 @@ fun LoginScreen(
     val unreadNews by vm.unreadNews.collectAsState()
     var showNews by remember { mutableStateOf(false) }
     var showShop by remember { mutableStateOf(false) }
+    var showSettings by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { vm.loadNews() }
     if (showShop) {
         LaunchedEffect(Unit) { vm.loadProducts() }
@@ -90,7 +91,10 @@ fun LoginScreen(
             NewsBell(unreadNews, onClick = { showNews = true })
             Spacer(Modifier.width(Space.x2))
             HelpFab(onClick = { showHelp = true })
+            Spacer(Modifier.width(Space.x2))
+            SettingsFab(onClick = { showSettings = true })
         }
+        if (showSettings) PreLoginSettingsSheet(onClose = { showSettings = false })
         Spacer(Modifier.height(Space.x6))
 
         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {

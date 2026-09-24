@@ -93,6 +93,7 @@ fun PairScreen(vm: CarViewModel, onPaired: () -> Unit) {
             loading = busy,
             modifier = Modifier.fillMaxWidth(),
         ) {
+            uz.electro.remote.LockGuard.skipNextStop = true   // сканер — своя Activity, не «уход из приложения»
             scanLauncher.launch(
                 ScanOptions().setPrompt(S("Наведите на QR на экране машины"))
                     .setBeepEnabled(false).setOrientationLocked(false)
