@@ -399,7 +399,16 @@
     "через облако": "via cloud",
     "через пробуждалку в машине": "via the wake-up device in the car",
     "через сервер": "via server",
-    "▲ перёд": "▲ front"
+    "▲ перёд": "▲ front",
+    "Версия {0}": "Version {0}",
+    "Машина на главной": "Car on the home screen",
+    "3D-модель": "3D model",
+    "Картинка": "Picture",
+    "3D-модель качается один раз и крутится пальцем; картинка не расходует трафик": "The 3D model is downloaded once and can be rotated with a finger; the picture uses no data",
+    "Команда пришла по ссылке или из ярлыка. Выполнить?": "This command came from a link or a shortcut. Run it?",
+    "Автомобиль": "Car",
+    "Нет файла": "No file",
+    "Готово": "Done"
   },
   "uz": {
     " · не прочитано": " · o‘qilmagan",
@@ -800,6 +809,15 @@
     "через облако": "bulut orqali",
     "через пробуждалку в машине": "mashinadagi uyg‘otgich orqali",
     "через сервер": "server orqali",
-    "▲ перёд": "▲ old"
+    "▲ перёд": "▲ old",
+    "Версия {0}": "Versiya {0}",
+    "Машина на главной": "Bosh ekrandagi mashina",
+    "3D-модель": "3D model",
+    "Картинка": "Rasm",
+    "3D-модель качается один раз и крутится пальцем; картинка не расходует трафик": "3D model bir marta yuklanadi va barmoq bilan aylantiriladi; rasm trafik sarflamaydi",
+    "Команда пришла по ссылке или из ярлыка. Выполнить?": "Buyruq havola yoki yorliqdan keldi. Bajarilsinmi?",
+    "Автомобиль": "Avtomobil",
+    "Нет файла": "Fayl yo‘q",
+    "Готово": "Tayyor"
   }
 }

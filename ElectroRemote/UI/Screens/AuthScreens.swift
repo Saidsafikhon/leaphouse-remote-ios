@@ -530,41 +530,18 @@ func webLink(_ v: String) -> String {
 }
 
 
-/// Настройки, доступные до входа: адрес сервера (для стендов и смены домена),
-/// язык и оформление. Всё остальное — после входа, в обычных настройках.
+/// Настройки, доступные до входа: язык, оформление, защита входа. Остальное — после входа.
 struct PreLoginSettingsSheet: View {
     @Environment(\.palette) private var p
     @Environment(\.dismiss) private var dismiss
-    @State private var url = Settings.shared.cloudUrl
-    @State private var note: String? = nil
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: Space.x4) {
-                    SectionCard(title: L("Адрес сервера")) {
-                        VStack(alignment: .leading, spacing: Space.x2) {
-                            TextField("https://…", text: $url)
-                                .keyboardType(.URL).textInputAutocapitalization(.never).autocorrectionDisabled()
-                                .font(.system(size: 15)).foregroundStyle(p.textPrimary)
-                                .padding(Space.x3).background(p.surface).clipShape(RoundedRectangle(cornerRadius: Radius.md))
-                            Text(L("Меняйте только по указанию поддержки. По умолчанию: {0}", Settings.defaultCloudURL))
-                                .font(ElectroType.caption).foregroundStyle(p.textMuted)
-                            HStack(spacing: Space.x2) {
-                                ElectroButton(text: L("Сохранить")) {
-                                    let t = url.trimmingCharacters(in: .whitespacesAndNewlines)
-                                    guard t.hasPrefix("http://") || t.hasPrefix("https://") else { note = L("Адрес должен начинаться с http:// или https://"); return }
-                                    Settings.shared.cloudUrl = t; url = Settings.shared.cloudUrl; note = L("Сохранено")
-                                }
-                                ElectroButton(text: L("По умолчанию"), style: .secondary) {
-                                    Settings.shared.cloudUrl = ""; url = Settings.shared.cloudUrl; note = L("Сохранено")
-                                }
-                            }
-                            if let note { Text(note).font(ElectroType.caption).foregroundStyle(p.textSecondary) }
-                        }
-                    }
                     SectionCard(title: L("Язык")) { LangPicker() }
                     ThemeSection()
+                    LockSection()
                     Text(L("Версия {0}", (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "") + " (" + (Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "") + ")"))
                         .font(ElectroType.caption).foregroundStyle(p.textMuted).frame(maxWidth: .infinity)
                 }

@@ -74,6 +74,11 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
     private val _events = MutableSharedFlow<CmdEvent>(extraBufferCapacity = 8)
     val events: SharedFlow<CmdEvent> = _events.asSharedFlow()
 
+    /** Растёт при тапе по push-уведомлению: главный экран переключается на «Новости». */
+    private val _openNews = MutableStateFlow(0)
+    val openNews: StateFlow<Int> = _openNews.asStateFlow()
+    fun requestOpenNews() { _openNews.update { it + 1 } }
+
     private val _busy = MutableStateFlow(false)
     val busy: StateFlow<Boolean> = _busy.asStateFlow()
 

@@ -122,6 +122,7 @@ fun SettingsScreen(vm: CarViewModel, onClose: () -> Unit) {
                 }
                 TextButton(
                     onClick = {
+                        uz.electro.remote.LockGuard.skipNextStop = true   // сканер — своя Activity, не «уход из приложения»
                         scanLauncher.launch(
                             ScanOptions().setPrompt(S("Наведите на QR на экране машины"))
                                 .setBeepEnabled(false).setOrientationLocked(false)
@@ -167,6 +168,7 @@ fun SettingsScreen(vm: CarViewModel, onClose: () -> Unit) {
         }
         SectionCard(S("Язык")) { uz.electro.remote.ui.components.LangPicker() }
         ThemeSection()
+        CarViewSection()
 
         if (loggedIn) {
             LockSection()
@@ -293,6 +295,31 @@ private fun fieldColors() = OutlinedTextFieldDefaults.colors(
     cursorColor = ElectroColors.Accent,
 )
 
+/** Машина на главной: 3D-модель (качается с сервера, крутится пальцем) или картинка. */
+@Composable
+fun CarViewSection() {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val mode = uz.electro.remote.ui.theme.CarViewPref.mode.value
+    SectionCard(S("Машина на главной")) {
+        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(ElectroColors.SurfaceElevated).padding(4.dp)) {
+            listOf("3d" to S("3D-модель"), "flat" to S("Картинка")).forEach { (m, label) ->
+                val sel = m == mode
+                Box(
+                    Modifier.weight(1f).clip(RoundedCornerShape(10.dp))
+                        .background(if (sel) ElectroColors.Surface else androidx.compose.ui.graphics.Color.Transparent)
+                        .clickable { uz.electro.remote.ui.theme.CarViewPref.set(ctx, m) }
+                        .padding(vertical = 10.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(label, fontSize = 14.sp, color = if (sel) ElectroColors.TextPrimary else ElectroColors.TextSecondary,
+                        fontWeight = if (sel) androidx.compose.ui.text.font.FontWeight.SemiBold else androidx.compose.ui.text.font.FontWeight.Normal)
+                }
+            }
+        }
+        Text(S("3D-модель качается один раз и крутится пальцем; картинка не расходует трафик"), color = ElectroColors.TextMuted, fontSize = 11.sp)
+    }
+}
+
 /** Оформление: авто (за системой), светлая, тёмная. Применяется сразу. */
 @Composable
 fun ThemeSection() {
@@ -324,7 +351,7 @@ fun ThemeSection() {
 
 /** Защита входа системной блокировкой телефона: отпечаток / лицо / код экрана. */
 @Composable
-private fun LockSection() {
+fun LockSection() {
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val activity = ctx as? androidx.fragment.app.FragmentActivity
     val lock = remember { uz.electro.remote.security.AppLock(ctx) }

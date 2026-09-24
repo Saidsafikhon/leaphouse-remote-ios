@@ -64,14 +64,14 @@ fun LoginScreen(
         LaunchedEffect(Unit) { vm.loadProducts() }
         val products by vm.products.collectAsState()
         androidx.compose.material3.Surface(color = ElectroColors.Background, modifier = Modifier.fillMaxSize()) {
-            ShopScreen(products, loggedIn = false, phoneHint = "", model = null,
+            ShopScreen(products, loggedIn = false, phoneHint = "", model = null, onRefresh = { vm.loadProducts() },
                         onOrder = { id, qty, phone, comment, done -> vm.order(id, qty, phone, comment, done) }, onBack = { showShop = false })
         }
         return
     }
     if (showNews) {
         androidx.compose.material3.Surface(color = ElectroColors.Background, modifier = Modifier.fillMaxSize()) {
-            NewsScreen(news, newsRead, onRead = { vm.markNewsRead(it.id) },
+            NewsScreen(news, newsRead, onRefresh = { vm.loadNews() }, onRead = { vm.markNewsRead(it.id) },
                 onReadAll = { vm.markAllNewsRead() }, onBack = { showNews = false })
         }
         return

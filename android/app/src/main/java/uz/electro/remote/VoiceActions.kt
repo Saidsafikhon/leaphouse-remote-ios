@@ -18,7 +18,7 @@ object VoiceActions {
     const val SCHEME = "leapremote"
     const val HOST = "action"
 
-    val all = listOf("lock", "unlock", "climate_on", "climate_off", "trunk", "windows_close", "find")
+    val all = listOf("lock", "unlock", "climate_on", "climate_off", "trunk", "windows_close")
     /** Что открывает машину — только после подтверждения на экране (ссылка могла прийти извне). */
     val needsConfirm = setOf("unlock", "trunk")
 

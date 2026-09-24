@@ -369,10 +369,12 @@ private struct Hero: View {
     let model: String
     let paint: String?
     @State private var ready = false
+    /// «3D» или «картинка» — выбор человека в настройках
+    @AppStorage("carView") private var carView = "3d"
     var body: some View {
         let swatch = CarArt.paints(model).first { $0.code == paint }?.swatch ?? CarArt.paints(model).first?.swatch ?? Color(hex: 0xE9EAEC)
         ZStack {
-            if !ready {
+            if !ready || carView != "3d" {
                 Image(CarArt.imageName(model, paint))
                     .resizable().scaledToFit()
                     .frame(maxWidth: .infinity).frame(height: 190)
@@ -381,7 +383,7 @@ private struct Hero: View {
             // В режиме скриншотов (-screenshots) 3D не грузим: на сайте и в сторе машина
             // должна быть одинаковой плоской картинкой в обеих темах, а не зависеть от
             // того, успела ли скачаться модель.
-            if !Demo.enabled {
+            if !Demo.enabled && carView == "3d" {
                 CarModelView(model: model, paint: swatch, onReady: { ready = $0 })
                     .opacity(ready ? 1 : 0)
             }

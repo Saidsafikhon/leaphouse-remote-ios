@@ -6,6 +6,14 @@
     <uses-permission android:name="android.permission.CAMERA"/>
     <!-- push-уведомления (Android 13+ спрашивает разрешение) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- навигаторы, которые видим для кнопки «Маршрут» (Android 11+ требует объявить) -->
+    <queries>
+        <package android:name="com.google.android.apps.maps"/>
+        <package android:name="ru.yandex.yandexnavi"/>
+        <package android:name="ru.yandex.yandexmaps"/>
+        <package android:name="ru.dublgis.dgismobile"/>
+        <package android:name="com.waze"/>
+    </queries>
     <application android:label="LeapRemote" android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"

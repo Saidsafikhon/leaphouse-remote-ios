@@ -49,6 +49,21 @@ private fun schemeOf(p: ElectroPalette, dark: Boolean): ColorScheme {
 enum class ThemeMode { AUTO, LIGHT, DARK }
 
 /** Текущий выбор темы — observable, чтобы экран перекрасился сразу, без перезапуска. */
+/** Как показывать машину на главной: «3d» — крутящаяся модель, «flat» — студийная картинка.
+ *  Выбор в настройках; по умолчанию 3D. */
+object CarViewPref {
+    val mode = androidx.compose.runtime.mutableStateOf("3d")
+
+    fun load(ctx: android.content.Context) {
+        mode.value = ctx.getSharedPreferences("electro", android.content.Context.MODE_PRIVATE).getString("carView", "3d") ?: "3d"
+    }
+
+    fun set(ctx: android.content.Context, m: String) {
+        mode.value = m
+        ctx.getSharedPreferences("electro", android.content.Context.MODE_PRIVATE).edit().putString("carView", m).apply()
+    }
+}
+
 object ThemePref {
     val mode = androidx.compose.runtime.mutableStateOf(ThemeMode.AUTO)
 

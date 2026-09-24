@@ -1,6 +1,7 @@
 package uz.electro.remote.ui
 
 import uz.electro.remote.i18n.S
+import uz.electro.remote.ui.components.PullRefresh
 import uz.electro.remote.ui.components.Lx
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -41,6 +42,7 @@ fun NewsScreen(
     onRead: (NewsItemDto) -> Unit,
     onReadAll: () -> Unit,
     onBack: () -> Unit,
+    onRefresh: (() -> Unit)? = null,
 ) {
     var filter by remember { mutableStateOf("all") }
     var selected by remember { mutableStateOf<NewsItemDto?>(null) }
@@ -65,6 +67,7 @@ fun NewsScreen(
     }
     val unread = items.count { it.source == null && it.id !in read }
 
+    PullRefresh(onRefresh) {
     ScreenScaffold(S("Новости"), onBack) {
         Row(
             Modifier.horizontalScroll(rememberScrollState()),
@@ -94,6 +97,7 @@ fun NewsScreen(
         }
         // NEW — только у новостей оператора; RSS-новости показываются тихо
         shown.forEach { n -> NewsCard(n, isRead = n.source != null || n.id in read, onOpen = { onRead(n); selected = n }) }
+    }
     }
 }
 

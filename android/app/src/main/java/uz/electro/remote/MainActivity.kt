@@ -52,10 +52,13 @@ class MainActivity : FragmentActivity() {
 
     /** Действие из intent-а запуска; исполняется, когда пользователь вошёл. */
     private val pendingAction = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
+    /** Тап по push-уведомлению (extra open=news): открыть ленту новостей после входа. */
+    private val pendingOpenNews = kotlinx.coroutines.flow.MutableStateFlow(false)
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         VoiceActions.fromIntent(intent)?.let { pendingAction.value = it }
+        if (intent.getStringExtra("open") == "news") pendingOpenNews.value = true
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -67,11 +70,10 @@ class MainActivity : FragmentActivity() {
         VoiceActions.fromIntent(intent)?.let { pendingAction.value = it }
         SignatureGuard.enforce(this)
         uz.electro.remote.ui.theme.ThemePref.load(this)
+        uz.electro.remote.ui.theme.CarViewPref.load(this)
         uz.electro.remote.i18n.Lang.load(this)
         Push.ensureChannel(this)
-        if (Build.VERSION.SDK_INT >= 33 && !Push.canPost(this)) {
-            askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
-        }
+        if (intent?.getStringExtra("open") == "news") pendingOpenNews.value = true
         Push.register(this)
         setContent {
             ElectroTheme {
@@ -110,6 +112,15 @@ class MainActivity : FragmentActivity() {
 
                 // Выйдя из ответвления, не оставляем его висеть на следующий вход.
                 LaunchedEffect(loggedIn) { if (loggedIn) branch = null }
+                // Разрешение на уведомления — после входа, а не при первом запуске (как на iOS)
+                LaunchedEffect(loggedIn) {
+                    if (loggedIn && Build.VERSION.SDK_INT >= 33 && !Push.canPost(this@MainActivity)) askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+                // Тап по push — в «Новости», как только вошли
+                val openNewsNow by pendingOpenNews.collectAsState()
+                LaunchedEffect(openNewsNow, loggedIn) {
+                    if (openNewsNow && loggedIn) { pendingOpenNews.value = false; vm.requestOpenNews() }
+                }
 
                 // Защита входа: код/биометрия при запуске и при каждом возврате
                 // из фона. Только для вошедшего — экран логина сам себя защищает.

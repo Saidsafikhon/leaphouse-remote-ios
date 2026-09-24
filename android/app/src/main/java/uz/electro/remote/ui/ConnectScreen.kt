@@ -61,7 +61,7 @@ fun ConnectScreen(vm: CarViewModel, status: ConnectStatus) {
         LaunchedEffect(Unit) { vm.loadProducts() }
         val products by vm.products.collectAsState()
         androidx.compose.material3.Surface(color = ElectroColors.Background, modifier = Modifier.fillMaxSize()) {
-            ShopScreen(products, loggedIn = true, phoneHint = "", model = vm.selectedVehicle.value?.model,
+            ShopScreen(products, loggedIn = true, phoneHint = "", model = vm.selectedVehicle.value?.model, onRefresh = { vm.loadProducts() },
                         onOrder = { id, qty, phone, comment, done -> vm.order(id, qty, phone, comment, done) }, onBack = { showShop = false })
         }
         return
@@ -69,7 +69,7 @@ fun ConnectScreen(vm: CarViewModel, status: ConnectStatus) {
     if (showNews) {
         LaunchedEffect(Unit) { vm.loadNews() }
         androidx.compose.material3.Surface(color = ElectroColors.Background, modifier = Modifier.fillMaxSize()) {
-            NewsScreen(news, newsRead, onRead = { vm.markNewsRead(it.id) },
+            NewsScreen(news, newsRead, onRefresh = { vm.loadNews() }, onRead = { vm.markNewsRead(it.id) },
                 onReadAll = { vm.markAllNewsRead() }, onBack = { showNews = false })
         }
         return
@@ -169,9 +169,10 @@ fun ConnectScreen(vm: CarViewModel, status: ConnectStatus) {
             ConnectPhase.Idle -> {
                 ElectroButton(S("Подключиться"), Modifier.fillMaxWidth()) { start() }
                 Spacer(Modifier.height(Space.x2))
+                val busyNow by vm.busy.collectAsState()
                 ElectroButton(
                     S("Найти машину"), Modifier.fillMaxWidth(),
-                    style = ButtonStyle.Secondary,
+                    style = ButtonStyle.Secondary, enabled = !busyNow,
                 ) { vm.findCar() }
             }
 

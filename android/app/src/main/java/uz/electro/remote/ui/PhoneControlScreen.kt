@@ -76,6 +76,8 @@ fun PhoneControlScreen(vm: CarViewModel = viewModel()) {
     val unreadNews by vm.unreadNews.collectAsState()
 
     var tab by remember { mutableStateOf("car") }
+    val openNewsReq by vm.openNews.collectAsState()
+    LaunchedEffect(openNewsReq) { if (openNewsReq > 0) tab = "news" }
     var toast by remember { mutableStateOf<CmdEvent?>(null) }
 
     // опрос идёт только пока экран на переднем плане
@@ -150,12 +152,12 @@ fun PhoneControlScreen(vm: CarViewModel = viewModel()) {
                 "shop" -> {
                     LaunchedEffect(Unit) { vm.loadProducts() }
                     val products by vm.products.collectAsState()
-                    ShopScreen(products, loggedIn = true, phoneHint = "", model = chosen?.model,
+                    ShopScreen(products, loggedIn = true, phoneHint = "", model = chosen?.model, onRefresh = { vm.loadProducts() },
                         onOrder = { id, qty, phone, comment, done -> vm.order(id, qty, phone, comment, done) }, onBack = { tab = "car" })
                 }
                 "news" -> {
                     LaunchedEffect(Unit) { vm.loadNews() }
-                    NewsScreen(news, newsRead, onRead = { vm.markNewsRead(it.id) },
+                    NewsScreen(news, newsRead, onRefresh = { vm.loadNews() }, onRead = { vm.markNewsRead(it.id) },
                         onReadAll = { vm.markAllNewsRead() }, onBack = { tab = "car" })
                 }
                 else -> HomeTab(
@@ -509,13 +511,15 @@ private fun Hero(model: String?, paint: String?) {
     var ready by remember { mutableStateOf(false) }
     val swatch = CarArt.paints(model).firstOrNull { it.code == paint }?.swatch
         ?: CarArt.paints(model).firstOrNull()?.swatch ?: androidx.compose.ui.graphics.Color(0xFFE9EAEC)
+    // «3D» или «картинка» — выбор человека в настройках (CarViewPref)
+    val want3d = uz.electro.remote.ui.theme.CarViewPref.mode.value == "3d"
     Box(Modifier.fillMaxWidth().height(230.dp)) {
-        if (!ready) Image(
+        if (!ready || !want3d) Image(
             painterResource(CarArt.image(model, paint)), null,
             modifier = Modifier.fillMaxWidth().height(190.dp).align(Alignment.Center).padding(horizontal = Space.x2),
             contentScale = ContentScale.Fit,
         )
-        uz.electro.remote.ui.components.CarModelView(
+        if (want3d) uz.electro.remote.ui.components.CarModelView(
             model = model, paint = swatch,
             modifier = Modifier.fillMaxSize().then(if (ready) Modifier else Modifier.alpha(0f)),
             onReady = { ready = it },

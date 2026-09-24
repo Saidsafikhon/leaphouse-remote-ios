@@ -3,6 +3,9 @@ package uz.electro.remote.ui
 import uz.electro.remote.i18n.S
 import uz.electro.remote.ui.components.Lx
 import android.content.Intent
+import androidx.compose.ui.unit.sp
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.AlertDialog
 import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.compose.foundation.Image
@@ -44,17 +47,43 @@ import java.util.Locale
 fun MapScreen(loc: GeoPoint?) {
     val ctx = LocalContext.current
 
-    // Открыть выбор установленных приложений карт (chooser) на точке авто.
-    fun openRoute() {
+    // Маршрут: свой список установленных навигаторов (как на iOS); если их нет —
+    // системный выбор по geo:-ссылке.
+    var chooseApp by remember { mutableStateOf(false) }
+    val installedNavs = remember { NAV_APPS.filter { runCatching { ctx.packageManager.getPackageInfo(it.pkg, 0) }.isSuccess } }
+    fun openIn(app: NavApp) {
         val point = loc ?: return
         runCatching {
-            val coords = "%.6f,%.6f".format(Locale.US, point.lat, point.lon)
-            val uri = Uri.parse("geo:$coords?q=$coords(Leapmotor C16)")
-            val chooser = Intent.createChooser(Intent(Intent.ACTION_VIEW, uri), S("Открыть в…"))
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            ctx.startActivity(chooser)
+            ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(app.uri(point.lat, point.lon))).setPackage(app.pkg).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         }
     }
+    fun openRoute() {
+        val point = loc ?: return
+        when {
+            installedNavs.size > 1 -> chooseApp = true
+            installedNavs.size == 1 -> openIn(installedNavs[0])
+            else -> runCatching {
+                val coords = "%.6f,%.6f".format(Locale.US, point.lat, point.lon)
+                val uri = Uri.parse("geo:$coords?q=$coords(Leapmotor C16)")
+                ctx.startActivity(Intent.createChooser(Intent(Intent.ACTION_VIEW, uri), S("Открыть в…")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            }
+        }
+    }
+    if (chooseApp) AlertDialog(
+        onDismissRequest = { chooseApp = false },
+        containerColor = ElectroColors.SurfaceElevated,
+        title = { Text(S("Открыть в…"), color = ElectroColors.TextPrimary) },
+        text = {
+            Column {
+                installedNavs.forEach { app ->
+                    Text(app.name, color = ElectroColors.TextPrimary, fontSize = 16.sp,
+                        modifier = Modifier.fillMaxWidth().clickable { chooseApp = false; openIn(app) }.padding(vertical = 12.dp))
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = { TextButton(onClick = { chooseApp = false }) { Text(S("Отмена"), color = ElectroColors.TextSecondary) } },
+    )
 
     Column(Modifier.fillMaxSize().background(ElectroColors.Background)) {
         Row(Modifier.fillMaxWidth().padding(Space.x4), verticalAlignment = Alignment.CenterVertically) {
@@ -189,3 +218,14 @@ private fun OsmMap(lat: Double, lon: Double, onMarkerTap: () -> Unit, modifier: 
         onRelease = { it.onDetach() },
     )
 }
+
+
+/** Навигаторы, которые умеем открывать на точке машины (пакеты объявлены в <queries> манифеста). */
+private data class NavApp(val name: String, val pkg: String, val uri: (Double, Double) -> String)
+private val NAV_APPS = listOf(
+    NavApp("Google Maps", "com.google.android.apps.maps") { la, lo -> "google.navigation:q=$la,$lo" },
+    NavApp("Яндекс Навигатор", "ru.yandex.yandexnavi") { la, lo -> "yandexnavi://build_route_on_map?lat_to=$la&lon_to=$lo" },
+    NavApp("Яндекс Карты", "ru.yandex.yandexmaps") { la, lo -> "yandexmaps://maps.yandex.ru/?rtext=~$la,$lo&rtt=auto" },
+    NavApp("2ГИС", "ru.dublgis.dgismobile") { la, lo -> "dgis://2gis.ru/routeSearch/rsType/car/to/$lo,$la" },
+    NavApp("Waze", "com.waze") { la, lo -> "waze://?ll=$la,$lo&navigate=yes" },
+)

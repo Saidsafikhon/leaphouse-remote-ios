@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import uz.electro.remote.data.ProductDto
 import uz.electro.remote.i18n.S
+import uz.electro.remote.ui.components.PullRefresh
 import uz.electro.remote.ui.components.ButtonStyle
 import uz.electro.remote.ui.components.ElectroButton
 import uz.electro.remote.ui.components.Lx
@@ -41,6 +42,7 @@ fun ShopScreen(
     model: String?,
     onOrder: (productId: String, qty: Int, phone: String, comment: String, done: (String?) -> Unit) -> Unit,
     onBack: () -> Unit,
+    onRefresh: (() -> Unit)? = null,
 ) {
     var category by remember { mutableStateOf("all") }
     var query by remember { mutableStateOf("") }
@@ -62,6 +64,7 @@ fun ShopScreen(
         .filter { q.isEmpty() || it.title.lowercase().contains(q) || it.description.lowercase().contains(q) || it.models.lowercase().contains(q) }
         .sortedBy { p -> when { p.models.isBlank() -> 1; m.isNotBlank() && p.models.uppercase().contains(m) -> 0; else -> 2 } }
 
+    PullRefresh(onRefresh) {
     ScreenScaffold(S("Магазин"), onBack) {
         OutlinedTextField(
             value = query, onValueChange = { query = it }, singleLine = true,
@@ -99,6 +102,7 @@ fun ShopScreen(
                 if (row.size == 1) Spacer(Modifier.weight(1f))
             }
         }
+    }
     }
 }
 

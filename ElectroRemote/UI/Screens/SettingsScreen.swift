@@ -95,6 +95,7 @@ struct SettingsScreen: View {
 
             SectionCard(title: L("Язык")) { LangPicker() }
             ThemeSection()
+            CarViewSection()
 
             if vm.loggedIn {
                 LockSection()
@@ -196,8 +197,37 @@ struct ThemeSection: View {
     }
 }
 
+/// Машина на главной: 3D-модель (качается с сервера, крутится пальцем) или картинка.
+struct CarViewSection: View {
+    @Environment(\.palette) private var p
+    @AppStorage("carView") private var carView = "3d"
+    private var options: [(String, String)] { [("3d", L("3D-модель")), ("flat", L("Картинка"))] }
+
+    var body: some View {
+        SectionCard(title: L("Машина на главной")) {
+            HStack(spacing: 0) {
+                ForEach(options, id: \.0) { code, label in
+                    let sel = carView == code
+                    Button { carView = code } label: {
+                        Text(label).font(.system(size: 14, weight: sel ? .semibold : .regular))
+                            .foregroundStyle(sel ? p.textPrimary : p.textSecondary)
+                            .frame(maxWidth: .infinity).padding(.vertical, 10)
+                            .background(sel ? p.surface : Color.clear)
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(4)
+            .background(p.surfaceElevated)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            Text(L("3D-модель качается один раз и крутится пальцем; картинка не расходует трафик")).font(.system(size: 11)).foregroundStyle(p.textMuted)
+        }
+    }
+}
+
 /// Защита входа системной блокировкой устройства: Face ID / Touch ID / код-пароль.
-private struct LockSection: View {
+struct LockSection: View {
     @Environment(\.palette) private var p
     @ObservedObject private var lock = AppLock.shared
 
