@@ -13,6 +13,8 @@ final class PushRegistrar: NSObject, UNUserNotificationCenterDelegate {
     }
     /// Пришло уведомление (в фоне или на переднем плане) — экраны перечитывают ленту.
     var onNotification: (() -> Void)?
+    /// Человек нажал на уведомление — открыть ленту новостей.
+    var onNotificationTap: (() -> Void)?
 
     private let settings = Settings.shared
     private let tokenKey = "pushTokenSent"
@@ -63,6 +65,7 @@ final class PushRegistrar: NSObject, UNUserNotificationCenterDelegate {
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
                                 withCompletionHandler completionHandler: @escaping () -> Void) {
         onNotification?()
+        onNotificationTap?()
         completionHandler()
     }
 }

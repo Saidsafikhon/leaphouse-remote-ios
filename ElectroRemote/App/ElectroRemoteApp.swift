@@ -27,6 +27,8 @@ struct RootView: View {
     private enum Branch { case register, forgot }
     @State private var branch: Branch? = nil
     @State private var offerLock = false
+    /// Действие из ссылки/ярлыка, которое открывает машину: ждёт подтверждения на экране.
+    @State private var confirmAction: String? = nil
     /// Оформление: auto | light | dark — выбор в настройках, применяется сразу.
     @AppStorage("themeMode") private var themeMode = "auto"
 
@@ -63,10 +65,21 @@ struct RootView: View {
         .preferredColorScheme(themeMode == "auto" ? nil : (dark ? .dark : .light))
         // Siri / Быстрые команды / ссылка leapremote://action/… — выполнить, как только вошли
         .onOpenURL { PendingVoiceAction.shared.take(url: $0) }
-        .onReceive(voice.$action.combineLatest(vm.$loggedIn)) { action, on in
+        // Ссылку может прислать кто угодно, а браузер открывает её без вопросов: пока
+        // приложение заперто — ждём разблокировки; открытие дверей и багажника — только
+        // после подтверждения. Зеркало MainActivity.kt (VoiceActions.needsConfirm).
+        .onReceive(voice.$action.combineLatest(vm.$loggedIn, lock.$locked)) { action, on, locked in
             guard let a = action, on else { return }
+            if lock.enabled && locked && lock.available() { return }
             voice.action = nil
-            vm.quickAction(a)
+            if ["unlock", "trunk"].contains(a) { confirmAction = a } else { vm.quickAction(a) }
+        }
+        .alert((confirmAction == "trunk" ? L("Открыть багажник") : L("Открыть двери")) + "?",
+               isPresented: Binding(get: { confirmAction != nil }, set: { if !$0 { confirmAction = nil } })) {
+            Button(L("Выполнить")) { if let a = confirmAction { vm.quickAction(a) }; confirmAction = nil }
+            Button(L("Отмена"), role: .cancel) { confirmAction = nil }
+        } message: {
+            Text(L("Команда пришла по ссылке или из ярлыка. Выполнить?"))
         }
         .onChange(of: vm.loggedIn) { _, on in
             if on {

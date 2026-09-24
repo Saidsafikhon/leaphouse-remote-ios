@@ -1,4 +1,5 @@
 import SwiftUI
+import AVFoundation
 import PhotosUI
 import UniformTypeIdentifiers
 
@@ -14,6 +15,8 @@ struct FeedbackView: View {
     @State private var text = ""
     @State private var picked: [PhotosPickerItem] = []
     @State private var thumbs: [UIImage?] = []
+    @State private var isVideo: [Bool] = []
+    static let maxChars = 2000
     @State private var busy = false
     @State private var error: String? = nil
     @State private var sent = false
@@ -54,6 +57,7 @@ struct FeedbackView: View {
                 }
                 ZStack(alignment: .topLeading) {
                     TextEditor(text: $text)
+                        .onChange(of: text) { _, v in if v.count > Self.maxChars { text = String(v.prefix(Self.maxChars)) } }
                         .font(.system(size: 14)).foregroundStyle(p.textPrimary)
                         .scrollContentBackground(.hidden)
                         .padding(8)
@@ -77,6 +81,10 @@ struct FeedbackView: View {
                                 if i < thumbs.count, let img = thumbs[i] {
                                     Image(uiImage: img).resizable().scaledToFill().frame(width: 64, height: 64)
                                         .clipShape(RoundedRectangle(cornerRadius: 10))
+                                    if i < isVideo.count, isVideo[i] {
+                                        Image(systemName: "play.circle.fill").font(.system(size: 22)).foregroundStyle(.white)
+                                            .shadow(color: .black.opacity(0.4), radius: 2)
+                                    }
                                 } else {
                                     Image(systemName: "photo").foregroundStyle(p.textMuted)
                                 }
@@ -95,8 +103,12 @@ struct FeedbackView: View {
                         .disabled(busy)
                     }
                 }
-                Text(picked.isEmpty ? L("Можно приложить скриншот или запись экрана (до {0}, по 40 МБ).", Self.maxFiles) : L("Нажмите на файл, чтобы убрать."))
-                    .font(.system(size: 11)).foregroundStyle(p.textMuted)
+                HStack {
+                    Text(picked.isEmpty ? L("Можно приложить скриншот или запись экрана (до {0}, по 40 МБ).", Self.maxFiles) : L("Нажмите на файл, чтобы убрать."))
+                        .font(.system(size: 11)).foregroundStyle(p.textMuted)
+                    Spacer()
+                    Text("\(text.count)/\(Self.maxChars)").font(.system(size: 11)).foregroundStyle(text.count >= Self.maxChars ? p.danger : p.textMuted)
+                }
                 if let error { Text(error).font(.system(size: 13)).foregroundStyle(p.danger) }
                 Spacer()
                 HStack(spacing: Space.x2) {
@@ -119,17 +131,32 @@ struct FeedbackView: View {
 
     private func loadThumbs(_ items: [PhotosPickerItem]) {
         thumbs = Array(repeating: nil, count: items.count)
+        isVideo = items.map { $0.supportedContentTypes.first?.conforms(to: .movie) == true }
         for (i, item) in items.enumerated() {
             Task {
-                if let data = try? await item.loadTransferable(type: Data.self), let img = UIImage(data: data) {
-                    let side: CGFloat = 192
-                    let k = side / max(img.size.width, img.size.height)
-                    let size = CGSize(width: img.size.width * k, height: img.size.height * k)
-                    let small = UIGraphicsImageRenderer(size: size).image { _ in img.draw(in: CGRect(origin: .zero, size: size)) }
-                    if i < thumbs.count { thumbs[i] = small }
-                }
+                guard let data = try? await item.loadTransferable(type: Data.self) else { return }
+                var img = UIImage(data: data)
+                if img == nil, i < isVideo.count, isVideo[i] { img = await Self.videoFrame(data, ext: item.supportedContentTypes.first?.preferredFilenameExtension ?? "mov") }
+                guard let img else { return }
+                let side: CGFloat = 192
+                let k = side / max(img.size.width, img.size.height)
+                let size = CGSize(width: img.size.width * k, height: img.size.height * k)
+                let small = UIGraphicsImageRenderer(size: size).image { _ in img.draw(in: CGRect(origin: .zero, size: size)) }
+                if i < thumbs.count { thumbs[i] = small }
             }
         }
+    }
+
+    /// Первый кадр видео для миниатюры: файл кладём во временную папку, кадр берём на 0,5 с.
+    private static func videoFrame(_ data: Data, ext: String) async -> UIImage? {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("fb-\(UUID().uuidString).\(ext)")
+        defer { try? FileManager.default.removeItem(at: url) }
+        guard (try? data.write(to: url)) != nil else { return nil }
+        let gen = AVAssetImageGenerator(asset: AVURLAsset(url: url))
+        gen.appliesPreferredTrackTransform = true
+        gen.maximumSize = CGSize(width: 384, height: 384)
+        guard let cg = try? await gen.image(at: CMTime(seconds: 0.5, preferredTimescale: 600)).image else { return nil }
+        return UIImage(cgImage: cg)
     }
 
     private func send() {
@@ -150,7 +177,9 @@ struct FeedbackView: View {
             let type = item.supportedContentTypes.first
             let mime = type?.preferredMIMEType ?? (type?.conforms(to: .movie) == true ? "video/mp4" : "image/jpeg")
             let ext = type?.preferredFilenameExtension ?? "bin"
-            out.append(.init(name: "attachment.\(ext)", mime: mime, data: data))
+            // имя как на Android: понятно, что это и какое по счёту
+            let kind = type?.conforms(to: .movie) == true ? "video" : "photo"
+            out.append(.init(name: "\(kind)-\(out.count + 1).\(ext)", mime: mime, data: data))
         }
         return out
     }

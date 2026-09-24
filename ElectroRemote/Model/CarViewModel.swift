@@ -47,6 +47,8 @@ final class CarViewModel: ObservableObject {
     }
     /// Результат последней команды — экран показывает его снекбаром.
     @Published var event: CmdEvent? = nil
+    /// Растёт при тапе по push-уведомлению: главный экран переключается на «Новости».
+    @Published var openNewsRequest = 0
     @Published private(set) var busy = false
     /// Команды, которые прямо сейчас в пути — плитка показывает это сама.
     @Published private(set) var pending: Set<Int> = []
@@ -97,6 +99,7 @@ final class CarViewModel: ObservableObject {
         if settings.loggedIn { loadVehicles(); loadNews(); PushRegistrar.shared.enable() }
         loadSupport()
         PushRegistrar.shared.onNotification = { [weak self] in Task { @MainActor in self?.loadNews() } }
+        PushRegistrar.shared.onNotificationTap = { [weak self] in Task { @MainActor in self?.loadNews(); self?.openNewsRequest += 1 } }
     }
 
     // --- новости и push ---

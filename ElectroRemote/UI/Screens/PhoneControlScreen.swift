@@ -107,6 +107,7 @@ struct PhoneControlScreen: View {
         }
         .background(p.background)
         .animation(.easeOut(duration: 0.2), value: toast?.id)
+        .onChange(of: vm.openNewsRequest) { _, _ in tab = .news }   // тап по push
         .onChange(of: vm.event) { _, e in
             guard let e else { return }
             toast = e

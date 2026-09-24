@@ -486,6 +486,14 @@ struct MapScreen: View {
     @Environment(\.palette) private var p
     let loc: GeoPoint?
     @State private var chooseApp = false
+    /// Камера карты: при первом показе — на машину, дальше следует за новыми координатами.
+    @State private var position: MapCameraPosition = .automatic
+
+    private func region(_ loc: GeoPoint) -> MapCameraPosition {
+        .region(MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: loc.lat, longitude: loc.lon),
+                                   latitudinalMeters: 600, longitudinalMeters: 600))
+    }
+    private func routeTap(_ loc: GeoPoint) { if NavApp.installed.count > 1 { chooseApp = true } else { openRoute(loc) } }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -516,15 +524,25 @@ struct MapScreen: View {
                 Spacer().frame(height: Space.x3)
 
                 let coord = CLLocationCoordinate2D(latitude: loc.lat, longitude: loc.lon)
-                Map(initialPosition: .region(MKCoordinateRegion(center: coord, latitudinalMeters: 600, longitudinalMeters: 600))) {
-                    Marker("Leapmotor C16", systemImage: "car.fill", coordinate: coord).tint(p.accent)
+                Map(position: $position) {
+                    // тап по метке — сразу маршрут (как на Android)
+                    Annotation(L("Автомобиль"), coordinate: coord) {
+                        Button { routeTap(loc) } label: {
+                            Image(systemName: "car.fill").font(.system(size: 16, weight: .bold)).foregroundStyle(p.onAccent)
+                                .padding(9).background(p.accent).clipShape(Circle())
+                                .shadow(color: .black.opacity(0.25), radius: 4, y: 2)
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
+                .onAppear { position = region(loc) }
+                .onChange(of: String(format: "%.5f,%.5f", loc.lat, loc.lon)) { _, _ in withAnimation { position = region(loc) } }
                 .mapStyle(.standard)
                 .clipShape(RoundedRectangle(cornerRadius: Radius.lg, style: .continuous))
                 .padding(.horizontal, Space.x4)
 
                 Spacer().frame(height: Space.x3)
-                Button { if NavApp.installed.count > 1 { chooseApp = true } else { openRoute(loc) } } label: {
+                Button { routeTap(loc) } label: {
                     HStack(spacing: Space.x2) {
                         Image(systemName: "arrow.triangle.turn.up.right.diamond").font(.system(size: 18)).foregroundStyle(p.onAccent)
                         Text(L("Маршрут")).font(ElectroType.body).foregroundStyle(p.onAccent)
