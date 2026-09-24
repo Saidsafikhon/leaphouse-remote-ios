@@ -124,6 +124,7 @@ struct LoginScreen: View {
     @State private var error: String? = nil
     @State private var busy = false
     @State private var showHelp = false
+    @State private var showSettings = false
     @State private var showNews = false
     @State private var showShop = false
 
@@ -154,7 +155,16 @@ struct LoginScreen: View {
             VStack(spacing: 0) {
                 Spacer().frame(height: Space.x8)
                 // Новости «для всех» видны и до входа
-                HStack(spacing: Space.x2) { Spacer(); LangPicker(compact: true); ShopFab { showShop = true }; NewsBell(unread: vm.unreadNews) { showNews = true }; HelpFab { showHelp = true } }
+                HStack(spacing: Space.x2) {
+                    Spacer(); LangPicker(compact: true); ShopFab { showShop = true }; NewsBell(unread: vm.unreadNews) { showNews = true }; HelpFab { showHelp = true }
+                    // Настройки до входа: адрес сервера, язык, оформление
+                    Button { showSettings = true } label: {
+                        Image(systemName: "gearshape").font(.system(size: 17, weight: .medium)).foregroundStyle(p.textSecondary)
+                            .frame(width: 40, height: 40).background(p.surfaceElevated).clipShape(Circle())
+                    }
+                    .buttonStyle(.plain).accessibilityLabel(L("Настройки"))
+                    .sheet(isPresented: $showSettings) { PreLoginSettingsSheet() }
+                }
                 Spacer().frame(height: Space.x6)
                 BrandLockup(markSize: 44).frame(maxWidth: .infinity)
                 Spacer().frame(height: Space.x1)
@@ -517,4 +527,52 @@ func igLink(_ v: String) -> String {
 
 func webLink(_ v: String) -> String {
     v.hasPrefix("http") ? v : "https://" + v.trimmingCharacters(in: .whitespaces)
+}
+
+
+/// Настройки, доступные до входа: адрес сервера (для стендов и смены домена),
+/// язык и оформление. Всё остальное — после входа, в обычных настройках.
+struct PreLoginSettingsSheet: View {
+    @Environment(\.palette) private var p
+    @Environment(\.dismiss) private var dismiss
+    @State private var url = Settings.shared.cloudUrl
+    @State private var note: String? = nil
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: Space.x4) {
+                    SectionCard(title: L("Адрес сервера")) {
+                        VStack(alignment: .leading, spacing: Space.x2) {
+                            TextField("https://…", text: $url)
+                                .keyboardType(.URL).textInputAutocapitalization(.never).autocorrectionDisabled()
+                                .font(.system(size: 15)).foregroundStyle(p.textPrimary)
+                                .padding(Space.x3).background(p.surface).clipShape(RoundedRectangle(cornerRadius: Radius.md))
+                            Text(L("Меняйте только по указанию поддержки. По умолчанию: {0}", Settings.defaultCloudURL))
+                                .font(ElectroType.caption).foregroundStyle(p.textMuted)
+                            HStack(spacing: Space.x2) {
+                                ElectroButton(text: L("Сохранить")) {
+                                    let t = url.trimmingCharacters(in: .whitespacesAndNewlines)
+                                    guard t.hasPrefix("http://") || t.hasPrefix("https://") else { note = L("Адрес должен начинаться с http:// или https://"); return }
+                                    Settings.shared.cloudUrl = t; url = Settings.shared.cloudUrl; note = L("Сохранено")
+                                }
+                                ElectroButton(text: L("По умолчанию"), style: .secondary) {
+                                    Settings.shared.cloudUrl = ""; url = Settings.shared.cloudUrl; note = L("Сохранено")
+                                }
+                            }
+                            if let note { Text(note).font(ElectroType.caption).foregroundStyle(p.textSecondary) }
+                        }
+                    }
+                    SectionCard(title: L("Язык")) { LangPicker() }
+                    ThemeSection()
+                    Text(L("Версия {0}", (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "") + " (" + (Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "") + ")"))
+                        .font(ElectroType.caption).foregroundStyle(p.textMuted).frame(maxWidth: .infinity)
+                }
+                .padding(Space.x4)
+            }
+            .background(p.background.ignoresSafeArea())
+            .navigationTitle(L("Настройки")).navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button(L("Готово")) { dismiss() } } }
+        }
+    }
 }

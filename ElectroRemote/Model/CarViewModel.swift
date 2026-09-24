@@ -36,6 +36,15 @@ final class CarViewModel: ObservableObject {
     @Published private var optimistic: [Int: String] = [:] {
         didSet { settings.optimistic = optimistic }
     }
+    /// До какого момента эхо команды важнее сигнала с машины. Машина отдаёт
+    /// старое состояние ещё несколько опросов после команды: без выдержки
+    /// тумблер климата сам «выключался», а следующее нажатие снова слало «вкл».
+    private var holdUntil: [Int: Date] = [:]
+    private static let holdSeconds: TimeInterval = 45
+    private func hold(_ types: some Sequence<Int>) {
+        let until = Date().addingTimeInterval(Self.holdSeconds)
+        for t in types { holdUntil[t] = until }
+    }
     /// Результат последней команды — экран показывает его снекбаром.
     @Published var event: CmdEvent? = nil
     @Published private(set) var busy = false
@@ -127,7 +136,9 @@ final class CarViewModel: ObservableObject {
     /// Фактические значения элементов управления: сигнал с машины, иначе эхо команды.
     var controls: [Int: String] {
         var merged = optimistic
+        let now = Date()
         for type in Set(optimistic.keys).union(Self.signalBacked) {
+            if let until = holdUntil[type], until > now, optimistic[type] != nil { continue }
             if let name = Cmd.signalFor(type), let v = car.signal(name) { merged[type] = v }
         }
         return merged
@@ -258,6 +269,7 @@ final class CarViewModel: ObservableObject {
     func climateOn(runMinutes: Int?) {
         Task {
             optimistic[Cmd.AC] = "1"
+            hold([Cmd.AC])
             pending.insert(Cmd.AC)
             let r = await repo.climateOn(runMinutes: runMinutes)
             pending.remove(Cmd.AC)
@@ -266,6 +278,7 @@ final class CarViewModel: ObservableObject {
                 emit(.success, L("Климат включён"), (runMinutes ?? 0) > 0 ? L("Выключу через {0} мин", runMinutes!) : L("Выполнено"))
             case .failed(let reason):
                 optimistic.removeValue(forKey: Cmd.AC)
+                holdUntil.removeValue(forKey: Cmd.AC)
                 emit(.failed, L("Климат"), reason)
             case .unsupported(let reason):
                 emit(.unsupported, L("Климат"), reason)
@@ -386,6 +399,7 @@ final class CarViewModel: ObservableObject {
             let types = Set(cmds.map { $0.type })
             // сразу показываем ожидаемое состояние, чтобы кнопка не «залипала»
             for c in cmds { optimistic[c.type] = c.value }
+            hold(types)
             pending.formUnion(types)
             busy = true
 
@@ -412,6 +426,7 @@ final class CarViewModel: ObservableObject {
                 for (i, r) in results.enumerated() where !r.isOk {
                     let t = cmds[i].type
                     if let before = previous[t] { optimistic[t] = before } else { optimistic.removeValue(forKey: t) }
+                    holdUntil.removeValue(forKey: t)
                 }
                 // Частичный неуспех человеку не показываем: что прошло — прошло,
                 // непрошедшее откатили выше. Счётчик «N из M» только пугал.
@@ -419,6 +434,7 @@ final class CarViewModel: ObservableObject {
                 refreshNow()
             } else {
                 optimistic = previous
+                for t in types { holdUntil.removeValue(forKey: t) }
                 let kind: EventKind
                 if case .unsupported = failure! { kind = .unsupported }
                 else if car.link == .none { kind = .offline }

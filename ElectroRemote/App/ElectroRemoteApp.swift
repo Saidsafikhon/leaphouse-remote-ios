@@ -86,7 +86,18 @@ struct RootView: View {
             Text(L("При запуске и возврате в приложение будет запрашиваться Face ID / Touch ID или код-пароль iPhone. Можно включить позже в настройках."))
         }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .background && vm.loggedIn && lock.enabled { lock.locked = true }
+            // Блокируем не в момент ухода, а при возврате — и только если в фоне
+            // пробыли дольше 10 с. Короткие уходы (звонок, уведомление, камера
+            // при сканировании QR, диалог Face ID — это .inactive) не запирают.
+            switch phase {
+            case .background:
+                if lock.backgroundedAt == nil { lock.backgroundedAt = Date() }
+            case .active:
+                if let t = lock.backgroundedAt, vm.loggedIn, lock.enabled,
+                   Date().timeIntervalSince(t) >= AppLock.graceSeconds { lock.locked = true }
+                lock.backgroundedAt = nil
+            default: break
+            }
         }
     }
 }

@@ -168,7 +168,7 @@ struct SettingsScreen: View {
 
 /// Строка машины: выбор радиокнопкой, имя (локальное поверх серверного), правка и отвязка.
 /// Оформление: авто (за системой), светлая, тёмная. Применяется сразу.
-private struct ThemeSection: View {
+struct ThemeSection: View {
     @Environment(\.palette) private var p
     @AppStorage("themeMode") private var themeMode = "auto"
     private var options: [(String, String)] { [("auto", L("Авто")), ("light", L("Светлая")), ("dark", L("Тёмная"))] }

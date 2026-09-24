@@ -10,6 +10,9 @@ final class AppLock: ObservableObject {
 
     /// Заблокировано ли приложение сейчас (снимается системным диалогом).
     @Published var locked = false
+    /// Когда ушли в фон; блокируем при возврате, только если прошло ≥ graceSeconds.
+    var backgroundedAt: Date? = nil
+    static let graceSeconds: TimeInterval = 10
     @Published var enabled: Bool {
         didSet { d.set(enabled, forKey: "lock_system") }
     }
