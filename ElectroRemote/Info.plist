@@ -80,6 +80,9 @@
 	<array>
 		<string>Unbounded-Light.ttf</string>
 		<string>Unbounded-ExtraBold.ttf</string>
+		<string>Outfit-Bold.ttf</string>
+		<string>Outfit-Light.ttf</string>
+		<string>Outfit-Medium.ttf</string>
 	</array>
 </dict>
 </plist>

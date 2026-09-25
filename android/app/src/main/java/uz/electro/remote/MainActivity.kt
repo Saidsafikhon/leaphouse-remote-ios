@@ -42,6 +42,9 @@ class MainActivity : FragmentActivity() {
     /** Заблокировано ли приложение кодом; снимается кодом или биометрией. */
     private val locked = mutableStateOf(false)
 
+    /** Экран загрузки (макет Figma) показывается один раз — при холодном старте. */
+    private val splashDone = mutableStateOf(false)
+
     /** Где мы до того, как попали в приложение: вход, его ответвления и привязка. */
     private enum class Gate { LOGIN, REGISTER, FORGOT, LOADING, PAIR, READY }
 
@@ -67,6 +70,8 @@ class MainActivity : FragmentActivity() {
         // явного вызова поведение на старых и новых телефонах расходилось бы. Отступы под
         // системные панели и клавиатуру добавляет ElectroTheme (safeDrawing).
         enableEdgeToEdge()
+        // поворот экрана/возврат процесса — не повторяем заставку
+        if (savedInstanceState != null) splashDone.value = true
         // Лента новостей подкачивается в фоне (раз в 6 ч при сети) — см. NewsSyncWorker.
         uz.electro.remote.push.NewsSyncWorker.schedule(this)
         VoiceActions.fromIntent(intent)?.let { pendingAction.value = it }
@@ -80,6 +85,12 @@ class MainActivity : FragmentActivity() {
         setContent {
             ElectroTheme {
                 val vm: CarViewModel = viewModel()
+                // Заставка поверх всего: модель уже создана и грузит парк/новости в фоне,
+                // а экран входа/главная собираются после неё.
+                if (!splashDone.value) {
+                    uz.electro.remote.ui.SplashScreen(uz.electro.remote.ui.theme.isAppDarkTheme()) { splashDone.value = true }
+                    return@ElectroTheme
+                }
                 // пришёл push — перечитать ленту, пока приложение открыто
                 androidx.compose.runtime.DisposableEffect(Unit) {
                     val r = object : BroadcastReceiver() {

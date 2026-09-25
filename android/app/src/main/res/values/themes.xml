@@ -8,6 +8,6 @@
       переключателем, что и палитра приложения.
     -->
     <style name="Theme.Electro" parent="@android:style/Theme.Material.Light.NoActionBar">
-        <item name="android:windowBackground">#FFF2F5F7</item>
+        <item name="android:windowBackground">#FFF4F6F8</item>
     </style>
 </resources>

@@ -60,7 +60,7 @@ android {
         //         уведомления после входа, «Найти машину» во время запроса неактивна.
         // 0.50.0: лента новостей на диске + ETag/304 + фоновая подкачка (WorkManager,
         //         push data-only); карта — Mapbox вместо osmdroid; значок багажника.
-        versionCode 109; versionName "0.50.0"
+        versionCode 113; versionName "0.50.1"
         resValue "string", "mapbox_access_token", mapboxToken
         // Адреса backend здесь больше нет: он правится в самом приложении
         // (Настройки → «Адрес сервера»), значение по умолчанию и подмена
@@ -90,6 +90,20 @@ android {
             }
         }
     }
+    // Раздача файлом: APK под одну архитектуру почти вдвое легче
+    // универсального — Mapbox и Filament кладут ~25 МБ нативных библиотек на
+    // КАЖДУЮ ABI. Универсальный APK остаётся для тех, у кого архитектура
+    // телефона неизвестна. На AAB для Play это не влияет: там Play сам режет.
+    splits {
+        abi {
+            // Для AAB (Google Play) сплиты выключены: Play сам режет бандл по ABI, а AGP 8.11
+            // падает на bundleRelease при включённых сплитах (issuetracker 402800800).
+            enable !gradle.startParameter.taskNames.any { it.toLowerCase().contains("bundle") }
+            reset()
+            include "arm64-v8a", "armeabi-v7a"
+            universalApk true
+        }
+    }
     buildFeatures { compose true; buildConfig true }
     composeOptions { kotlinCompilerExtensionVersion '1.5.8' }
     buildTypes {
@@ -97,6 +111,9 @@ android {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // Таблица символов нативных библиотек (Filament, Mapbox) — кладётся в AAB, Play Console
+            // показывает по ней понятные стеки сбоев и ANR вместо адресов.
+            ndk { debugSymbolLevel 'SYMBOL_TABLE' }
             // Приложение раздают файлом, а не через Play, и все установленные
             // копии подписаны отладочным ключом. Свой release-ключ здесь
             // означал бы, что обновление не встанет поверх: Android откажет по

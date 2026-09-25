@@ -31,6 +31,8 @@ struct RootView: View {
     @State private var confirmAction: String? = nil
     /// Оформление: auto | light | dark — выбор в настройках, применяется сразу.
     @AppStorage("themeMode") private var themeMode = "auto"
+    /// Экран загрузки по макету — один раз при запуске, поверх ворот.
+    @State private var showSplash = !Demo.enabled
 
     var body: some View {
         let dark = themeMode == "dark" || (themeMode == "auto" && scheme == .dark)
@@ -57,6 +59,12 @@ struct RootView: View {
                 PairScreen(vm: vm, onPaired: { branch = nil })
             } else {
                 PhoneControlScreen(vm: vm)
+            }
+        }
+        .overlay {
+            if showSplash {
+                SplashView(dark: dark) { showSplash = false }
+                    .transition(.opacity)
             }
         }
         .id(lang.code)   // смена языка пересобирает всё дерево — все L("…") перечитываются

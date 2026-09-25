@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.Electro" parent="@android:style/Theme.Material.NoActionBar">
-        <item name="android:windowBackground">#FF070A0D</item>
+        <item name="android:windowBackground">#FF0B0E14</item>
     </style>
 </resources>
