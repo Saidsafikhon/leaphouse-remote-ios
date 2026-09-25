@@ -21,6 +21,8 @@ final class Settings {
     }
 
     static let defaultCloudURL = "https://leapmotor.evon.uz/"
+    /// Магазин живёт на своём домене (витрина market.evon.uz + тот же API магазина).
+    static let marketURL = "https://market.evon.uz/"
 
     /// Адреса, с которых уводим на текущий сервер: прежний боевой по IP (по IP
     /// сертификат не проходит проверку имени), старый домен и стенд.

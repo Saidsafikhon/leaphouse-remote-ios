@@ -74,7 +74,7 @@ struct PushTokenBody: Encodable { let platform: String; let token: String }
 struct PushTokenRemove: Encodable { let token: String }
 
 /// Новость или уведомление из админки.
-struct NewsItem: Decodable, Identifiable, Equatable {
+struct NewsItem: Codable, Identifiable, Equatable {
     let id: String
     let title: String
     let body: String
@@ -350,13 +350,13 @@ final class CloudClient {
         session = URLSession(configuration: cfg)
     }
 
-    private func url(_ path: String) throws -> URL {
-        guard let u = URL(string: settings.cloudUrl + path) else { throw ApiError.badUrl }
+    private func url(_ path: String, base: String? = nil) throws -> URL {
+        guard let u = URL(string: (base ?? settings.cloudUrl) + path) else { throw ApiError.badUrl }
         return u
     }
 
-    private func perform<T: Decodable>(_ method: String, _ path: String, body: (any Encodable)? = nil) async throws -> T {
-        var req = URLRequest(url: try url(path))
+    private func perform<T: Decodable>(_ method: String, _ path: String, body: (any Encodable)? = nil, base: String? = nil) async throws -> T {
+        var req = URLRequest(url: try url(path, base: base))
         req.httpMethod = method
         req.setValue("application/json", forHTTPHeaderField: "Accept")
         if let token = settings.token, !token.isEmpty {
@@ -384,11 +384,32 @@ final class CloudClient {
     func registerPushToken(platform: String, token: String) async throws { let _: Empty = try await perform("POST", "api/v1/auth/push-token", body: PushTokenBody(platform: platform, token: token)) }
     func removePushToken(_ token: String) async throws { let _: Empty = try await perform("DELETE", "api/v1/auth/push-token", body: PushTokenRemove(token: token)) }
     func news() async throws -> [NewsItem] { try await perform("GET", "api/v1/news?limit=50") }
+
+    enum NewsFetch { case notModified; case fresh([NewsItem], String?) }
+
+    /// Лента с If-None-Match: при неизменной ленте сервер отвечает 304 без тела (см. NewsStore).
+    func fetchNews(public isPublic: Bool, etag: String?) async throws -> NewsFetch {
+        var req = URLRequest(url: try url(isPublic ? "api/v1/news/public?limit=50" : "api/v1/news?limit=50"))
+        req.cachePolicy = .reloadIgnoringLocalCacheData   // 304 обрабатываем сами, а не URLCache
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        if !isPublic, let token = settings.token, !token.isEmpty {
+            req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        if let etag { req.setValue(etag, forHTTPHeaderField: "If-None-Match") }
+        let (data, resp) = try await session.data(for: req)
+        let http = resp as? HTTPURLResponse
+        let code = http?.statusCode ?? 0
+        if code == 304 { return .notModified }
+        guard (200..<300).contains(code) else { throw ApiError.http(code, String(data: data, encoding: .utf8) ?? "") }
+        guard let items = try? JSONDecoder().decode([NewsItem].self, from: data) else { throw ApiError.decode }
+        return .fresh(items, http?.value(forHTTPHeaderField: "ETag"))
+    }
     /// Лента без входа — только новости «для всех» (экран логина).
     func newsPublic() async throws -> [NewsItem] { try await perform("GET", "api/v1/news/public?limit=50") }
     func support() async throws -> SupportDto { try await perform("GET", "api/v1/agent/support") }
-    func products() async throws -> [ProductDto] { try await perform("GET", "api/v1/shop/products") }
-    func order(_ body: OrderRequest) async throws -> OrderDto { try await perform("POST", "api/v1/shop/orders", body: body) }
+    // Магазин — на market.evon.uz: витрина сайта и приложение берут каталог из одного места.
+    func products() async throws -> [ProductDto] { try await perform("GET", "api/v1/shop/products", base: Settings.marketURL) }
+    func order(_ body: OrderRequest) async throws -> OrderDto { try await perform("POST", "api/v1/shop/orders", body: body, base: Settings.marketURL) }
 
     // --- отзывы ---
     func sendFeedback(_ body: FeedbackRequest) async throws -> FeedbackCreated { try await perform("POST", "api/v1/feedback", body: body) }

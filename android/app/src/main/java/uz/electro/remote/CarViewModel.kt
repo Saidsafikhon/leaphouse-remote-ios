@@ -169,7 +169,8 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
 
     // --- новости и push ------------------------------------------------------
 
-    private val _news = MutableStateFlow<List<NewsItemDto>>(emptyList())
+    // Лента поднимается с диска сразу (NewsStore) — до ответа сервера и без сети.
+    private val _news = MutableStateFlow<List<NewsItemDto>>(NewsStore.cached(app, settings))
     val news: StateFlow<List<NewsItemDto>> = _news.asStateFlow()
     private val _newsRead = MutableStateFlow(settings.newsRead)
     val newsRead: StateFlow<Set<String>> = _newsRead.asStateFlow()
@@ -180,8 +181,14 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
         combine(_news, _newsRead) { list, read -> list.count { it.source == null && it.id !in read } }
             .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
 
-    /** До входа — публичная лента (без адресных уведомлений), после — полная. */
-    fun loadNews() = viewModelScope.launch { _news.value = if (_loggedIn.value) repo.news() else repo.newsPublic() }
+    /**
+     * До входа — публичная лента (без адресных уведомлений), после — полная.
+     * Без [force] свежая копия с диска отдаётся без запроса; [force] — жест
+     * обновления и push: запрос с ETag, неизменная лента стоит 304 без тела.
+     */
+    fun loadNews(force: Boolean = false) = viewModelScope.launch {
+        _news.value = NewsStore.sync(getApplication(), force)
+    }
 
     fun markNewsRead(id: String) {
         val next = _newsRead.value + id
@@ -407,7 +414,7 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
         _scenes.value = repo.scenes()
         _schedules.value = repo.climateSchedules()
         _voiceIntents.value = repo.voiceIntents()
-        _news.value = repo.news()
+        _news.value = NewsStore.sync(getApplication(), force = false)
     }
 
     fun refreshScenes() = viewModelScope.launch { _scenes.value = repo.scenes() }
@@ -763,14 +770,15 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
         _vehicleId.value = settings.vehicleId
         loadVehicles()
         refreshNow()
-        loadNews()
+        loadNews(force = true)
         uz.electro.remote.push.Push.register(getApplication())
     }
 
     fun logout() {
         uz.electro.remote.push.Push.forget(getApplication())
         repo.logout()
-        _news.value = emptyList()
+        NewsStore.clearUser(getApplication())
+        _news.value = NewsStore.cached(getApplication())
         _loggedIn.value = false
         _vehicles.value = emptyList()
         _vehicleId.value = null

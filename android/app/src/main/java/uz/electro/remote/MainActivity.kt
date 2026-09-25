@@ -67,6 +67,8 @@ class MainActivity : FragmentActivity() {
         // явного вызова поведение на старых и новых телефонах расходилось бы. Отступы под
         // системные панели и клавиатуру добавляет ElectroTheme (safeDrawing).
         enableEdgeToEdge()
+        // Лента новостей подкачивается в фоне (раз в 6 ч при сети) — см. NewsSyncWorker.
+        uz.electro.remote.push.NewsSyncWorker.schedule(this)
         VoiceActions.fromIntent(intent)?.let { pendingAction.value = it }
         SignatureGuard.enforce(this)
         uz.electro.remote.ui.theme.ThemePref.load(this)
@@ -81,7 +83,7 @@ class MainActivity : FragmentActivity() {
                 // пришёл push — перечитать ленту, пока приложение открыто
                 androidx.compose.runtime.DisposableEffect(Unit) {
                     val r = object : BroadcastReceiver() {
-                        override fun onReceive(c: Context?, i: Intent?) { vm.loadNews() }
+                        override fun onReceive(c: Context?, i: Intent?) { vm.loadNews(force = true) }
                     }
                     if (Build.VERSION.SDK_INT >= 33) registerReceiver(r, IntentFilter(Push.ACTION_NEWS), Context.RECEIVER_NOT_EXPORTED)
                     else registerReceiver(r, IntentFilter(Push.ACTION_NEWS))

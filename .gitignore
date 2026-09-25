@@ -11,3 +11,4 @@ android/app/build/
 android/.gradle/
 android/app/google-services.json
 android/keystore.properties
+android/mapbox.properties

@@ -317,7 +317,6 @@ struct NewsScreen: View {
             }
         }
         .refreshable { onRefresh() }
-        .onAppear(perform: onRefresh)
         .fullScreenCover(item: $selected) { n in
             NewsDetailScreen(item: n) { selected = nil }
         }
@@ -493,7 +492,8 @@ struct MapScreen: View {
         .region(MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: loc.lat, longitude: loc.lon),
                                    latitudinalMeters: 600, longitudinalMeters: 600))
     }
-    private func routeTap(_ loc: GeoPoint) { if NavApp.installed.count > 1 { chooseApp = true } else { openRoute(loc) } }
+    /// Всегда показываем выбор навигатора из установленных — а не «приложение по умолчанию».
+    private func routeTap(_ loc: GeoPoint) { chooseApp = true }
 
     var body: some View {
         VStack(spacing: 0) {

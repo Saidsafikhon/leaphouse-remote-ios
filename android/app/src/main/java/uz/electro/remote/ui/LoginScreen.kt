@@ -71,7 +71,7 @@ fun LoginScreen(
     }
     if (showNews) {
         androidx.compose.material3.Surface(color = ElectroColors.Background, modifier = Modifier.fillMaxSize()) {
-            NewsScreen(news, newsRead, onRefresh = { vm.loadNews() }, onRead = { vm.markNewsRead(it.id) },
+            NewsScreen(news, newsRead, onRefresh = { vm.loadNews(force = true) }, onRead = { vm.markNewsRead(it.id) },
                 onReadAll = { vm.markAllNewsRead() }, onBack = { showNews = false })
         }
         return

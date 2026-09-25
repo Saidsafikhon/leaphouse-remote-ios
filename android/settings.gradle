@@ -10,6 +10,9 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // Mapbox Maps SDK v11: репозиторий открытый, секретный токен для скачивания не нужен;
+        // в приложении нужен публичный ключ (pk.…) — см. mapbox.properties.
+        maven { url 'https://api.mapbox.com/downloads/v2/releases/maven' }
     }
 }
 

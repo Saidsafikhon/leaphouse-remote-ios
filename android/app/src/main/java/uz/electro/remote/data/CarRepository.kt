@@ -109,12 +109,12 @@ class CarRepository(private val settings: Settings) {
      * «отправлено» там означало лишь «отдано оператору».
      */
     suspend fun products(): List<ProductDto> = withContext(Dispatchers.IO) {
-        runCatching { cloud.api.products() }.getOrElse { emptyList() }
+        runCatching { cloud.market.products() }.getOrElse { emptyList() }
     }
 
     /** Заявка на товар; null — отправлено, иначе текст ошибки. */
     suspend fun order(req: OrderRequest): String? = withContext(Dispatchers.IO) {
-        runCatching { cloud.api.order(req); null }.getOrElse { reasonOf(it) }
+        runCatching { cloud.market.order(req); null }.getOrElse { reasonOf(it) }
     }
 
     /** Контакты поддержки (открытый эндпоинт, ключ не нужен). null — не достали. */
@@ -281,11 +281,11 @@ class CarRepository(private val settings: Settings) {
     }
 
     suspend fun news(): List<NewsItemDto> = withContext(Dispatchers.IO) {
-        runCatching { cloud.api.news() }.getOrElse { emptyList() }
+        runCatching { cloud.api.news(null).body().orEmpty() }.getOrElse { emptyList() }
     }
 
     suspend fun newsPublic(): List<NewsItemDto> = withContext(Dispatchers.IO) {
-        runCatching { cloud.api.newsPublic() }.getOrElse { emptyList() }
+        runCatching { cloud.api.newsPublic(null).body().orEmpty() }.getOrElse { emptyList() }
     }
 
     /** Push-токен серверу; не критично — при неудаче повторим при следующем запуске. */

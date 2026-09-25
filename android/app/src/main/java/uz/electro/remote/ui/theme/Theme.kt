@@ -78,13 +78,17 @@ object ThemePref {
     }
 }
 
+/** Тёмная ли сейчас тема приложения (своя настройка, а не только системная). */
+@Composable
+fun isAppDarkTheme(): Boolean = when (ThemePref.mode.value) {
+    ThemeMode.AUTO -> isSystemInDarkTheme()
+    ThemeMode.LIGHT -> false
+    ThemeMode.DARK -> true
+}
+
 @Composable
 fun ElectroTheme(content: @Composable () -> Unit) {
-    val dark = when (ThemePref.mode.value) {
-        ThemeMode.AUTO -> isSystemInDarkTheme()
-        ThemeMode.LIGHT -> false
-        ThemeMode.DARK -> true
-    }
+    val dark = isAppDarkTheme()
     val palette = if (dark) ElectroDarkColors else ElectroLightColors
 
     // Значки статусной строки рисует система, и на светлом фоне белые пропадают

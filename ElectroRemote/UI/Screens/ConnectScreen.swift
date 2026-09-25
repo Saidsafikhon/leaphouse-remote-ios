@@ -25,7 +25,8 @@ struct ConnectScreen: View {
                                    onBack: { showShop = false }, onRefresh: { vm.loadProducts() })
         } else if showNews {
             NewsScreen(items: vm.news, isRead: { vm.isRead($0) }, onRead: { vm.markRead($0) },
-                       onReadAll: { vm.markAllRead() }, onBack: { showNews = false }, onRefresh: { vm.loadNews() })
+                       onReadAll: { vm.markAllRead() }, onBack: { showNews = false }, onRefresh: { vm.loadNews(force: true) })
+                .onAppear { vm.loadNews() }
         } else {
             content
         }

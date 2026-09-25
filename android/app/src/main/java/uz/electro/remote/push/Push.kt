@@ -84,7 +84,9 @@ class PushService : FirebaseMessagingService() {
     override fun onMessageReceived(message: RemoteMessage) {
         val title = message.notification?.title ?: message.data["title"] ?: "LeapRemote"
         val body = message.notification?.body ?: message.data["body"] ?: ""
-        // Экраны перечитают ленту, если приложение открыто.
+        // Сервер шлёт data-сообщение, поэтому сюда попадаем и в фоне: подкачиваем ленту
+        // на диск (при открытии новость уже на месте), а открытые экраны перечитывают её.
+        NewsSyncWorker.now(this)
         sendBroadcast(Intent(Push.ACTION_NEWS).setPackage(packageName))
         if (!Push.canPost(this)) return
         Push.ensureChannel(this)

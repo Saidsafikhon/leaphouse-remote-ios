@@ -11,6 +11,8 @@ import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Directions
@@ -47,10 +49,11 @@ import java.util.Locale
 fun MapScreen(loc: GeoPoint?) {
     val ctx = LocalContext.current
 
-    // Маршрут: свой список установленных навигаторов (как на iOS); если их нет —
-    // системный выбор по geo:-ссылке.
+    // Маршрут: всегда показываем выбор из всех навигаторов, установленных на телефоне
+    // (не «приложение по умолчанию»). Известные (NAV_APPS) открываются своей ссылкой с
+    // построением маршрута, остальные — обработчики geo: (объявлены в <queries> манифеста).
     var chooseApp by remember { mutableStateOf(false) }
-    val installedNavs = remember { NAV_APPS.filter { runCatching { ctx.packageManager.getPackageInfo(it.pkg, 0) }.isSuccess } }
+    val installedNavs = remember { installedNavigators(ctx) }
     fun openIn(app: NavApp) {
         val point = loc ?: return
         runCatching {
@@ -59,14 +62,11 @@ fun MapScreen(loc: GeoPoint?) {
     }
     fun openRoute() {
         val point = loc ?: return
-        when {
-            installedNavs.size > 1 -> chooseApp = true
-            installedNavs.size == 1 -> openIn(installedNavs[0])
-            else -> runCatching {
-                val coords = "%.6f,%.6f".format(Locale.US, point.lat, point.lon)
-                val uri = Uri.parse("geo:$coords?q=$coords(Leapmotor C16)")
-                ctx.startActivity(Intent.createChooser(Intent(Intent.ACTION_VIEW, uri), S("Открыть в…")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-            }
+        if (installedNavs.isNotEmpty()) chooseApp = true
+        else runCatching {
+            val coords = "%.6f,%.6f".format(Locale.US, point.lat, point.lon)
+            val uri = Uri.parse("geo:$coords?q=$coords(Leapmotor)")
+            ctx.startActivity(Intent.createChooser(Intent(Intent.ACTION_VIEW, uri), S("Открыть в…")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         }
     }
     if (chooseApp) AlertDialog(
@@ -74,10 +74,15 @@ fun MapScreen(loc: GeoPoint?) {
         containerColor = ElectroColors.SurfaceElevated,
         title = { Text(S("Открыть в…"), color = ElectroColors.TextPrimary) },
         text = {
-            Column {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
                 installedNavs.forEach { app ->
-                    Text(app.name, color = ElectroColors.TextPrimary, fontSize = 16.sp,
-                        modifier = Modifier.fillMaxWidth().clickable { chooseApp = false; openIn(app) }.padding(vertical = 12.dp))
+                    Row(
+                        Modifier.fillMaxWidth().clip(Radius.Sm).clickable { chooseApp = false; openIn(app) }.padding(vertical = 10.dp, horizontal = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        app.icon?.let { Image(it, null, Modifier.size(32.dp)); Spacer(Modifier.width(Space.x3)) }
+                        Text(app.name, color = ElectroColors.TextPrimary, fontSize = 16.sp)
+                    }
                 }
             }
         },
@@ -119,13 +124,13 @@ fun MapScreen(loc: GeoPoint?) {
             }
             Spacer(Modifier.height(Space.x3))
 
-            // Живая карта: OpenStreetMap через osmdroid (без ключа) — как MapKit на iOS.
-            // Тянется и зумится пальцем, метка — машина; тап по метке открывает маршрут.
+            // Живая карта: Mapbox — как MapKit на iOS. Тянется и зумится пальцем,
+            // метка — машина; тап по метке открывает маршрут.
             Box(
                 Modifier.fillMaxWidth().weight(1f).padding(horizontal = Space.x4)
                     .clip(Radius.Lg).background(ElectroColors.Surface),
             ) {
-                OsmMap(loc.lat, loc.lon, onMarkerTap = { openRoute() }, modifier = Modifier.fillMaxSize())
+                CarMap(loc.lat, loc.lon, onMarkerTap = { openRoute() }, modifier = Modifier.fillMaxSize())
             }
             Spacer(Modifier.height(Space.x3))
 
@@ -174,54 +179,85 @@ private fun MapBtn(text: String, icon: ImageVector, mod: Modifier, onClick: () -
     }
 }
 
-/** Карта OpenStreetMap (osmdroid): центр и метка — машина; при смене координат метка переезжает, карта следует. */
+/**
+ * Карта Mapbox: центр и метка — машина; при смене координат метка переезжает, камера
+ * следует. Стиль — светлый или тёмный по теме. Ключ — строка mapbox_access_token
+ * (из android/mapbox.properties); без ключа карта пустая, и мы говорим об этом.
+ */
 @Composable
-private fun OsmMap(lat: Double, lon: Double, onMarkerTap: () -> Unit, modifier: Modifier = Modifier) {
-    val ctx = androidx.compose.ui.platform.LocalContext.current
-    val dark = androidx.compose.foundation.isSystemInDarkTheme()
-    androidx.compose.ui.viewinterop.AndroidView(
+private fun CarMap(lat: Double, lon: Double, onMarkerTap: () -> Unit, modifier: Modifier = Modifier) {
+    val ctx = LocalContext.current
+    val dark = isAppDarkTheme()   // стиль карты идёт за темой приложения, а не системы
+    val token = remember { ctx.getString(uz.electro.remote.R.string.mapbox_access_token) }
+    if (token.isBlank()) {
+        Box(modifier, contentAlignment = Alignment.Center) {
+            Text(S("Карта не настроена: нет ключа Mapbox"), style = ElectroType.Caption,
+                color = ElectroColors.TextMuted, textAlign = TextAlign.Center,
+                modifier = Modifier.padding(Space.x4))
+        }
+        return
+    }
+    remember(token) { com.mapbox.common.MapboxOptions.accessToken = token; true }
+    val point = com.mapbox.geojson.Point.fromLngLat(lon, lat)
+    val viewport = com.mapbox.maps.extension.compose.animation.viewport.rememberMapViewportState {
+        setCameraOptions { center(point); zoom(16.0); pitch(0.0); bearing(0.0) }
+    }
+    com.mapbox.maps.extension.compose.MapboxMap(
         modifier = modifier,
-        factory = {
-            org.osmdroid.config.Configuration.getInstance().apply {
-                userAgentValue = "LeapRemote/" + uz.electro.remote.BuildConfig.VERSION_NAME   // требование OSM
-                osmdroidBasePath = java.io.File(ctx.cacheDir, "osm"); osmdroidTileCache = java.io.File(ctx.cacheDir, "osm/tiles")
-            }
-            org.osmdroid.views.MapView(ctx).apply {
-                setTileSource(org.osmdroid.tileprovider.tilesource.TileSourceFactory.MAPNIK)
-                setMultiTouchControls(true)
-                zoomController.setVisibility(org.osmdroid.views.CustomZoomButtonsController.Visibility.NEVER)
-                isTilesScaledToDpi = true
-                minZoomLevel = 4.0; maxZoomLevel = 19.0
-                controller.setZoom(16.5)
-                controller.setCenter(org.osmdroid.util.GeoPoint(lat, lon))
-                val m = org.osmdroid.views.overlay.Marker(this).apply {
-                    id = "car"; position = org.osmdroid.util.GeoPoint(lat, lon)
-                    setAnchor(org.osmdroid.views.overlay.Marker.ANCHOR_CENTER, org.osmdroid.views.overlay.Marker.ANCHOR_BOTTOM)
-                    icon = androidx.core.content.ContextCompat.getDrawable(ctx, uz.electro.remote.R.drawable.ic_map_pin)
-                    setOnMarkerClickListener { _, _ -> onMarkerTap(); true }
-                }
-                overlays.add(m)
-                // тёмная тема — инвертируем тайлы, чтобы карта не светила белым
-                if (dark) overlayManager.tilesOverlay.setColorFilter(org.osmdroid.tileprovider.tilesource.TileSourceFactory.MAPNIK.let {
-                    android.graphics.ColorMatrixColorFilter(floatArrayOf(
-                        -1f, 0f, 0f, 0f, 255f, 0f, -1f, 0f, 0f, 255f, 0f, 0f, -1f, 0f, 255f, 0f, 0f, 0f, 1f, 0f))
-                })
-            }
+        mapViewportState = viewport,
+        style = {
+            com.mapbox.maps.extension.compose.style.MapStyle(
+                style = if (dark) com.mapbox.maps.Style.DARK else com.mapbox.maps.Style.STANDARD,
+            )
         },
-        update = { map ->
-            val p = org.osmdroid.util.GeoPoint(lat, lon)
-            (map.overlays.firstOrNull { it is org.osmdroid.views.overlay.Marker && (it as org.osmdroid.views.overlay.Marker).id == "car" } as? org.osmdroid.views.overlay.Marker)?.let {
-                if (it.position.distanceToAsDouble(p) > 5.0) { it.position = p; map.controller.animateTo(p) }
-            }
-            map.invalidate()
-        },
-        onRelease = { it.onDetach() },
-    )
+    ) {
+        val pin = com.mapbox.maps.extension.compose.annotation.rememberIconImage(
+            key = "car-pin", painter = androidx.compose.ui.res.painterResource(uz.electro.remote.R.drawable.ic_map_pin),
+        )
+        com.mapbox.maps.extension.compose.annotation.generated.PointAnnotation(
+            point = point,
+            onClick = { onMarkerTap(); true },
+        ) {
+            iconImage = pin
+            iconAnchor = com.mapbox.maps.extension.style.layers.properties.generated.IconAnchor.BOTTOM
+        }
+    }
+    LaunchedEffect(lat, lon) {
+        viewport.easeTo(
+            com.mapbox.maps.dsl.cameraOptions { center(point) },
+            com.mapbox.maps.plugin.animation.MapAnimationOptions.mapAnimationOptions { duration(600) },
+        )
+    }
 }
 
 
 /** Навигаторы, которые умеем открывать на точке машины (пакеты объявлены в <queries> манифеста). */
-private data class NavApp(val name: String, val pkg: String, val uri: (Double, Double) -> String)
+private data class NavApp(val name: String, val pkg: String, val icon: ImageBitmap? = null,
+                          val uri: (Double, Double) -> String)
+
+/**
+ * Все навигаторы на телефоне: сначала известные (с маршрутом), потом любые обработчики
+ * geo:-ссылок, которых нет в списке (Maps.me, Organic Maps, Petal, штатные карты и т.п.).
+ */
+private fun installedNavigators(ctx: android.content.Context): List<NavApp> {
+    val pm = ctx.packageManager
+    fun icon(pkg: String): ImageBitmap? = runCatching {
+        val d = pm.getApplicationIcon(pkg)
+        val bmp = android.graphics.Bitmap.createBitmap(96, 96, android.graphics.Bitmap.Config.ARGB_8888)
+        val c = android.graphics.Canvas(bmp); d.setBounds(0, 0, 96, 96); d.draw(c); bmp.asImageBitmap()
+    }.getOrNull()
+    val known = NAV_APPS.filter { runCatching { pm.getPackageInfo(it.pkg, 0) }.isSuccess }
+        .map { it.copy(name = runCatching { pm.getApplicationLabel(pm.getApplicationInfo(it.pkg, 0)).toString() }.getOrDefault(it.name), icon = icon(it.pkg)) }
+    val probe = Intent(Intent.ACTION_VIEW, Uri.parse("geo:41.311,69.240?q=41.311,69.240"))
+    val others = runCatching { pm.queryIntentActivities(probe, 0) }.getOrDefault(emptyList())
+        .map { it.activityInfo.packageName }.distinct()
+        .filter { p -> p != ctx.packageName && known.none { it.pkg == p } }
+        .map { p ->
+            NavApp(runCatching { pm.getApplicationLabel(pm.getApplicationInfo(p, 0)).toString() }.getOrDefault(p), p, icon(p)) { la, lo ->
+                "geo:$la,$lo?q=$la,$lo(Leapmotor)" }
+        }
+    return known + others
+}
 private val NAV_APPS = listOf(
     NavApp("Google Maps", "com.google.android.apps.maps") { la, lo -> "google.navigation:q=$la,$lo" },
     NavApp("Яндекс Навигатор", "ru.yandex.yandexnavi") { la, lo -> "yandexnavi://build_route_on_map?lat_to=$la&lon_to=$lo" },

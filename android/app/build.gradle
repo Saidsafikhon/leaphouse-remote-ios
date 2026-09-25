@@ -3,6 +3,15 @@ plugins { id 'com.android.application'; id 'org.jetbrains.kotlin.android' }
 // -Pplay: сборка для Google Play (ключ загрузки из keystore.properties, отпечаток playSig).
 // Без флага — прежняя раздача файлом: подпись debug.keystore, отпечаток expectedSig.
 def isPlay = project.hasProperty("play")
+
+// Публичный ключ Mapbox (pk.…): android/mapbox.properties (в git не попадает) или
+// переменная MAPBOX_PUBLIC_TOKEN. Без ключа карта на вкладке «Карта» не грузит тайлы.
+def mapboxToken = System.getenv("MAPBOX_PUBLIC_TOKEN") ?: ""
+def mbFile = rootProject.file("mapbox.properties")
+if (mbFile.exists()) {
+    def mb = new Properties(); mbFile.withInputStream { mb.load(it) }
+    mapboxToken = (mb.getProperty("MAPBOX_PUBLIC_TOKEN") ?: mapboxToken).trim()
+}
 def ksProps = new Properties()
 if (isPlay) {
     def f = rootProject.file("keystore.properties")
@@ -49,7 +58,10 @@ android {
         // 0.49.1: выбор 3D/картинка в настройках, настройки на входе без адреса сервера и с
         //         блокировкой; паритет с iOS: обновление жестом, навигаторы, push → новости,
         //         уведомления после входа, «Найти машину» во время запроса неактивна.
-        versionCode 108; versionName "0.49.1"
+        // 0.50.0: лента новостей на диске + ETag/304 + фоновая подкачка (WorkManager,
+        //         push data-only); карта — Mapbox вместо osmdroid; значок багажника.
+        versionCode 109; versionName "0.50.0"
+        resValue "string", "mapbox_access_token", mapboxToken
         // Адреса backend здесь больше нет: он правится в самом приложении
         // (Настройки → «Адрес сервера»), значение по умолчанию и подмена
         // устаревших адресов живут в data/Settings.kt. Зашитый на сборке адрес
@@ -110,7 +122,9 @@ dependencies {
     implementation 'com.google.android.filament:gltfio-android:1.56.0'
     implementation 'com.google.android.filament:filament-utils-android:1.56.0'
     implementation 'io.coil-kt:coil-compose:2.6.0'   // обложки новостей
-    implementation 'org.osmdroid:osmdroid-android:6.1.18'   // живая карта (OpenStreetMap, без ключа)
+    implementation 'com.mapbox.maps:android:11.12.0'              // живая карта (Mapbox, ключ в mapbox.properties)
+    implementation 'com.mapbox.extension:maps-compose:11.12.0'
+    implementation 'androidx.work:work-runtime-ktx:2.9.1'          // фоновая подкачка новостей
     implementation 'androidx.biometric:biometric:1.1.0'              // отпечаток / лицо на экране блокировки
     implementation 'androidx.fragment:fragment-ktx:1.6.2'            // BiometricPrompt требует FragmentActivity
     implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0'

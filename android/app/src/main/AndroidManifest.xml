@@ -13,6 +13,11 @@
         <package android:name="ru.yandex.yandexmaps"/>
         <package android:name="ru.dublgis.dgismobile"/>
         <package android:name="com.waze"/>
+        <!-- и любые другие обработчики geo:-ссылок — для выбора навигатора на вкладке «Карта» -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="geo"/>
+        </intent>
     </queries>
     <application android:label="LeapRemote" android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"

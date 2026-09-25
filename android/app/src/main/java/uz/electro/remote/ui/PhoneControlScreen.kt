@@ -639,7 +639,7 @@ private fun QuickRow(
             })
             "trunk" -> ({
                 ControlTile(
-                    S("Багажник"), Lx.DirectionsCar,
+                    S("Багажник"), Lx.Trunk,
                     stateOf(Cmd.TRUNK).orActive(trunkOpen), Modifier.weight(1f),
                 ) {
                     if (trunkOpen) onSendAll(listOf(VehicleCommand(Cmd.TRUNK, "0")), S("Закрыть багажник"))

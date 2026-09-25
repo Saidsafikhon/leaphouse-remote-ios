@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -64,9 +65,10 @@ fun ShopScreen(
         .filter { q.isEmpty() || it.title.lowercase().contains(q) || it.description.lowercase().contains(q) || it.models.lowercase().contains(q) }
         .sortedBy { p -> when { p.models.isBlank() -> 1; m.isNotBlank() && p.models.uppercase().contains(m) -> 0; else -> 2 } }
 
+    // Список ленивый: карточки с фото собираются по мере прокрутки, экран открывается сразу.
     PullRefresh(onRefresh) {
-    ScreenScaffold(S("Магазин"), onBack) {
-        OutlinedTextField(
+    LazyScreenScaffold(S("Магазин"), onBack) {
+        item(key = "search") { OutlinedTextField(
             value = query, onValueChange = { query = it }, singleLine = true,
             placeholder = { Text(S("Поиск товаров"), color = ElectroColors.TextMuted) },
             leadingIcon = { Icon(Lx.Search, null, tint = ElectroColors.TextMuted, modifier = Modifier.size(20.dp)) },
@@ -78,24 +80,26 @@ fun ShopScreen(
                 focusedTextColor = ElectroColors.TextPrimary, unfocusedTextColor = ElectroColors.TextPrimary,
                 cursorColor = ElectroColors.Accent,
             ),
-        )
-        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            categories.forEach { (k, label) ->
-                val on = category == k
-                Surface(
-                    color = if (on) ElectroColors.Accent.copy(alpha = 0.14f) else ElectroColors.SurfaceElevated, shape = Radius.Pill,
-                    border = if (on) androidx.compose.foundation.BorderStroke(1.dp, ElectroColors.Accent) else null,
-                    modifier = Modifier.height(ControlSize.Chip).clip(Radius.Pill).clickable { category = k },
-                ) {
-                    Box(Modifier.padding(horizontal = Space.x4).fillMaxHeight(), contentAlignment = Alignment.Center) {
-                        Text(label, style = ElectroType.Body, color = if (on) ElectroColors.Accent else ElectroColors.TextPrimary, maxLines = 1)
+        ) }
+        item(key = "categories") {
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                categories.forEach { (k, label) ->
+                    val on = category == k
+                    Surface(
+                        color = if (on) ElectroColors.Accent.copy(alpha = 0.14f) else ElectroColors.SurfaceElevated, shape = Radius.Pill,
+                        border = if (on) androidx.compose.foundation.BorderStroke(1.dp, ElectroColors.Accent) else null,
+                        modifier = Modifier.height(ControlSize.Chip).clip(Radius.Pill).clickable { category = k },
+                    ) {
+                        Box(Modifier.padding(horizontal = Space.x4).fillMaxHeight(), contentAlignment = Alignment.Center) {
+                            Text(label, style = ElectroType.Body, color = if (on) ElectroColors.Accent else ElectroColors.TextPrimary, maxLines = 1)
+                        }
                     }
                 }
             }
         }
-        if (shown.isEmpty()) EmptyNote(when { products.isEmpty() -> S("Товары скоро появятся."); q.isNotEmpty() -> S("Ничего не найдено"); else -> S("В этом разделе пусто.") })
+        if (shown.isEmpty()) item(key = "empty") { EmptyNote(when { products.isEmpty() -> S("Товары скоро появятся."); q.isNotEmpty() -> S("Ничего не найдено"); else -> S("В этом разделе пусто.") }) }
         // сетка 2 в ряд
-        shown.chunked(2).forEach { row ->
+        items(shown.chunked(2), key = { row -> row.joinToString("|") { it.id } }) { row ->
             // карточки в ряду одной высоты: строка старой цены зарезервирована всегда
             Row(Modifier.fillMaxWidth().height(IntrinsicSize.Max), horizontalArrangement = Arrangement.spacedBy(Space.x3)) {
                 row.forEach { p -> ProductCard(p, Modifier.weight(1f).fillMaxHeight()) { selected = p } }

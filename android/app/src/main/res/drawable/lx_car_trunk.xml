@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Багажник: хэтчбек/кроссовер сбоку, капот и лобовое слева, корма справа, дверь багажника
+     поднята над кормой. Свой глиф в стиле Lucide (обводка 1.7); тот же контур на leapmotor.evon.uz. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+    <path android:pathData="M5 17H3a1 1 0 0 1-1-1v-3.5l2-.5 2.5-4H18v9h-1" android:strokeColor="#FF000000" android:strokeWidth="1.7" android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000"/>
+    <path android:pathData="M18 8l3.5-4.5" android:strokeColor="#FF000000" android:strokeWidth="1.7" android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000"/>
+    <path android:pathData="M9 17h4" android:strokeColor="#FF000000" android:strokeWidth="1.7" android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000"/>
+    <path android:pathData="M5.0,17.0 a2.0,2.0 0 1,0 4.0,0 a2.0,2.0 0 1,0 -4.0,0" android:strokeColor="#FF000000" android:strokeWidth="1.7" android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000"/>
+    <path android:pathData="M13.0,17.0 a2.0,2.0 0 1,0 4.0,0 a2.0,2.0 0 1,0 -4.0,0" android:strokeColor="#FF000000" android:strokeWidth="1.7" android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000"/>
+</vector>

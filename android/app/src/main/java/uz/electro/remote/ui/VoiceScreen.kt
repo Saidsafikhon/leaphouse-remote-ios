@@ -89,6 +89,32 @@ fun ScreenScaffold(
     }
 }
 
+/**
+ * То же, что [ScreenScaffold], но список ленивый: длинные ленты (новости, магазин) не
+ * собирают все карточки с картинками разом при открытии — экран появляется сразу.
+ */
+@Composable
+fun LazyScreenScaffold(
+    title: String,
+    onBack: () -> Unit,
+    content: androidx.compose.foundation.lazy.LazyListScope.() -> Unit,
+) {
+    Column(Modifier.fillMaxSize()) {
+        Row(Modifier.fillMaxWidth().padding(Space.x4), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Lx.ArrowBack, null, tint = ElectroColors.TextPrimary,
+                modifier = Modifier.size(26.dp).clickable(onClick = onBack))
+            Spacer(Modifier.width(Space.x3))
+            Text(title, style = ElectroType.Headline, color = ElectroColors.TextPrimary)
+        }
+        androidx.compose.foundation.lazy.LazyColumn(
+            Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(start = Space.x4, end = Space.x4, bottom = Space.x5),
+            verticalArrangement = Arrangement.spacedBy(Space.x4),
+            content = content,
+        )
+    }
+}
+
 @Composable
 fun EmptyNote(text: String) {
     Text(text, style = ElectroType.Body, color = ElectroColors.TextMuted,

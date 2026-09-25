@@ -71,7 +71,8 @@ struct PhoneControlScreen: View {
                                    onBack: { tab = .car }, onRefresh: { vm.loadProducts() })
                     case .news:
                         NewsScreen(items: vm.news, isRead: { vm.isRead($0) }, onRead: { vm.markRead($0) },
-                                   onReadAll: { vm.markAllRead() }, onBack: { tab = .car }, onRefresh: { vm.loadNews() })
+                                   onReadAll: { vm.markAllRead() }, onBack: { tab = .car }, onRefresh: { vm.loadNews(force: true) })
+                .onAppear { vm.loadNews() }
                     case .car:
                         HomeTabView(
                             car: vm.car,
@@ -492,7 +493,7 @@ private struct QuickRow: View {
                 }
             }
         case "trunk":
-            ControlTile(label: L("Багажник"), icon: "car", state: stateOf(Cmd.TRUNK).orActive(trunkOpen)) {
+            ControlTile(label: L("Багажник"), icon: Sym.trunk, state: stateOf(Cmd.TRUNK).orActive(trunkOpen)) {
                 if trunkOpen {
                     onSendAll([VehicleCommand(type: Cmd.TRUNK, value: "0")], L("Закрыть багажник"))
                 } else {

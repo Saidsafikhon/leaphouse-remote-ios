@@ -96,10 +96,12 @@ final class CarViewModel: ObservableObject {
         loggedIn = settings.loggedIn
         vehicleId = settings.vehicleId
         optimistic = settings.optimistic
+        // Лента поднимается с диска сразу (NewsStore) — до ответа сервера и без сети.
+        news = NewsStore.cached(loggedIn: settings.loggedIn)
         if settings.loggedIn { loadVehicles(); loadNews(); PushRegistrar.shared.enable() }
         loadSupport()
-        PushRegistrar.shared.onNotification = { [weak self] in Task { @MainActor in self?.loadNews() } }
-        PushRegistrar.shared.onNotificationTap = { [weak self] in Task { @MainActor in self?.loadNews(); self?.openNewsRequest += 1 } }
+        PushRegistrar.shared.onNotification = { [weak self] in Task { @MainActor in self?.loadNews(force: true) } }
+        PushRegistrar.shared.onNotificationTap = { [weak self] in Task { @MainActor in self?.loadNews(force: true); self?.openNewsRequest += 1 } }
     }
 
     // --- новости и push ---
@@ -119,7 +121,9 @@ final class CarViewModel: ObservableObject {
     }
 
     /// До входа — публичная лента (без адресных уведомлений), после — полная.
-    func loadNews() { Task { news = loggedIn ? await repo.news() : await repo.newsPublic() } }
+    /// Без `force` свежая копия с диска отдаётся без запроса; `force` — жест обновления
+    /// и push: запрос с ETag, неизменная лента стоит 304 без тела.
+    func loadNews(force: Bool = false) { Task { news = await NewsStore.sync(settings: settings, force: force) } }
 
     func isRead(_ item: NewsItem) -> Bool { item.source != nil || newsRead.contains(item.id) }
 
@@ -301,7 +305,7 @@ final class CarViewModel: ObservableObject {
             scenes = await repo.scenes()
             schedules = await repo.climateSchedules()
             voiceIntents = await repo.voiceIntents()
-            news = await repo.news()
+            news = await NewsStore.sync(settings: settings, force: false)
         }
     }
 
@@ -586,7 +590,7 @@ final class CarViewModel: ObservableObject {
         vehicleId = settings.vehicleId
         loadVehicles()
         refreshNow()
-        loadNews()
+        loadNews(force: true)
         PushRegistrar.shared.enable()
     }
 
@@ -600,7 +604,8 @@ final class CarViewModel: ObservableObject {
     func logout() {
         Task { await PushRegistrar.shared.forget() }
         repo.logout()
-        news = []
+        NewsStore.clearUser()
+        news = NewsStore.cached(loggedIn: false)
         loggedIn = false
         vehicles = []
         vehicleId = nil

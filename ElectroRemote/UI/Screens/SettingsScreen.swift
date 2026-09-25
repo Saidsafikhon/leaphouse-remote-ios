@@ -31,10 +31,6 @@ struct SettingsScreen: View {
                         Text(L("Выйти из аккаунта")).font(ElectroType.body).foregroundStyle(p.danger)
                     }
                     .buttonStyle(.plain)
-                    Button { deletePassword = ""; deleteError = nil; deleting = true } label: {
-                        Text(L("Удалить аккаунт")).font(ElectroType.caption).foregroundStyle(p.textMuted)
-                    }
-                    .buttonStyle(.plain)
                 }
 
                 SectionCard(title: L("Мои машины"), action: L("Обновить"), onAction: { vm.loadVehicles() }) {
@@ -122,6 +118,14 @@ struct SettingsScreen: View {
             .font(ElectroType.caption).foregroundStyle(p.textMuted).frame(maxWidth: .infinity)
             Text(appVersion()).font(ElectroType.caption).foregroundStyle(p.textMuted)
                 .frame(maxWidth: .infinity).padding(.top, Space.x1)
+            // Удаление аккаунта — в самом низу, отдельно от повседневных действий.
+            if vm.loggedIn {
+                Button { deletePassword = ""; deleteError = nil; deleting = true } label: {
+                    Text(L("Удалить аккаунт")).font(ElectroType.caption).foregroundStyle(p.danger)
+                        .frame(maxWidth: .infinity).padding(.top, Space.x3).padding(.bottom, Space.x2)
+                }
+                .buttonStyle(.plain)
+            }
         }
         .sheet(isPresented: $feedback) {
             FeedbackView(vm: vm) { feedback = false }

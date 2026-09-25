@@ -12,6 +12,7 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.outlined.Notifications
@@ -67,36 +68,39 @@ fun NewsScreen(
     }
     val unread = items.count { it.source == null && it.id !in read }
 
+    // Лента ленивая: карточки с обложками собираются по мере прокрутки, экран открывается сразу.
     PullRefresh(onRefresh) {
-    ScreenScaffold(S("Новости"), onBack) {
-        Row(
-            Modifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            filters.forEach { (k, label) ->
-                val on = filter == k
-                Surface(
-                    color = if (on) ElectroColors.Accent.copy(alpha = 0.14f) else ElectroColors.SurfaceElevated, shape = Radius.Pill,
-                    border = if (on) androidx.compose.foundation.BorderStroke(1.dp, ElectroColors.Accent) else null,
-                    modifier = Modifier.height(ControlSize.Chip).clip(Radius.Pill).clickable { filter = k },
-                ) {
-                    Box(Modifier.padding(horizontal = Space.x4).fillMaxHeight(), contentAlignment = Alignment.Center) {
-                        Text(label, style = ElectroType.Body, color = if (on) ElectroColors.Accent else ElectroColors.TextPrimary, maxLines = 1)
+    LazyScreenScaffold(S("Новости"), onBack) {
+        item(key = "filters") {
+            Row(
+                Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                filters.forEach { (k, label) ->
+                    val on = filter == k
+                    Surface(
+                        color = if (on) ElectroColors.Accent.copy(alpha = 0.14f) else ElectroColors.SurfaceElevated, shape = Radius.Pill,
+                        border = if (on) androidx.compose.foundation.BorderStroke(1.dp, ElectroColors.Accent) else null,
+                        modifier = Modifier.height(ControlSize.Chip).clip(Radius.Pill).clickable { filter = k },
+                    ) {
+                        Box(Modifier.padding(horizontal = Space.x4).fillMaxHeight(), contentAlignment = Alignment.Center) {
+                            Text(label, style = ElectroType.Body, color = if (on) ElectroColors.Accent else ElectroColors.TextPrimary, maxLines = 1)
+                        }
                     }
                 }
             }
         }
-        if (unread > 0) {
+        if (unread > 0) item(key = "readall") {
             uz.electro.remote.ui.components.ElectroButton(
                 S("Прочитать всё ({0})", unread), Modifier.fillMaxWidth(),
                 style = uz.electro.remote.ui.components.ButtonStyle.Secondary, onClick = onReadAll,
             )
         }
-        if (shown.isEmpty()) {
+        if (shown.isEmpty()) item(key = "empty") {
             EmptyNote(if (items.isEmpty()) S("Пока ничего нет. Здесь появятся новости и уведомления от оператора.") else S("В этом разделе пусто."))
         }
         // NEW — только у новостей оператора; RSS-новости показываются тихо
-        shown.forEach { n -> NewsCard(n, isRead = n.source != null || n.id in read, onOpen = { onRead(n); selected = n }) }
+        items(shown, key = { it.id }) { n -> NewsCard(n, isRead = n.source != null || n.id in read, onOpen = { onRead(n); selected = n }) }
     }
     }
 }

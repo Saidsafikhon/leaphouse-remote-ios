@@ -73,7 +73,15 @@ final class PushRegistrar: NSObject, UNUserNotificationCenterDelegate {
 final class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         UNUserNotificationCenter.current().delegate = PushRegistrar.shared
+        BackgroundRefresh.register()
         return true
+    }
+
+    /// Push с content-available будит приложение в фоне — подкачиваем ленту на диск.
+    func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+                     fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+        PushRegistrar.shared.onNotification?()
+        BackgroundRefresh.handlePush(completion: completionHandler)
     }
 
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {

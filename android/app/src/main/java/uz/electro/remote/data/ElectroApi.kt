@@ -248,12 +248,13 @@ interface ElectroApi {
     @retrofit2.http.HTTP(method = "DELETE", path = "api/v1/auth/push-token", hasBody = true)
     suspend fun removePushToken(@Body body: PushTokenRemove): retrofit2.Response<Unit>
 
+    // Лента с If-None-Match: при неизменной ленте сервер отвечает 304 без тела (см. NewsStore).
     @GET("api/v1/news")
-    suspend fun news(@Query("limit") limit: Int = 50): List<NewsItemDto>
+    suspend fun news(@Header("If-None-Match") etag: String?, @Query("limit") limit: Int = 50): retrofit2.Response<List<NewsItemDto>>
 
     /** Лента без входа — только новости «для всех» (экран логина). */
     @GET("api/v1/news/public")
-    suspend fun newsPublic(@Query("limit") limit: Int = 50): List<NewsItemDto>
+    suspend fun newsPublic(@Header("If-None-Match") etag: String?, @Query("limit") limit: Int = 50): retrofit2.Response<List<NewsItemDto>>
 
     @GET("api/v1/shop/products")
     suspend fun products(): List<ProductDto>
@@ -370,6 +371,12 @@ class CloudClient(private val settings: Settings) {
 
     @Volatile private var cachedUrl: String? = null
     @Volatile private var cachedApi: ElectroApi? = null
+
+    /** API магазина — на market.evon.uz (витрина сайта и приложение берут каталог из одного места). */
+    val market: ElectroApi by lazy {
+        Retrofit.Builder().baseUrl(Settings.MARKET_URL).client(http)
+            .addConverterFactory(MoshiConverterFactory.create()).build().create(ElectroApi::class.java)
+    }
 
     /** Актуальный api для текущего адреса из настроек. */
     val api: ElectroApi

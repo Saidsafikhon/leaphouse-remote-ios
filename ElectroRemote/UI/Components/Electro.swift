@@ -4,6 +4,12 @@ import SwiftUI
 /// Figma и `ui/components/Electro.kt` на Android. Активное состояние —
 /// акцентная обводка и акцентные иконка с подписью, а не заливка.
 
+/// Символы, у которых есть запасной вариант на случай, если системы нет нужного глифа.
+enum Sym {
+    /// Багажник: машина сбоку с открытой пятой дверью (SF Symbols 5); иначе обычная машина.
+    static let trunk: String = UIImage(systemName: "car.side.rear.open") != nil ? "car.side.rear.open" : "car"
+}
+
 /// Состояние контрола. Active — подтверждено машиной, Pending — команда в пути.
 enum ControlState { case normal, active, pending, disabled }
 
@@ -458,7 +464,9 @@ struct ScreenScaffold<Content: View>: View {
             }
             .padding(Space.x4)
             ScrollView {
-                VStack(alignment: .leading, spacing: Space.x4) { content() }
+                // Ленивый стек: длинные ленты (новости, магазин) не собирают все карточки
+                // с картинками разом при открытии — экран появляется сразу.
+                LazyVStack(alignment: .leading, spacing: Space.x4) { content() }
                     .padding(.horizontal, Space.x4)
                     .padding(.bottom, Space.x5)
             }

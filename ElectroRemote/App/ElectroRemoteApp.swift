@@ -105,6 +105,7 @@ struct RootView: View {
             switch phase {
             case .background:
                 if lock.backgroundedAt == nil { lock.backgroundedAt = Date() }
+                BackgroundRefresh.schedule()
             case .active:
                 if let t = lock.backgroundedAt, vm.loggedIn, lock.enabled,
                    Date().timeIntervalSince(t) >= AppLock.graceSeconds { lock.locked = true }

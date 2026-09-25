@@ -64,6 +64,16 @@
 	<true/>
 	<key>UIUserInterfaceStyle</key>
 	<string>Automatic</string>
+	<!-- Фоновая подкачка новостей: окно BGAppRefreshTask и push с content-available -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>uz.electro.remote.newsrefresh</string>
+	</array>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>UIAppFonts</key>

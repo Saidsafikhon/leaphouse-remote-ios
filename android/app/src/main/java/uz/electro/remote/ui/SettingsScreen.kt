@@ -90,9 +90,6 @@ fun SettingsScreen(vm: CarViewModel, onClose: () -> Unit) {
                 TextButton(onClick = { vm.logout() }, contentPadding = PaddingValues(0.dp)) {
                     Text(S("Выйти из аккаунта"), color = ElectroColors.Danger)
                 }
-                TextButton(onClick = { deleting = true }, contentPadding = PaddingValues(0.dp)) {
-                    Text(S("Удалить аккаунт"), color = ElectroColors.TextMuted, fontSize = 12.sp)
-                }
             }
 
             SectionCard(S("Мои машины"), action = S("Обновить"), onAction = { vm.loadVehicles() }) {
@@ -186,6 +183,12 @@ fun SettingsScreen(vm: CarViewModel, onClose: () -> Unit) {
 
         Text(appVersion(), style = ElectroType.Caption, color = ElectroColors.TextMuted,
             modifier = Modifier.fillMaxWidth().padding(top = Space.x1))
+        // Удаление аккаунта — в самом низу, отдельно от повседневных действий.
+        if (loggedIn) {
+            Text(S("Удалить аккаунт"), style = ElectroType.Caption, color = ElectroColors.Danger,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().padding(top = Space.x3, bottom = Space.x2).clickable { deleting = true })
+        }
     }
 
     // --- удаление аккаунта: предупреждение, пароль, красная кнопка ---

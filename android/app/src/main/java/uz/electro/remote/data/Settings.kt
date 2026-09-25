@@ -108,6 +108,8 @@ class Settings(ctx: Context) {
         const val SUPPORT_URL = "https://leapmotor.evon.uz/support"
 
         const val DEFAULT_CLOUD_URL = "https://leapmotor.evon.uz/"
+        /** Магазин живёт на своём домене (витрина market.evon.uz + тот же API магазина). */
+        const val MARKET_URL = "https://market.evon.uz/"
 
         /**
          * Адреса, с которых уводим на текущий сервер.
