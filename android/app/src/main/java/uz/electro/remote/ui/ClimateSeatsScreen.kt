@@ -65,7 +65,7 @@ import uz.electro.remote.ui.theme.*
  * Рендеры салона у GWM — их проприетарная графика, поэтому фон здесь наш:
  * воздушная светлая подложка и схема кресел. Всё остальное повторяет их
  * поведение один в один — барабан чисел, плитки на креслах со слайдером
- * уровня, «время работы» и кнопка «Активировать».
+ * уровня, «время работы» и кнопка «Применить».
  */
 private enum class Tab { Climate, Seats }
 private enum class SeatMode { Heat, Vent }
@@ -77,8 +77,11 @@ fun ClimateSeatsScreen(
     initialTab: String,
     send: (Int, String) -> Unit,
     sendAll: (List<VehicleCommand>, String) -> Unit,
-    onClimateOn: (Int?) -> Unit,
+    climateProfile: Pair<Int, Int>,
+    onClimateStart: () -> Unit,
+    onSaveClimate: (Int, Int) -> Unit,
     climateBlockReason: (CarState, Map<Int, String>) -> String?,
+    seatProfileTimer: Int,
     onApplySeats: (Map<Int, Int>, Int) -> Unit,
     onClose: () -> Unit,
 ) {
@@ -103,20 +106,17 @@ fun ClimateSeatsScreen(
 
         when (tab) {
             Tab.Climate -> ClimateTab(
-                car, controls, send, sendAll,
+                car, controls, send, sendAll, climateProfile,
                 onToggle = {
                     if (climateOn(controls)) sendAll(Cmd.climateOff(), S("Выключить климат"))
                     else {
                         blocked = climateBlockReason(car, controls)
-                        if (blocked == null) onClimateOn(null)
+                        if (blocked == null) onClimateStart()
                     }
                 },
-                onOnWithTimer = { minutes ->
-                    blocked = climateBlockReason(car, controls)
-                    if (blocked == null) onClimateOn(minutes)
-                },
+                onSave = onSaveClimate,
             )
-            Tab.Seats -> SeatsTab(controls, onApplySeats)
+            Tab.Seats -> SeatsTab(controls, seatProfileTimer, onApplySeats)
         }
     }
 
@@ -161,20 +161,21 @@ private fun ClimateTab(
     controls: Map<Int, String>,
     send: (Int, String) -> Unit,
     sendAll: (List<VehicleCommand>, String) -> Unit,
+    profile: Pair<Int, Int>,
     onToggle: () -> Unit,
-    onOnWithTimer: (Int?) -> Unit,
+    onSave: (Int, Int) -> Unit,
 ) {
     val on = climateOn(controls)
     val temp = controls[Cmd.TEMP_L]?.toFloatOrNull()?.toInt() ?: 22
-    // Уставка выставляется локально и НЕ уходит на машину сразу — только при
-    // нажатии «включить». Смена температуры сама по себе климат не включает.
-    var setTemp by remember { mutableStateOf(temp) }
-    // Таймер запоминаем между открытиями экрана (SharedPreferences) — выставил
-    // однажды, держится до следующего изменения.
+    // Температура и таймер — это профиль: «Применить» их запоминает, и климат
+    // потом включается именно с ними (с главной, с тумблера здесь). На машину
+    // по «Применить» ничего не уходит.
+    var setTemp by remember { mutableStateOf(profile.first.takeIf { it > 0 } ?: temp) }
+    var runMin by remember { mutableStateOf(profile.second.takeIf { it > 0 } ?: 15) }
+    // Таймер в профиле, только если время работы раскрыто: свёрнуто — без таймера.
+    var pickTime by remember { mutableStateOf(profile.second > 0) }
     val ctx = LocalContext.current
     val prefs = remember { ctx.getSharedPreferences("electro", Context.MODE_PRIVATE) }
-    var runMin by remember { mutableStateOf(prefs.getInt("climateRunMin", 15)) }
-    var pickTime by remember { mutableStateOf(false) }
     // Функции климата. Тумблеры (циркуляция/зеркала/обдув лобового) читают
     // фактическое состояние из /state; сцены (макс. охл/обогрев, обогрев стёкол)
     // составные — их «включено» держим локальным флагом (оптимистично).
@@ -203,23 +204,6 @@ private fun ClimateTab(
     LaunchedEffect(optimisticOn) {
         if (optimisticOn != null) { kotlinx.coroutines.delay(5000); optimisticOn = null }
     }
-    // Включить климат. Без таймера — ОДНОЙ пачкой (температура + AC): иначе три
-    // отдельные команды давали три тоста, и падение одной мелькало красным
-    // поверх зелёного. Пачка = один результат (частичный неуспех = «Не прошло N
-    // из M», зелёным). С таймером — прежним путём (нужен серверный run_minutes).
-    val turnOn: (Int?) -> Unit = { minutes ->
-        if (minutes == null) {
-            sendAll(listOf(
-                VehicleCommand(Cmd.TEMP_L, setTemp.toString()),
-                VehicleCommand(Cmd.TEMP_R, setTemp.toString()),
-                VehicleCommand(Cmd.AC, "1"),
-            ), S("Включить климат"))
-        } else {
-            send(Cmd.TEMP_L, setTemp.toString()); send(Cmd.TEMP_R, setTemp.toString())
-            onOnWithTimer(minutes)
-        }
-    }
-
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState())
             .padding(horizontal = Space.x4, vertical = Space.x4),
@@ -279,7 +263,7 @@ private fun ClimateTab(
                         checked = shownOn,
                         onCheckedChange = { desired ->
                             optimisticOn = desired            // мгновенный отклик для клиента
-                            if (on) onToggle() else turnOn(null)   // реальная команда — в фоне
+                            onToggle()                         // реальная команда — в фоне
                         },
                         colors = SwitchDefaults.colors(
                             checkedTrackColor = ElectroColors.Accent,
@@ -288,37 +272,27 @@ private fun ClimateTab(
                     )
                 }
                 // Полоска температуры LO 18° … HI 32° с градиентом синий→оранжевый:
-                // тянется пальцем. Значение запоминается локально (setTemp) и НЕ
-                // уходит на машину сразу — уставка применяется при включении климата.
-                // При включённом климате полоска заблокирована: температуру задают
-                // до включения.
+                // тянется пальцем. Значение — профиль (setTemp): на машину уходит при
+                // включении климата, а не сразу.
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    TemperatureBar(if (shownOn) temp else setTemp, car.cabinTemp, locked = shownOn) { v ->
+                    TemperatureBar(setTemp, car.cabinTemp, locked = false) { v ->
                         setTemp = v
                     }
                 }
-                if (shownOn) {
-                    Text(
-                        S("Чтобы изменить температуру, выключите климат — так бережётся компрессор."),
-                        style = ElectroType.Caption, color = ElectroColors.TextMuted,
-                    )
-                } else {
-                    Text(
-                        S("Выбранная температура применится при включении климата."),
-                        style = ElectroType.Caption, color = ElectroColors.TextMuted,
-                    )
-                }
+                Text(
+                    S("Нажмите «Применить» — климат будет включаться с этими настройками."),
+                    style = ElectroType.Caption, color = ElectroColors.TextMuted,
+                )
                 Divider(color = ElectroColors.Outline)
                 Text(S("Настроить время работы"), style = ElectroType.Body,
                     color = ElectroColors.Accent,
                     modifier = Modifier.fillMaxWidth().clickable { pickTime = !pickTime })
                 if (pickTime) {
                     NumberCarousel(value = runMin, min = 5, max = 60, step = 5,
-                        onChange = { runMin = it; prefs.edit().putInt("climateRunMin", it).apply() })
-                    if (!shownOn) {
-                        ElectroButton(S("Включить на {0} мин", runMin), Modifier.fillMaxWidth(),
-                            style = ButtonStyle.Primary) { turnOn(runMin) }
-                    }
+                        onChange = { runMin = it })
+                }
+                ElectroButton(S("Применить"), Modifier.fillMaxWidth(), style = ButtonStyle.Primary) {
+                    onSave(setTemp, if (pickTime) runMin else 0)
                 }
             }
         }
@@ -474,15 +448,17 @@ private data class SeatSlot(val name: String, val heat: Int, val vent: Int, val 
 @Composable
 private fun SeatsTab(
     controls: Map<Int, String>,
+    profileTimer: Int,
     onApply: (Map<Int, Int>, Int) -> Unit,
 ) {
     var mode by remember { mutableStateOf(SeatMode.Heat) }
-    val ctx = LocalContext.current
-    val prefs = remember { ctx.getSharedPreferences("electro", Context.MODE_PRIVATE) }
-    var runMin by remember { mutableStateOf(prefs.getInt("seatRunMin", 5)) }
+    // Время работы — шагом 5 минут; старое значение (шаг был 1) округляем вверх.
+    var runMin by remember {
+        mutableStateOf((((profileTimer.takeIf { it > 0 } ?: 5) + 4) / 5 * 5).coerceIn(5, 60))
+    }
     var selected by remember { mutableStateOf<Int?>(null) }
 
-    // уровни держим локально и применяем по «Активировать» — как у GWM
+    // уровни держим локально и сохраняем по «Применить» — как у GWM
     val heat = remember { mutableStateListOf(0, 0, 0, 0) }
     val vent = remember { mutableStateListOf(0, 0, 0, 0) }
     LaunchedEffect(controls) {
@@ -544,12 +520,12 @@ private fun SeatsTab(
         Spacer(Modifier.height(Space.x4))
         Text(S("Время работы (мин.)"), style = ElectroType.Body, color = ElectroColors.TextPrimary)
         Spacer(Modifier.height(Space.x2))
-        NumberCarousel(value = runMin, min = 1, max = 60, accent = accent,
-            onChange = { runMin = it; prefs.edit().putInt("seatRunMin", it).apply() })
+        NumberCarousel(value = runMin, min = 5, max = 60, step = 5, accent = accent,
+            onChange = { runMin = it })
         Spacer(Modifier.height(Space.x4))
-        ElectroButton(S("Активировать"), Modifier.fillMaxWidth(), style = ButtonStyle.Primary) {
-            // Профиль = обогрев И обдув всех мест + таймер. Он и сохраняется как
-            // настройка тумблера на главной, и сразу применяется с таймером.
+        ElectroButton(S("Применить"), Modifier.fillMaxWidth(), style = ButtonStyle.Primary) {
+            // Профиль = обогрев И обдув всех мест + таймер. Сохраняется как
+            // настройка тумблера на главной; если сиденья уже работают — сразу в машину.
             val ht = listOf(Cmd.SEAT_HEAT_DRIVER, Cmd.SEAT_HEAT_PASSENGER, Cmd.SEAT_HEAT_REAR_L, Cmd.SEAT_HEAT_REAR_R)
             val vt = listOf(Cmd.SEAT_VENT_DRIVER, Cmd.SEAT_VENT_PASSENGER, Cmd.SEAT_VENT_REAR_L, Cmd.SEAT_VENT_REAR_R)
             val levels = HashMap<Int, Int>()

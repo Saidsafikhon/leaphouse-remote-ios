@@ -165,19 +165,23 @@ final class CarViewModel: ObservableObject {
             defer { self.connecting = false }
             self.connectStatus = ConnectStatus(phase: .sending)
 
+            // Время — от нажатия. Даже если пробуждение не прошло, машину ждём
+            // wakeWaitSec: голова часто подключается сама, а запасные кнопки сразу
+            // после нажатия сбивали с толку.
+            let startedAt = Date()
+            func waited() -> Int { Int(Date().timeIntervalSince(startedAt)) }
+
             let how: String
+            var failure: String? = nil
             switch await self.repo.wake() {
             case .sent(let h): how = L("Разбудили {0}", h)
             case .failed(let reason):
-                self.connectStatus = ConnectStatus(phase: .error, message: scrubAddresses(reason) ?? L("Не удалось разбудить машину"))
-                return
+                how = L("Подключение…")
+                failure = scrubAddresses(reason) ?? L("Не удалось разбудить машину")
             case .noServer:
-                self.connectStatus = ConnectStatus(phase: .error, message: L("Будить нечем: нет входа на сервер"))
-                return
+                how = L("Подключение…")
+                failure = L("Будить нечем: нет входа на сервер")
             }
-
-            let startedAt = Date()
-            func waited() -> Int { Int(Date().timeIntervalSince(startedAt)) }
             self.connectStatus = ConnectStatus(phase: .waiting, message: how, waitedSec: 0)
 
             // Отдельный тикер рисует секунды ровно, не дожидаясь опроса.
@@ -203,7 +207,11 @@ final class CarViewModel: ObservableObject {
                 try? await Task.sleep(nanoseconds: Self.probeStepNs)
             }
             if Task.isCancelled { return }
-            self.connectStatus = ConnectStatus(phase: .timeout, message: L("Машина не ответила за {0} с", Self.wakeWaitSec), waitedSec: waited())
+            if let failure {
+                self.connectStatus = ConnectStatus(phase: .error, message: failure, waitedSec: waited())
+            } else {
+                self.connectStatus = ConnectStatus(phase: .timeout, message: L("Машина не ответила за {0} с", Self.wakeWaitSec), waitedSec: waited())
+            }
         }
     }
 
@@ -465,10 +473,51 @@ final class CarViewModel: ObservableObject {
     /// Задан ли профиль сидений (есть хотя бы одно включённое место).
     func seatPresetSet() -> Bool { !readSeatPreset().levels.isEmpty }
 
-    /// Сохранить набор с экрана сидений как профиль и сразу применить его.
-    func applySeats(levels: [Int: Int], timerMin: Int) {
+    /// Таймер из профиля сидений, мин; 0 — профиля нет.
+    func seatPresetTimer() -> Int { readSeatPreset().timer }
+
+    /// «Применить» на экране сидений: сохранить набор как профиль тумблера на
+    /// главной. Если сиденья уже работают — сразу в машину, иначе только сохранить.
+    func applySeats(levels: [Int: Int], timerMin: Int, sendNow: Bool) {
         saveSeatPreset(levels, timerMin)
-        sendSeats(levels, timerMin)
+        if sendNow { sendSeats(levels, timerMin) }
+        else { emit(.success, L("Сиденья"), L("Настройки сохранены")) }
+    }
+
+    // --- климат по профилю ---
+
+    /// Сохранённые температура и таймер климата; 0 — не задано.
+    func climateProfile() -> (temp: Int, timer: Int) {
+        (settings.int("climateProfileTemp", default: 0), settings.int("climateProfileTimer", default: 0))
+    }
+
+    /// «Применить» на экране климата: запомнить, с чем включать климат.
+    func saveClimateProfile(temp: Int, timerMin: Int) {
+        settings.setInt("climateProfileTemp", temp)
+        settings.setInt("climateProfileTimer", Swift.min(Swift.max(timerMin, 0), 60))
+        emit(.success, L("Климат"), L("Настройки сохранены"))
+    }
+
+    /// Включить климат по профилю: сначала уставка, потом кондиционер с таймером.
+    /// Без профиля — как раньше: только кондиционер, температура машины как есть.
+    func climateStart() {
+        let p = climateProfile()
+        let temps: [VehicleCommand] = p.temp > 0
+            ? [VehicleCommand(type: Cmd.TEMP_L, value: String(p.temp)), VehicleCommand(type: Cmd.TEMP_R, value: String(p.temp))]
+            : []
+        guard p.timer > 0 else {
+            send(temps + [VehicleCommand(type: Cmd.AC, value: "1", label: L("Климат"))], label: L("Включить климат"))
+            return
+        }
+        // Таймер держит сервер (run_minutes); уставку шлём перед ним молча — один ответ на действие.
+        Task {
+            if !temps.isEmpty {
+                for c in temps { optimistic[c.type] = c.value }
+                hold(temps.map { $0.type })
+                for c in temps { _ = await repo.send(c) }
+            }
+            climateOn(runMinutes: p.timer)
+        }
     }
 
     /// Тумблер на главной: включить сиденья по сохранённому профилю.

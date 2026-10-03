@@ -43,18 +43,22 @@ fun ControlTile(
     icon: ImageVector,
     state: ControlState = ControlState.Default,
     modifier: Modifier = Modifier,
+    /** Компактная плитка (72 dp, значок 20) — для панели быстрых кнопок на главной. */
+    compact: Boolean = false,
+    /** Цвет значка в обычном состоянии (например, зелёный у «открыть/включить»). */
+    iconTint: Color? = null,
     onClick: () -> Unit,
 ) {
     val ink = when (state) {
         ControlState.Active -> ElectroColors.Accent
         ControlState.Pending -> ElectroColors.TextSecondary
         ControlState.Disabled -> ElectroColors.TextDisabled
-        ControlState.Default -> ElectroColors.TextPrimary
+        ControlState.Default -> iconTint ?: ElectroColors.TextPrimary
     }
     val textColor = when (state) {
         ControlState.Active -> ElectroColors.Accent
         ControlState.Disabled -> ElectroColors.TextDisabled
-        else -> ElectroColors.TextSecondary
+        else -> ElectroColors.TextPrimary
     }
     val borderColor = when (state) {
         ControlState.Active -> ElectroColors.Accent
@@ -67,7 +71,7 @@ fun ControlTile(
         color = if (state == ControlState.Disabled) ElectroColors.Surface else ElectroColors.SurfaceElevated,
         shape = Radius.Md,
         modifier = modifier
-            .height(ControlSize.Tile)
+            .height(if (compact) ControlSize.TileCompact else ControlSize.Tile)
             .border(1.dp, borderColor, Radius.Md)
             .clickable(
                 enabled = state != ControlState.Disabled && state != ControlState.Pending,
@@ -75,20 +79,20 @@ fun ControlTile(
             ),
     ) {
         Column(
-            Modifier.fillMaxSize().padding(horizontal = Space.x1, vertical = Space.x3),
+            Modifier.fillMaxSize().padding(horizontal = Space.x1, vertical = if (compact) Space.x2 else Space.x3),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
             if (state == ControlState.Pending) {
                 CircularProgressIndicator(
-                    modifier = Modifier.size(24.dp),
+                    modifier = Modifier.size(if (compact) 20.dp else 24.dp),
                     color = ink,
                     strokeWidth = 1.5.dp,
                 )
             } else {
-                Icon(icon, null, tint = ink, modifier = Modifier.size(24.dp))
+                Icon(icon, null, tint = ink, modifier = Modifier.size(if (compact) 20.dp else 24.dp))
             }
-            Spacer(Modifier.height(Space.x2))
+            Spacer(Modifier.height(if (compact) 6.dp else Space.x2))
             Text(
                 label,
                 style = ElectroType.Label,
@@ -293,8 +297,31 @@ fun StatusStrip(
     }
 }
 
+/** Полоса только с числами (запас хода, заряд) — в ряд, без статуса слева. */
+@Composable
+fun MetricsStrip(metrics: List<Metric>, modifier: Modifier = Modifier) {
+    Surface(color = ElectroColors.Surface, shape = Radius.Md, modifier = modifier.fillMaxWidth()) {
+        Row(
+            Modifier.padding(horizontal = Space.x3, vertical = Space.x3),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            metrics.forEach { m ->
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        Text(m.value, style = ElectroType.Value, color = ElectroColors.Accent)
+                        Spacer(Modifier.width(3.dp))
+                        Text(m.unit, style = ElectroType.Unit, color = ElectroColors.TextMuted)
+                    }
+                    m.caption?.let { Text(it, style = ElectroType.Caption, color = ElectroColors.TextMuted) }
+                }
+            }
+        }
+    }
+}
+
 /** Число с единицей и полоской заполнения. [fraction] в null — полоски нет. */
-data class Metric(val value: String, val unit: String, val fraction: Float? = null)
+data class Metric(val value: String, val unit: String, val fraction: Float? = null, val caption: String? = null)
 
 @Composable
 private fun MetricRow(metric: Metric) {

@@ -8,7 +8,10 @@ struct ClimateSeatsScreen: View {
     let initialTab: HomeTab
     let send: (Int, String) -> Void
     let sendAll: ([VehicleCommand], String) -> Void
-    let onClimateOn: (Int?) -> Void
+    let climateProfile: (temp: Int, timer: Int)
+    let onClimateStart: () -> Void
+    let onSaveClimate: (Int, Int) -> Void
+    let seatProfileTimer: Int
     let onApplySeats: ([Int: Int], Int) -> Void
     let onClose: () -> Void
 
@@ -39,14 +42,14 @@ struct ClimateSeatsScreen: View {
             switch current {
             case .climate:
                 ClimateTab(
-                    car: car, controls: controls, send: send, sendAll: sendAll,
+                    car: car, controls: controls, send: send, sendAll: sendAll, profile: climateProfile,
                     onToggle: {
-                        if climateOn(controls) { sendAll(Cmd.climateOff(), L("Выключить климат")) } else { onClimateOn(nil) }
+                        if climateOn(controls) { sendAll(Cmd.climateOff(), L("Выключить климат")) } else { onClimateStart() }
                     },
-                    onOnWithTimer: { minutes in onClimateOn(minutes) }
+                    onSave: onSaveClimate
                 )
             case .seats:
-                SeatsTab(controls: controls, onApply: onApplySeats)
+                SeatsTab(controls: controls, profileTimer: seatProfileTimer, onApply: onApplySeats)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -82,12 +85,15 @@ private struct ClimateTab: View {
     let controls: [Int: String]
     let send: (Int, String) -> Void
     let sendAll: ([VehicleCommand], String) -> Void
+    let profile: (temp: Int, timer: Int)
     let onToggle: () -> Void
-    let onOnWithTimer: (Int?) -> Void
+    let onSave: (Int, Int) -> Void
 
     private let prefs = Settings.shared
 
-    // Уставка выставляется локально и НЕ уходит на машину сразу — только при включении.
+    // Температура и таймер — профиль: «Применить» запоминает, климат потом включается
+    // с ними (с главной и тумблером здесь). На машину по «Применить» ничего не уходит.
+    // Таймер в профиле, только если время работы раскрыто.
     @State private var setTemp: Int = 22
     @State private var runMin: Int = 15
     @State private var pickTime = false
@@ -165,14 +171,12 @@ private struct ClimateTab: View {
                         Spacer()
                         ElectroToggle(isOn: shownOn) { desired in
                             setOptimistic(desired)
-                            if on { onToggle() } else { turnOn(nil) }
+                            onToggle()
                         }
                     }
-                    // Полоска LO 18° … HI 32°: тянется пальцем, уставка применится при включении.
-                    TemperatureBar(temp: shownOn ? temp : setTemp, cabin: car.cabinTemp, locked: shownOn) { v in setTemp = v }
-                    Text(shownOn
-                         ? L("Чтобы изменить температуру, выключите климат — так бережётся компрессор.")
-                         : L("Выбранная температура применится при включении климата."))
+                    // Полоска LO 18° … HI 32°: тянется пальцем, уставка уйдёт при включении климата.
+                    TemperatureBar(temp: setTemp, cabin: car.cabinTemp, locked: false) { v in setTemp = v }
+                    Text(L("Нажмите «Применить» — климат будет включаться с этими настройками."))
                         .font(ElectroType.caption).foregroundStyle(p.textMuted)
                     Divider().background(p.outline)
                     Button { pickTime.toggle() } label: {
@@ -181,13 +185,9 @@ private struct ClimateTab: View {
                     }
                     .buttonStyle(.plain)
                     if pickTime {
-                        NumberCarousel(value: runMin, min: 5, max: 60, step: 5) { v in
-                            runMin = v; prefs.setInt("climateRunMin", v)
-                        }
-                        if !shownOn {
-                            ElectroButton(text: L("Включить на {0} мин", runMin)) { turnOn(runMin) }
-                        }
+                        NumberCarousel(value: runMin, min: 5, max: 60, step: 5) { v in runMin = v }
                     }
+                    ElectroButton(text: L("Применить")) { onSave(setTemp, pickTime ? runMin : 0) }
                 }
                 .padding(Space.x4)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -200,8 +200,9 @@ private struct ClimateTab: View {
         .onAppear {
             guard !loaded else { return }
             loaded = true
-            setTemp = temp
-            runMin = prefs.int("climateRunMin", default: 15)
+            setTemp = profile.temp > 0 ? profile.temp : temp
+            runMin = profile.timer > 0 ? profile.timer : 15
+            pickTime = profile.timer > 0
             recircOn = prefs.bool("sceneRecirc")
             frontDefrostOn = prefs.bool("sceneDefrostF")
             maxCoolOn = prefs.bool("sceneMaxCool")
@@ -220,21 +221,6 @@ private struct ClimateTab: View {
         optimisticTask = Task {
             try? await Task.sleep(nanoseconds: 5_000_000_000)
             if !Task.isCancelled { optimisticOn = nil }
-        }
-    }
-
-    /// Включить климат. Без таймера — одной пачкой (температура + AC): один результат.
-    /// С таймером — прежним путём (нужен серверный run_minutes).
-    private func turnOn(_ minutes: Int?) {
-        if minutes == nil {
-            sendAll([
-                VehicleCommand(type: Cmd.TEMP_L, value: String(setTemp)),
-                VehicleCommand(type: Cmd.TEMP_R, value: String(setTemp)),
-                VehicleCommand(type: Cmd.AC, value: "1"),
-            ], L("Включить климат"))
-        } else {
-            send(Cmd.TEMP_L, String(setTemp)); send(Cmd.TEMP_R, String(setTemp))
-            onOnWithTimer(minutes)
         }
     }
 }
@@ -326,13 +312,14 @@ private enum SeatMode { case heat, vent }
 private struct SeatsTab: View {
     @Environment(\.palette) private var p
     let controls: [Int: String]
+    let profileTimer: Int
     let onApply: ([Int: Int], Int) -> Void
 
     private let prefs = Settings.shared
     @State private var mode: SeatMode = .heat
     @State private var runMin: Int = 5
     @State private var selected: Int? = nil
-    // уровни держим локально и применяем по «Активировать» — как у GWM
+    // уровни держим локально и сохраняем по «Применить» — как у GWM
     @State private var heat: [Int] = [0, 0, 0, 0]
     @State private var vent: [Int] = [0, 0, 0, 0]
     @State private var loaded = false
@@ -385,12 +372,10 @@ private struct SeatsTab: View {
                 Spacer().frame(height: Space.x4)
                 Text(L("Время работы (мин.)")).font(ElectroType.body).foregroundStyle(p.textPrimary)
                 Spacer().frame(height: Space.x2)
-                NumberCarousel(value: runMin, min: 1, max: 60, accent: accent) { v in
-                    runMin = v; prefs.setInt("seatRunMin", v)
-                }
+                NumberCarousel(value: runMin, min: 5, max: 60, step: 5, accent: accent) { v in runMin = v }
                 Spacer().frame(height: Space.x4)
-                ElectroButton(text: L("Активировать")) {
-                    // Профиль = обогрев И обдув всех мест + таймер.
+                ElectroButton(text: L("Применить")) {
+                    // Профиль = обогрев И обдув всех мест + таймер; сохраняется для тумблера на главной.
                     var map: [Int: Int] = [:]
                     for (i, t) in Cmd.SEAT_HEATS.enumerated() { map[t] = heat[i] }
                     for (i, t) in Cmd.SEAT_VENTS.enumerated() { map[t] = vent[i] }
@@ -403,7 +388,8 @@ private struct SeatsTab: View {
         .onAppear {
             guard !loaded else { return }
             loaded = true
-            runMin = prefs.int("seatRunMin", default: 5)
+            // шаг 5 минут; старое значение (шаг был 1) округляем вверх
+            runMin = Swift.min(60, Swift.max(5, ((profileTimer > 0 ? profileTimer : 5) + 4) / 5 * 5))
             syncFromControls()
         }
         .onChange(of: controls) { _, _ in syncFromControls() }

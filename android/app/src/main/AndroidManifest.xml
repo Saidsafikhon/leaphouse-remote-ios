@@ -29,7 +29,9 @@
                 <action android:name="com.google.firebase.MESSAGING_EVENT"/>
             </intent-filter>
         </service>
+        <!-- Только портрет, как на iOS: экран не поворачивается вместе с телефоном. -->
         <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTask"
+            android:screenOrientation="portrait"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>

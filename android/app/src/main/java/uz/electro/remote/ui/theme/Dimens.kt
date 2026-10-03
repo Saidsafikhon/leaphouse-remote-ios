@@ -26,6 +26,8 @@ object Radius {
 /** Высоты контролов — раньше их было пять разных на одну и ту же роль. */
 object ControlSize {
     val Tile = 88.dp
+    /** Плитка быстрых кнопок на главной: восемь штук должны влезать без прокрутки. */
+    val TileCompact = 72.dp
     val Chip = 44.dp
     val Round = 44.dp
     val Button = 48.dp

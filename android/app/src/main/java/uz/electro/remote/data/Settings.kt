@@ -68,11 +68,24 @@ class Settings(ctx: Context) {
      * Профиль сидений: что включать по тумблеру на главной. JSON вида
      * `{"levels":{"<type>":<0..3>,...},"timer":<мин>}`. Пусто — профиль ещё не
      * задан (тумблер тогда открывает экран сидений). Пишется, когда пользователь
-     * жмёт «Активировать» на экране сидений: последняя настройка и есть профиль.
+     * жмёт «Применить» на экране сидений: последняя настройка и есть профиль.
      */
     var seatPreset: String
         get() = sp.getString(K_SEAT_PRESET, "") ?: ""
         set(v) = sp.edit().putString(K_SEAT_PRESET, v).apply()
+
+    /**
+     * Профиль климата: с какой температурой и на сколько минут включать климат
+     * с главной и с экрана климата. Пишется по «Применить» на экране климата.
+     * 0 — не задано (температура машины как есть / таймер по умолчанию сервера).
+     */
+    var climateTemp: Int
+        get() = sp.getInt(K_CLIMATE_TEMP, 0)
+        set(v) = sp.edit().putInt(K_CLIMATE_TEMP, v).apply()
+
+    var climateTimer: Int
+        get() = sp.getInt(K_CLIMATE_TIMER, 0)
+        set(v) = sp.edit().putInt(K_CLIMATE_TIMER, v).apply()
 
     /** Прочитанные новости (id) — отмечаются вручную, бейдж считает остальные. */
     var newsRead: Set<String>
@@ -100,6 +113,8 @@ class Settings(ctx: Context) {
         private const val K_NICK_PREFIX = "nick_"
         private const val K_PAINT_PREFIX = "paint_"
         private const val K_SEAT_PRESET = "seatPreset"
+        private const val K_CLIMATE_TEMP = "climateProfileTemp"
+        private const val K_CLIMATE_TIMER = "climateProfileTimer"
         private const val K_NEWS_READ = "newsRead"
         private const val K_PUSH_TOKEN = "pushToken"
 

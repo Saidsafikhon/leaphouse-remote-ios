@@ -241,22 +241,17 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
         connectJob = viewModelScope.launch {
             _connect.value = ConnectStatus(ConnectPhase.Sending)
 
-            val woken = wakeUp()
-            val failure = woken.exceptionOrNull()
-            if (failure != null) {
-                _connect.value = ConnectStatus(
-                    ConnectPhase.Error,
-                    scrubAddresses(failure.message) ?: S("Не удалось разбудить машину"),
-                )
-                return@launch
-            }
-            val how = woken.getOrDefault(S("Команда отправлена"))
-
-            // машина может уже быть в сети — тогда ждать нечего.
-            // Время считаем по часам: сам опрос головы занимает несколько секунд,
-            // и счёт по количеству пауз растягивал таймаут в разы.
+            // Время считаем по часам от нажатия: сам опрос головы занимает несколько
+            // секунд, и счёт по количеству пауз растягивал таймаут в разы.
             val startedAt = System.currentTimeMillis()
             fun waitedSec() = ((System.currentTimeMillis() - startedAt) / 1000).toInt()
+
+            // Даже если пробуждение не прошло, машину всё равно ждём WAKE_WAIT_SEC:
+            // голова часто поднимается и подключается сама, а запасные кнопки
+            // («Повторить», «Всё равно открыть») сразу после нажатия сбивали с толку.
+            val woken = wakeUp()
+            val failure = woken.exceptionOrNull()
+            val how = if (failure != null) S("Подключение…") else woken.getOrDefault(S("Команда отправлена"))
 
             _connect.value = ConnectStatus(ConnectPhase.Waiting, how, 0)
 
@@ -287,7 +282,11 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
             } finally {
                 ticker.cancel()
             }
-            _connect.value = ConnectStatus(
+            _connect.value = if (failure != null) ConnectStatus(
+                ConnectPhase.Error,
+                scrubAddresses(failure.message) ?: S("Не удалось разбудить машину"),
+                waitedSec(),
+            ) else ConnectStatus(
                 ConnectPhase.Timeout,
                 S("Машина не ответила за {0} с", WAKE_WAIT_SEC),
                 waitedSec(),
@@ -628,13 +627,55 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
     /** Задан ли профиль сидений (есть хотя бы одно включённое место). */
     fun seatPresetSet(): Boolean = readSeatPreset().first.isNotEmpty()
 
+    /** Таймер из профиля сидений, мин; 0 — профиля нет. */
+    fun seatPresetTimer(): Int = readSeatPreset().second
+
     /**
-     * Сохранить набор с экрана сидений как профиль и сразу применить его.
+     * «Применить» на экране сидений: сохранить набор как профиль — по нему потом
+     * включает тумблер на главной. Если сиденья уже работают, новый набор сразу
+     * уходит в машину, иначе только сохраняется.
      * `levels` — тип→уровень (0..3); `timerMin` — авто-выключение, 0 = без таймера.
      */
-    fun applySeats(levels: Map<Int, Int>, timerMin: Int) {
+    fun applySeats(levels: Map<Int, Int>, timerMin: Int, sendNow: Boolean) {
         saveSeatPreset(levels, timerMin)
-        sendSeats(levels, timerMin)
+        if (sendNow) sendSeats(levels, timerMin)
+        else viewModelScope.launch { emit(EventKind.Success, S("Сиденья"), S("Настройки сохранены")) }
+    }
+
+    // --- климат по профилю -----------------------------------------------
+
+    /** Сохранённые температура и таймер климата; 0 — не задано. */
+    fun climateProfile(): Pair<Int, Int> = settings.climateTemp to settings.climateTimer
+
+    /** «Применить» на экране климата: запомнить, с чем включать климат. */
+    fun saveClimateProfile(temp: Int, timerMin: Int) {
+        settings.climateTemp = temp
+        settings.climateTimer = timerMin.coerceIn(0, 60)
+        viewModelScope.launch { emit(EventKind.Success, S("Климат"), S("Настройки сохранены")) }
+    }
+
+    /**
+     * Включить климат по профилю: сначала уставка, потом кондиционер с таймером.
+     * Без профиля — как раньше: только кондиционер, температура машины как есть.
+     */
+    fun climateStart() {
+        val temp = settings.climateTemp.takeIf { it > 0 }
+        val timer = settings.climateTimer.takeIf { it > 0 }
+        val temps = temp?.let { t -> listOf(VehicleCommand(Cmd.TEMP_L, "$t"), VehicleCommand(Cmd.TEMP_R, "$t")) }.orEmpty()
+        if (timer == null) {
+            send(temps + VehicleCommand(Cmd.AC, "1", S("Климат")), S("Включить климат"))
+            return
+        }
+        // Таймер держит сервер (run_minutes), поэтому включение — его ручкой; уставку
+        // шлём перед ней молча, чтобы на одно действие был один ответ.
+        viewModelScope.launch {
+            if (temps.isNotEmpty()) {
+                _optimistic.update { it + temps.associate { c -> c.type to c.value } }
+                hold(temps.map { it.type })
+                temps.forEach { repo.send(it) }
+            }
+            climateOn(timer)
+        }
     }
 
     /** Тумблер на главной: включить сиденья по сохранённому профилю. */

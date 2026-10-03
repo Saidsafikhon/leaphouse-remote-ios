@@ -94,3 +94,34 @@ val IconMirrorHeat: ImageVector by lazy {
         heatArrows(listOf(8.6f, 12f, 15.4f), 7.4f, 13.4f)
     }
 }
+
+/**
+ * Боковое стекло двери: передняя кромка сильно скошена до самого низа, задняя
+ * прямая — силуэт окна машины, а не «коробка» скачивания.
+ */
+private fun PathBuilder.sideWindow() {
+    moveTo(2.5f, 18.5f)
+    lineTo(10.5f, 5f)
+    lineTo(19.5f, 5f)
+    curveTo(20.3f, 5f, 21f, 5.7f, 21f, 6.5f)
+    lineTo(21f, 18.5f)
+    close()
+}
+
+/** Опустить стёкла — окно со стрелкой вниз. */
+val IconWindowDown: ImageVector by lazy {
+    autoGlyph("WindowDown") {
+        sideWindow()
+        moveTo(15.5f, 8.5f); lineTo(15.5f, 15f)
+        moveTo(12.9f, 12.4f); lineTo(15.5f, 15f); lineTo(18.1f, 12.4f)
+    }
+}
+
+/** Поднять стёкла — окно со стрелкой вверх. */
+val IconWindowUp: ImageVector by lazy {
+    autoGlyph("WindowUp") {
+        sideWindow()
+        moveTo(15.5f, 15f); lineTo(15.5f, 8.5f)
+        moveTo(12.9f, 11.1f); lineTo(15.5f, 8.5f); lineTo(18.1f, 11.1f)
+    }
+}

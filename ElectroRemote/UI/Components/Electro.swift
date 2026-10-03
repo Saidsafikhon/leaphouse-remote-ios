@@ -8,6 +8,11 @@ import SwiftUI
 enum Sym {
     /// Багажник: машина сбоку с открытой пятой дверью (SF Symbols 5); иначе обычная машина.
     static let trunk: String = UIImage(systemName: "car.side.rear.open") != nil ? "car.side.rear.open" : "car"
+    /// Багажник закрыт — та же машина сбоку, но без поднятой двери.
+    static let trunkClosed: String = UIImage(systemName: "car.side") != nil ? "car.side" : "car"
+    /// Стёкла: окно открыто/закрыто вместо стрелок, которые читались как «развернуть/свернуть».
+    static let windowOpen: String = UIImage(systemName: "window.vertical.open") != nil ? "window.vertical.open" : "chevron.down"
+    static let windowClosed: String = UIImage(systemName: "window.vertical.closed") != nil ? "window.vertical.closed" : "chevron.up"
 }
 
 /// Состояние контрола. Active — подтверждено машиной, Pending — команда в пути.
@@ -18,6 +23,10 @@ struct ControlTile: View {
     let label: String
     let icon: String
     var state: ControlState = .normal
+    /// Компактная плитка (72, значок 18) — для панели быстрых кнопок на главной.
+    var compact: Bool = false
+    /// Цвет значка в обычном состоянии (например, зелёный у «открыть/включить»).
+    var iconTint: Color? = nil
     let action: () -> Void
 
     var body: some View {
@@ -26,14 +35,14 @@ struct ControlTile: View {
             case .active: return p.accent
             case .pending: return p.textSecondary
             case .disabled: return p.textDisabled
-            case .normal: return p.textPrimary
+            case .normal: return iconTint ?? p.textPrimary
             }
         }()
         let textColor: Color = {
             switch state {
             case .active: return p.accent
             case .disabled: return p.textDisabled
-            default: return p.textSecondary
+            default: return p.textPrimary
             }
         }()
         let border: Color = {
@@ -44,12 +53,12 @@ struct ControlTile: View {
             }
         }()
         Button(action: action) {
-            VStack(spacing: Space.x2) {
+            VStack(spacing: compact ? 6 : Space.x2) {
                 if state == .pending {
-                    ProgressView().tint(ink).frame(width: 24, height: 24)
+                    ProgressView().tint(ink).frame(width: compact ? 20 : 24, height: compact ? 20 : 24)
                 } else {
-                    Image(systemName: icon).font(.system(size: 20, weight: .regular)).foregroundStyle(ink)
-                        .frame(width: 24, height: 24)
+                    Image(systemName: icon).font(.system(size: compact ? 18 : 20, weight: .regular)).foregroundStyle(ink)
+                        .frame(width: compact ? 20 : 24, height: compact ? 20 : 24)
                 }
                 Text(label)
                     .font(ElectroType.label)
@@ -59,9 +68,9 @@ struct ControlTile: View {
                     .minimumScaleFactor(0.85)
             }
             .padding(.horizontal, Space.x1)
-            .padding(.vertical, Space.x3)
+            .padding(.vertical, compact ? Space.x2 : Space.x3)
             .frame(maxWidth: .infinity)
-            .frame(height: ControlSize.tile)
+            .frame(height: compact ? ControlSize.tileCompact : ControlSize.tile)
             .background(state == .disabled ? p.surface : p.surfaceElevated)
             .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).stroke(border, lineWidth: 1))
@@ -228,7 +237,8 @@ struct Metric: Identifiable {
     let value: String
     let unit: String
     var fraction: Double? = nil
-    var id: String { value + unit }
+    var caption: String? = nil
+    var id: String { value + unit + (caption ?? "") }
 }
 
 /// Полоса состояния: слева охрана с иконкой в цветном квадрате, справа метрики.
@@ -257,6 +267,32 @@ struct StatusStrip: View {
                     ForEach(metrics) { m in MetricRow(metric: m) }
                 }
             }
+        }
+        .padding(Space.x3)
+        .frame(maxWidth: .infinity)
+        .background(p.surface)
+        .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
+    }
+}
+
+/// Полоса только с числами (запас хода, заряд) — в ряд, без статуса слева.
+struct MetricsStrip: View {
+    @Environment(\.palette) private var p
+    let metrics: [Metric]
+
+    var body: some View {
+        HStack {
+            ForEach(metrics) { m in
+                Spacer(minLength: 0)
+                VStack(spacing: 0) {
+                    HStack(alignment: .lastTextBaseline, spacing: 3) {
+                        Text(m.value).font(ElectroType.value).foregroundStyle(p.accent)
+                        Text(m.unit).font(ElectroType.unit).foregroundStyle(p.textMuted)
+                    }
+                    if let c = m.caption { Text(c).font(ElectroType.caption).foregroundStyle(p.textMuted) }
+                }
+            }
+            Spacer(minLength: 0)
         }
         .padding(Space.x3)
         .frame(maxWidth: .infinity)

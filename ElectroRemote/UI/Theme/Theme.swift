@@ -156,6 +156,8 @@ enum Radius {
 /// Высоты контролов.
 enum ControlSize {
     static let tile: CGFloat = 88
+    /// Плитка быстрых кнопок на главной: восемь штук должны влезать без прокрутки.
+    static let tileCompact: CGFloat = 72
     static let chip: CGFloat = 44
     static let round: CGFloat = 44
     static let button: CGFloat = 48
