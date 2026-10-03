@@ -46,7 +46,7 @@ final class ScreenshotTests: XCTestCase {
         connect.tap()
 
         // 3. главная
-        wait(app.staticTexts["Панель быстрого доступа"], 30)
+        wait(app.staticTexts["Климат и сиденья"], 30)
         sleep(2)   // в режиме скриншотов 3D не грузится — в кадре всегда плоская машина
         shot("03-home")
 
