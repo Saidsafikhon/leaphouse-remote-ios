@@ -54,10 +54,11 @@ fun HelpDialog(support: SupportDto?, onFeedback: (() -> Unit)? = null, onDismiss
                     Text(S("Свяжитесь с поддержкой удобным способом:"),
                         color = ElectroColors.TextSecondary, fontSize = 13.sp)
                     Spacer(Modifier.height(8.dp))
-                    if (s!!.phone.isNotBlank())
-                        HelpLine(S("Телефон"), s.phone) {
-                            runCatching { uri.openUri("tel:" + s.phone.filter { it == '+' || it.isDigit() }) }
+                    s!!.allPhones().forEach { ph ->
+                        HelpLine(S("Телефон"), ph) {
+                            runCatching { uri.openUri("tel:" + ph.filter { it == '+' || it.isDigit() }) }
                         }
+                    }
                     if (s.telegram.isNotBlank())
                         HelpLine("Telegram", s.telegram) { runCatching { uri.openUri(tgLink(s.telegram)) } }
                     if (s.instagram.isNotBlank())

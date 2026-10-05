@@ -471,9 +471,9 @@ struct HelpSheet: View {
             }
             if let s = support, s.any {
                 Text(L("Свяжитесь с поддержкой удобным способом:")).font(.system(size: 13)).foregroundStyle(p.textSecondary)
-                if !s.phone.isEmpty {
-                    helpLine(L("Телефон"), s.phone) {
-                        let digits = s.phone.filter { $0 == "+" || $0.isNumber }
+                ForEach(s.phones.isEmpty && !s.phone.isEmpty ? [s.phone] : s.phones, id: \.self) { ph in
+                    helpLine(L("Телефон"), ph) {
+                        let digits = ph.filter { $0 == "+" || $0.isNumber }
                         if let u = URL(string: "tel:" + digits) { openURL(u) }
                     }
                 }

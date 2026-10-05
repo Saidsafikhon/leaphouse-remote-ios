@@ -165,17 +165,26 @@ struct SupportDto: Decodable, Equatable {
     var telegram: String = ""
     var instagram: String = ""
     var site: String = ""
+    /// Все номера по порядку, главный первым (сервер с 05.10.2026; у старого — только phone).
+    var phones: [String] = []
 
-    private enum CodingKeys: String, CodingKey { case phone, telegram, instagram, site }
+    private enum CodingKeys: String, CodingKey { case phone, telegram, instagram, site, phones, phone2, phone3 }
     init() {}
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         phone = (try? c.decodeIfPresent(String.self, forKey: .phone)) ?? ""
+        let list = (try? c.decodeIfPresent([String].self, forKey: .phones)) ?? [
+            phone,
+            (try? c.decodeIfPresent(String.self, forKey: .phone2)) ?? "",
+            (try? c.decodeIfPresent(String.self, forKey: .phone3)) ?? "",
+        ]
+        var seen = Set<String>()
+        phones = list.map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty && seen.insert($0).inserted }
         telegram = (try? c.decodeIfPresent(String.self, forKey: .telegram)) ?? ""
         instagram = (try? c.decodeIfPresent(String.self, forKey: .instagram)) ?? ""
         site = (try? c.decodeIfPresent(String.self, forKey: .site)) ?? ""
     }
-    var any: Bool { !phone.isEmpty || !telegram.isEmpty || !instagram.isEmpty || !site.isEmpty }
+    var any: Bool { !phones.isEmpty || !phone.isEmpty || !telegram.isEmpty || !instagram.isEmpty || !site.isEmpty }
 }
 
 struct StatusDto: Decodable {

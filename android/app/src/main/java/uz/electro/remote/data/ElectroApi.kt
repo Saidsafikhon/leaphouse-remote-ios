@@ -95,7 +95,16 @@ data class SupportDto(
     val telegram: String = "",
     val instagram: String = "",
     val site: String = "",
-)
+    /** все номера по порядку, главный первым (сервер с 05.10.2026); null — старый сервер */
+    val phones: List<String>? = null,
+    val phone2: String? = null,
+    val phone3: String? = null,
+) {
+    /** Что показывать: список с сервера, а у старого сервера — phone/phone2/phone3. */
+    fun allPhones(): List<String> =
+        (phones ?: listOf(phone, phone2.orEmpty(), phone3.orEmpty()))
+            .map { it.trim() }.filter { it.isNotBlank() }.distinct()
+}
 
 /** Отзыв из приложения: kind = bug | idea | other. */
 data class FeedbackRequest(
