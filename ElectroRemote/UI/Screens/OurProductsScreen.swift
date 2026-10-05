@@ -35,18 +35,19 @@ struct OurProductsScreen: View {
                 EvonProductCard(product: item) { open(item) }
             }
         }
-        .refreshable { await reload() }
+        // Обычный показ — из кэша (сервер не чаще раза в сутки); «потянуть вниз» — сверка сразу.
+        .refreshable { await reload(force: true) }
         .task(id: lang.code) {
             items = EvonProducts.cached(lang: lang.code)
-            await reload()
+            await reload(force: false)
         }
     }
 
-    private func reload() async {
+    private func reload(force: Bool) async {
         let code = lang.code
         loading = true
         do {
-            items = try await EvonProducts.refresh(lang: code)
+            items = try await EvonProducts.refresh(lang: code, force: force)
             offline = false
         } catch {
             offline = true

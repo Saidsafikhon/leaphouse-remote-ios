@@ -416,6 +416,23 @@ final class CloudClient {
     /// Лента без входа — только новости «для всех» (экран логина).
     func newsPublic() async throws -> [NewsItem] { try await perform("GET", "api/v1/news/public?limit=50") }
     func support() async throws -> SupportDto { try await perform("GET", "api/v1/agent/support") }
+
+    enum SupportFetch { case notModified; case fresh(Data, String?) }
+
+    /// Контакты с If-None-Match: неизменные сервер отвечает 304 без тела (см. SupportStore).
+    /// Тело отдаём как есть — SupportStore разбирает его и кладёт на диск.
+    func fetchSupport(etag: String?) async throws -> SupportFetch {
+        var req = URLRequest(url: try url("api/v1/agent/support"))
+        req.cachePolicy = .reloadIgnoringLocalCacheData
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        if let etag { req.setValue(etag, forHTTPHeaderField: "If-None-Match") }
+        let (data, resp) = try await session.data(for: req)
+        let http = resp as? HTTPURLResponse
+        let code = http?.statusCode ?? 0
+        if code == 304 { return .notModified }
+        guard (200..<300).contains(code) else { throw ApiError.http(code, String(data: data, encoding: .utf8) ?? "") }
+        return .fresh(data, http?.value(forHTTPHeaderField: "ETag"))
+    }
     // Магазин — на market.evon.uz: витрина сайта и приложение берут каталог из одного места.
     func products() async throws -> [ProductDto] { try await perform("GET", "api/v1/shop/products", base: Settings.marketURL) }
     func order(_ body: OrderRequest) async throws -> OrderDto { try await perform("POST", "api/v1/shop/orders", body: body, base: Settings.marketURL) }

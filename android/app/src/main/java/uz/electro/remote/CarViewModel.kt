@@ -560,7 +560,8 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
     fun order(productId: String, qty: Int, phone: String, comment: String, done: (String?) -> Unit) =
         viewModelScope.launch { done(repo.order(uz.electro.remote.data.OrderRequest(productId, qty, phone, comment, _vehicleId.value))) }
 
-    private val _support = MutableStateFlow<SupportDto?>(null)
+    // Сохранённые контакты видны сразу, без сети; свежесть — в loadSupport() (раз в сутки).
+    private val _support = MutableStateFlow<SupportDto?>(uz.electro.remote.data.SupportStore.cached(getApplication()))
     val support: StateFlow<SupportDto?> = _support.asStateFlow()
 
     /** Удаление аккаунта: сервер стирает учётку, приложение выходит. */
@@ -573,9 +574,13 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
         return r.recoverCatching { throw IllegalStateException(authError(it, S("Не удалось удалить аккаунт"))) }
     }
 
-    /** Подтянуть контакты поддержки (тот же экран «Помощь», что на голове). */
-    fun loadSupport() = viewModelScope.launch {
-        repo.support()?.let { _support.value = it }
+    /**
+     * Контакты поддержки (тот же экран «Помощь», что на голове): с диска, а с сервера —
+     * не чаще раза в сутки или по [force]. Сначала уходим в IO, затем трогаем _support:
+     * loadSupport() зовётся из init раньше, чем объявлено поле.
+     */
+    fun loadSupport(force: Boolean = false) = viewModelScope.launch {
+        uz.electro.remote.data.SupportStore.sync(getApplication(), force, settings)?.let { _support.value = it }
     }
 
     // --- отзыв -------------------------------------------------------------

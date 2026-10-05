@@ -78,8 +78,9 @@ final class CarRepository {
 
     // --- пробуждение ---
 
-    /// Контакты поддержки (открытый эндпоинт). nil — не достали.
-    func support() async -> SupportDto? { Demo.enabled ? Demo.support : try? await cloud.support() }
+    /// Контакты поддержки (открытый эндпоинт): с диска, с сервера — не чаще раза в сутки
+    /// или по `force` (SupportStore). nil — ещё ни разу не достали.
+    func support(force: Bool = false) async -> SupportDto? { await SupportStore.sync(settings: settings, force: force) }
     func products() async -> [ProductDto] { (try? await cloud.products()) ?? [] }
     /// Заявка на товар; nil — отправлено, иначе текст ошибки.
     func order(_ req: OrderRequest) async -> String? {

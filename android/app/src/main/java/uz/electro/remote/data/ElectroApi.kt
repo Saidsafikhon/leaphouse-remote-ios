@@ -271,8 +271,9 @@ interface ElectroApi {
     @POST("api/v1/shop/orders")
     suspend fun order(@Body body: OrderRequest): OrderDto
 
+    // Контакты с If-None-Match: неизменные сервер отвечает 304 без тела (см. SupportStore).
     @GET("api/v1/agent/support")
-    suspend fun support(): SupportDto
+    suspend fun support(@Header("If-None-Match") etag: String?): retrofit2.Response<okhttp3.ResponseBody>
 
     @POST("api/v1/feedback")
     suspend fun sendFeedback(@Body body: FeedbackRequest): FeedbackCreated

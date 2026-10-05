@@ -62,7 +62,8 @@ final class CarViewModel: ObservableObject {
     @Published private(set) var scenes: [SceneTemplateDto] = []
     @Published private(set) var schedules: [ClimateScheduleDto] = []
     @Published private(set) var voiceIntents: [VoiceIntentDto] = []
-    @Published private(set) var support: SupportDto? = nil
+    /// Сохранённые контакты видны сразу, без сети; свежесть — в loadSupport() (раз в сутки).
+    @Published private(set) var support: SupportDto? = Demo.enabled ? nil : SupportStore.cached()
     /// Лента новостей и уведомлений из админки.
     @Published private(set) var news: [NewsItem] = []
     @Published private(set) var newsRead: Set<String> = Settings.shared.newsRead
@@ -466,7 +467,7 @@ final class CarViewModel: ObservableObject {
 
     // --- помощь ---
 
-    func loadSupport() { Task { if let s = await repo.support() { support = s } } }
+    func loadSupport(force: Bool = false) { Task { if let s = await repo.support(force: force) { support = s } } }
 
     // --- сиденья по профилю ---
 

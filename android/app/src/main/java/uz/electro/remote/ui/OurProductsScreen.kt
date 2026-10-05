@@ -40,17 +40,18 @@ fun OurProductsScreen(onBack: () -> Unit) {
     var loading by remember(lang) { mutableStateOf(true) }
     var offline by remember(lang) { mutableStateOf(false) }
 
-    suspend fun reload() {
+    // Обычный показ — из кэша (сервер не чаще раза в сутки); «потянуть вниз» — сверка сразу.
+    suspend fun reload(force: Boolean) {
         loading = true
-        runCatching { EvonProducts.refresh(ctx, lang) }
+        runCatching { EvonProducts.refresh(ctx, lang, force) }
             .onSuccess { list = it; offline = false }
             .onFailure { offline = true }
         loading = false
     }
-    LaunchedEffect(lang) { reload() }
+    LaunchedEffect(lang) { reload(force = false) }
 
     androidx.activity.compose.BackHandler(onBack = onBack)
-    PullRefresh({ scope.launch { reload() } }) {
+    PullRefresh({ scope.launch { reload(force = true) } }) {
         LazyScreenScaffold(S("Наши продукты"), onBack) {
             item(key = "sub") {
                 Text("EvOn", style = ElectroType.Caption, color = ElectroColors.TextMuted)

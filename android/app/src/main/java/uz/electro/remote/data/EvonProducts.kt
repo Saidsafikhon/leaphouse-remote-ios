@@ -22,9 +22,9 @@ data class EvonProduct(
  * Список «Наши продукты» — общий для всех программ EvOn, живёт на сервере AppsMarket
  * (apps.evon.uz, не наш бэкенд leapmotor.evon.uz). Публичный, без токена и VIN.
  *
- * Последний ответ лежит на диске отдельно по языку: экран показывает его сразу
- * (в том числе без сети), а запрос идёт с If-None-Match — неизменный список
- * сервер отвечает 304 без тела.
+ * Последний ответ лежит на диске отдельно по языку, иконки — файлами: экран
+ * показывает всё сразу (в том числе без сети). С сервером сверяемся не чаще раза
+ * в сутки ([FRESH_MS]) и с If-None-Match — неизменный список сервер отвечает 304.
  */
 object EvonProducts {
     private const val BASE = "https://apps.evon.uz/api/v1/products"
@@ -39,35 +39,83 @@ object EvonProducts {
     private fun file(ctx: Context, lang: String) = File(ctx.filesDir, "evon-products-$lang.json")
     private fun prefs(ctx: Context) = ctx.getSharedPreferences("evon_products", Context.MODE_PRIVATE)
 
-    /** Сохранённый список на языке [lang] (пусто, если ещё не качали). */
+    /** Сохранённый список на языке [lang] (пусто, если ещё не качали); иконки — с диска, где есть. */
     fun cached(ctx: Context, lang: String): List<EvonProduct> = runCatching {
-        file(ctx, lang).takeIf { it.exists() }?.readText()?.let(::parse)
+        file(ctx, lang).takeIf { it.exists() }?.readText()?.let(::parse)?.let { withLocalIcons(ctx, it) }
     }.getOrNull().orEmpty()
 
+    /** Сверка со списком на сервере — не чаще раза в сутки (жест «потянуть вниз» — сразу). */
+    const val FRESH_MS = 24 * 60 * 60 * 1000L
+
     /**
-     * Свежий список с сервера. 304 — остаётся сохранённый. Ошибка сети — исключение
-     * (экран покажет «нет связи» поверх кэша).
+     * Актуальный список. Если копия свежая и не просили [force] — с диска, без сети.
+     * Иначе запрос с If-None-Match: 304 — остаётся сохранённый. Ошибка сети — исключение
+     * (экран покажет «нет связи» поверх кэша). Иконки докачиваются на диск.
      */
-    suspend fun refresh(ctx: Context, lang: String): List<EvonProduct> = withContext(Dispatchers.IO) {
+    suspend fun refresh(ctx: Context, lang: String, force: Boolean = false): List<EvonProduct> = withContext(Dispatchers.IO) {
         val f = file(ctx, lang)
-        val etag = if (f.exists()) prefs(ctx).getString("etag-$lang", null) else null
+        val sp = prefs(ctx)
+        val fresh = f.exists() && System.currentTimeMillis() - sp.getLong("at-$lang", 0L) < FRESH_MS
+        if (fresh && !force) return@withContext withIcons(ctx, cached(ctx, lang), force = false)
+        val etag = if (f.exists()) sp.getString("etag-$lang", null) else null
         val req = Request.Builder()
             .url("$BASE?lang=$lang&platform=phone")
             .apply { etag?.let { header("If-None-Match", it) } }
             .build()
-        http.newCall(req).execute().use { resp ->
+        val items = http.newCall(req).execute().use { resp ->
             when {
                 resp.code == 304 -> cached(ctx, lang)
                 resp.isSuccessful -> {
                     val body = resp.body?.string().orEmpty()
                     val items = parse(body)   // разобрать до записи: битый ответ не затрёт кэш
                     f.writeText(body)
-                    prefs(ctx).edit().putString("etag-$lang", resp.header("ETag")).apply()
+                    sp.edit().putString("etag-$lang", resp.header("ETag")).apply()
                     items
                 }
                 else -> throw java.io.IOException("HTTP ${resp.code}")
             }
         }
+        sp.edit().putLong("at-$lang", System.currentTimeMillis()).apply()
+        withIcons(ctx, items, force = true)
+    }
+
+    // --- иконки на диске ---------------------------------------------------
+
+    private fun iconDir(ctx: Context) = File(ctx.filesDir, "evon-product-icons").apply { mkdirs() }
+    private fun iconFile(ctx: Context, id: String) = File(iconDir(ctx), id.replace(Regex("[^A-Za-z0-9_.-]"), "_"))
+
+    /** Список, где у продуктов с сохранённой иконкой адрес — файл на диске. */
+    fun withLocalIcons(ctx: Context, list: List<EvonProduct>): List<EvonProduct> = list.map { p ->
+        val f = iconFile(ctx, p.id)
+        if (p.iconUrl != null && f.exists() && f.length() > 0) p.copy(iconUrl = f.toURI().toString()) else p
+    }
+
+    /**
+     * Иконки качаются один раз и лежат файлами; сверяются (If-None-Match) только
+     * вместе со списком — то есть тоже не чаще раза в сутки. Без сети — что есть.
+     */
+    private fun withIcons(ctx: Context, list: List<EvonProduct>, force: Boolean): List<EvonProduct> {
+        val sp = prefs(ctx)
+        list.forEach { p ->
+            val url = p.iconUrl ?: return@forEach
+            val f = iconFile(ctx, p.id)
+            if (f.exists() && f.length() > 0 && !force) return@forEach
+            runCatching {
+                val etag = if (f.exists()) sp.getString("icon-etag-${p.id}", null) else null
+                val req = Request.Builder().url(url).apply { etag?.let { header("If-None-Match", it) } }.build()
+                http.newCall(req).execute().use { resp ->
+                    if (resp.code != 304 && resp.isSuccessful) {
+                        val bytes = resp.body?.bytes() ?: return@use
+                        if (bytes.isEmpty()) return@use
+                        val tmp = File(f.parentFile, f.name + ".part")
+                        tmp.writeBytes(bytes)
+                        tmp.renameTo(f) || run { f.writeBytes(bytes); tmp.delete() }
+                        sp.edit().putString("icon-etag-${p.id}", resp.header("ETag")).apply()
+                    }
+                }
+            }
+        }
+        return withLocalIcons(ctx, list)
     }
 
     private fun parse(json: String): List<EvonProduct> {

@@ -117,10 +117,6 @@ class CarRepository(private val settings: Settings) {
         runCatching { cloud.market.order(req); null }.getOrElse { reasonOf(it) }
     }
 
-    /** Контакты поддержки (открытый эндпоинт, ключ не нужен). null — не достали. */
-    suspend fun support(): SupportDto? = withContext(Dispatchers.IO) {
-        runCatching { cloud.api.support() }.getOrNull()
-    }
 
     /**
      * Отзыв в админку: замечание, идея, вопрос. Машина — текущая, если выбрана.
