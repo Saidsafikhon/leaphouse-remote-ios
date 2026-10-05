@@ -410,7 +410,11 @@
     "Команда пришла по ссылке или из ярлыка. Выполнить?": "This command came from a link or a shortcut. Run it?",
     "Автомобиль": "Car",
     "Нет файла": "No file",
-    "Готово": "Done"
+    "Готово": "Done",
+    "Наши продукты": "Our products",
+    "Нет связи — список продуктов не загрузился": "No connection — the product list did not load",
+    "Нет связи — показан сохранённый список": "No connection — showing the saved list",
+    "Список продуктов пока пуст.": "The product list is empty for now."
   },
   "uz": {
     " · не прочитано": " · o‘qilmagan",
@@ -822,6 +826,10 @@
     "Команда пришла по ссылке или из ярлыка. Выполнить?": "Buyruq havola yoki yorliqdan keldi. Bajarilsinmi?",
     "Автомобиль": "Avtomobil",
     "Нет файла": "Fayl yo‘q",
-    "Готово": "Tayyor"
+    "Готово": "Tayyor",
+    "Наши продукты": "Bizning mahsulotlarimiz",
+    "Нет связи — список продуктов не загрузился": "Aloqa yo‘q — mahsulotlar ro‘yxati yuklanmadi",
+    "Нет связи — показан сохранённый список": "Aloqa yo‘q — saqlangan ro‘yxat ko‘rsatilmoqda",
+    "Список продуктов пока пуст.": "Mahsulotlar ro‘yxati hozircha bo‘sh."
   }
 }

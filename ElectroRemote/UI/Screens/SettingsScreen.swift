@@ -21,6 +21,7 @@ struct SettingsScreen: View {
     @State private var deleteError: String? = nil
     @State private var deleteBusy = false
     @State private var feedback = false
+    @State private var products = false
 
     var body: some View {
         ScreenScaffold(title: L("Настройки"), onBack: onClose) {
@@ -111,6 +112,8 @@ struct SettingsScreen: View {
                 }
             }
 
+            OurProductsRow { products = true }
+
             HStack(spacing: Space.x4) {
                 Link(L("Политика конфиденциальности"), destination: Links.privacy)
                 Link(L("Поддержка"), destination: Links.support)
@@ -126,6 +129,9 @@ struct SettingsScreen: View {
                 }
                 .buttonStyle(.plain)
             }
+        }
+        .fullScreenCover(isPresented: $products) {
+            OurProductsScreen { products = false }
         }
         .sheet(isPresented: $feedback) {
             FeedbackView(vm: vm) { feedback = false }
@@ -402,5 +408,31 @@ private struct RenameSheet: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(p.surfaceElevated)
         .presentationDetents([.medium])
+    }
+}
+
+/// Строка-вход «Наши продукты · EvOn» — другие программы EvOn.
+private struct OurProductsRow: View {
+    @Environment(\.palette) private var p
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: Space.x3) {
+                Image(systemName: "square.grid.2x2").font(.system(size: 18)).foregroundStyle(p.accent)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(L("Наши продукты")).font(ElectroType.body).foregroundStyle(p.textPrimary)
+                    Text("EvOn").font(ElectroType.caption).foregroundStyle(p.textMuted)
+                }
+                Spacer()
+                Image(systemName: "chevron.right").font(.system(size: 14, weight: .semibold)).foregroundStyle(p.textMuted)
+            }
+            .padding(Space.x4)
+            .frame(maxWidth: .infinity)
+            .background(p.surface)
+            .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }

@@ -69,6 +69,7 @@ fun SettingsScreen(vm: CarViewModel, onClose: () -> Unit) {
     val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
     var confirmDrop by remember { mutableStateOf<VehicleDto?>(null) }
     var showFeedback by remember { mutableStateOf(false) }
+    var showProducts by remember { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
     var pairMsg by remember { mutableStateOf<String?>(null) }
@@ -80,6 +81,12 @@ fun SettingsScreen(vm: CarViewModel, onClose: () -> Unit) {
                 .onSuccess { pairMsg = S("Машина привязана") }
                 .onFailure { pairMsg = it.message ?: S("Не удалось привязать машину") }
         }
+    }
+
+    // «Наши продукты» — поверх настроек, «назад» возвращает сюда же
+    if (showProducts) {
+        OurProductsScreen(onBack = { showProducts = false })
+        return
     }
 
     ScreenScaffold(S("Настройки"), onClose) {
@@ -155,6 +162,8 @@ fun SettingsScreen(vm: CarViewModel, onClose: () -> Unit) {
                 ) { Text(S("Войти"), fontWeight = FontWeight.Bold) }
             }
         }
+
+        OurProductsRow { showProducts = true }
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
             Text(S("Политика конфиденциальности"), style = ElectroType.Caption, color = ElectroColors.TextMuted,
@@ -460,6 +469,23 @@ private fun VehicleRow(
         IconButton(onClick = onDrop) {
             Icon(Lx.Delete, S("Отвязать"), tint = ElectroColors.Danger,
                 modifier = Modifier.size(20.dp))
+        }
+    }
+}
+
+/** Строка-вход «Наши продукты · EvOn» — другие программы EvOn. */
+@Composable
+private fun OurProductsRow(onClick: () -> Unit) {
+    Surface(color = ElectroColors.Surface, shape = Radius.Md,
+        modifier = Modifier.fillMaxWidth().clip(Radius.Md).clickable(onClick = onClick)) {
+        Row(Modifier.padding(Space.x4), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Lx.Dashboard, null, tint = ElectroColors.Accent, modifier = Modifier.size(22.dp))
+            Spacer(Modifier.width(Space.x3))
+            Column(Modifier.weight(1f)) {
+                Text(S("Наши продукты"), style = ElectroType.Body, color = ElectroColors.TextPrimary)
+                Text("EvOn", style = ElectroType.Caption, color = ElectroColors.TextMuted)
+            }
+            Icon(Lx.ArrowForward, null, tint = ElectroColors.TextMuted, modifier = Modifier.size(18.dp))
         }
     }
 }

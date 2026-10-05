@@ -10,9 +10,10 @@ enum Sym {
     static let trunk: String = UIImage(systemName: "car.side.rear.open") != nil ? "car.side.rear.open" : "car"
     /// Багажник закрыт — та же машина сбоку, но без поднятой двери.
     static let trunkClosed: String = UIImage(systemName: "car.side") != nil ? "car.side" : "car"
-    /// Стёкла: окно открыто/закрыто вместо стрелок, которые читались как «развернуть/свернуть».
-    static let windowOpen: String = UIImage(systemName: "window.vertical.open") != nil ? "window.vertical.open" : "chevron.down"
-    static let windowClosed: String = UIImage(systemName: "window.vertical.closed") != nil ? "window.vertical.closed" : "chevron.up"
+    /// Стёкла: стрелка вниз — опустить, вверх — поднять. Значки window.vertical
+    /// (рамка с переплётом) владелец вернуть попросил: читались как окно дома.
+    static let windowOpen = "chevron.down"
+    static let windowClosed = "chevron.up"
 }
 
 /// Состояние контрола. Active — подтверждено машиной, Pending — команда в пути.
