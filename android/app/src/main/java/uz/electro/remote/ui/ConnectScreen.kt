@@ -1,5 +1,6 @@
 package uz.electro.remote.ui
 
+import uz.electro.remote.CONNECT_WAIT_SEC
 import uz.electro.remote.i18n.S
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -155,9 +156,25 @@ fun ConnectScreen(vm: CarViewModel, status: ConnectStatus) {
         )
 
         if (status.phase == ConnectPhase.Waiting) {
-            Spacer(Modifier.height(Space.x4))
+            // Отсчёт 0…20 с от нажатия; ответила машина раньше — экран откроется сразу.
+            val sec = status.waitedSec.coerceIn(0, CONNECT_WAIT_SEC)
+            Spacer(Modifier.height(Space.x2))
+            Text(
+                S("{0} / {1} с", sec, CONNECT_WAIT_SEC),
+                style = ElectroType.Body,
+                color = ElectroColors.TextPrimary,
+                textAlign = TextAlign.Center,
+            )
+            Text(
+                S("Обычно 10–20 секунд"),
+                style = ElectroType.Body,
+                color = ElectroColors.TextMuted,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(Space.x3))
             LinearProgressIndicator(
-                Modifier.fillMaxWidth().clip(Radius.Pill),
+                progress = { sec / CONNECT_WAIT_SEC.toFloat() },
+                modifier = Modifier.fillMaxWidth().clip(Radius.Pill),
                 color = ElectroColors.Accent,
                 trackColor = ElectroColors.SurfaceElevated,
             )

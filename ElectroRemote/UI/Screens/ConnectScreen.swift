@@ -70,8 +70,14 @@ struct ConnectScreen: View {
                 .multilineTextAlignment(.center)
 
             if status.phase == .waiting {
-                Spacer().frame(height: Space.x4)
-                ProgressView().progressViewStyle(.linear).tint(p.accent)
+                // Отсчёт 0…20 с от нажатия; ответила машина раньше — экран откроется сразу.
+                let total = CarViewModel.wakeWaitSec
+                let sec = min(max(status.waitedSec, 0), total)
+                Spacer().frame(height: Space.x2)
+                Text(L("{0} / {1} с", sec, total)).font(ElectroType.body).foregroundStyle(p.textPrimary)
+                Text(L("Обычно 10–20 секунд")).font(ElectroType.body).foregroundStyle(p.textMuted)
+                Spacer().frame(height: Space.x3)
+                ProgressView(value: Double(sec), total: Double(total)).progressViewStyle(.linear).tint(p.accent)
             }
 
             Spacer()

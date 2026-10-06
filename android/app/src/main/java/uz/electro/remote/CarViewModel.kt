@@ -36,6 +36,9 @@ enum class ConnectPhase {
     Error,
 }
 
+/** Предел подключения на экране: отсчёт 0…CONNECT_WAIT_SEC. */
+const val CONNECT_WAIT_SEC = 20
+
 data class ConnectStatus(
     val phase: ConnectPhase = ConnectPhase.Idle,
     val message: String? = null,
@@ -239,21 +242,19 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
     fun connect() {
         if (connectJob?.isActive == true) return
         connectJob = viewModelScope.launch {
-            _connect.value = ConnectStatus(ConnectPhase.Sending)
-
             // Время считаем по часам от нажатия: сам опрос головы занимает несколько
             // секунд, и счёт по количеству пауз растягивал таймаут в разы.
             val startedAt = System.currentTimeMillis()
             fun waitedSec() = ((System.currentTimeMillis() - startedAt) / 1000).toInt()
 
-            // Даже если пробуждение не прошло, машину всё равно ждём WAKE_WAIT_SEC:
-            // голова часто поднимается и подключается сама, а запасные кнопки
-            // («Повторить», «Всё равно открыть») сразу после нажатия сбивали с толку.
-            val woken = wakeUp()
-            val failure = woken.exceptionOrNull()
-            val how = if (failure != null) S("Подключение…") else woken.getOrDefault(S("Команда отправлена"))
-
-            _connect.value = ConnectStatus(ConnectPhase.Waiting, how, 0)
+            // Отсчёт 0…WAKE_WAIT_SEC идёт сразу от нажатия, а побудка — параллельно с
+            // опросом. Раньше ждали ответа /wake (сервер держит его до 30 с, пока голова
+            // не выйдет на связь), и только потом начинался отсчёт: всего до 50 с, из
+            // них половина — без цифр на экране. Машина ответила раньше — открываемся сразу.
+            // Даже если пробуждение не прошло, ждём до конца отсчёта: голова часто
+            // поднимается и подключается сама.
+            _connect.value = ConnectStatus(ConnectPhase.Waiting, S("Подключение…"), 0)
+            val wakeJob = async { wakeUp() }
 
             // Отдельный тикер рисует секунды. Раньше счётчик обновлялся только
             // после опроса головы, а он занимает несколько секунд — и на экране
@@ -281,7 +282,10 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
                 }
             } finally {
                 ticker.cancel()
+                // Ответ /wake больше не нужен — не держим его (и сам connectJob) после выхода.
+                if (wakeJob.isActive) wakeJob.cancel()
             }
+            val failure = if (wakeJob.isCompleted && !wakeJob.isCancelled) wakeJob.await().exceptionOrNull() else null
             _connect.value = if (failure != null) ConnectStatus(
                 ConnectPhase.Error,
                 scrubAddresses(failure.message) ?: S("Не удалось разбудить машину"),
@@ -925,14 +929,15 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
     private companion object {
         /** Лимит одного вложения к отзыву — совпадает с сервером (40 МБ). */
         const val MAX_ATTACHMENT_BYTES = 40L * 1024 * 1024
-        /** Сколько ждём отклика машины после побудки. */
-        const val WAKE_WAIT_SEC = 20
+        /** Сколько ждём отклика машины от нажатия «Подключиться» (обычно 10–20 с). */
+        const val WAKE_WAIT_SEC = CONNECT_WAIT_SEC
         /** Шаг тикера на экране подключения — секунды должны идти ровно. */
         const val TICK_MS = 250L
 
         const val POLL_CLOUD_MS = 10_000L
         const val POLL_OFFLINE_MS = 15_000L
-        const val PROBE_STEP_MS = 3_000L
+        /** Опрос во время подключения: чаще — чтобы открыться сразу, как машина ответила. */
+        const val PROBE_STEP_MS = 1_500L
 
         /** Команды, состояние которых машина отдаёт обратно. */
         /** сколько эхо команды переживает противоречащий сигнал машины */

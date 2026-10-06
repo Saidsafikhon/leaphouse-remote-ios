@@ -78,11 +78,13 @@ final class CarViewModel: ObservableObject {
     private var connecting = false
     private var seatTimer: Task<Void, Never>?
 
-    private static let wakeWaitSec = 20
+    /// Предел подключения: отсчёт 0…20 с от нажатия (обычно 10–20 с).
+    static let wakeWaitSec = 20
     private static let tickNs: UInt64 = 250_000_000
     private static let pollCloudNs: UInt64 = 10_000_000_000
     private static let pollOfflineNs: UInt64 = 15_000_000_000
-    private static let probeStepNs: UInt64 = 3_000_000_000
+    /// Опрос во время подключения: чаще — чтобы открыться сразу, как машина ответила.
+    private static let probeStepNs: UInt64 = 1_500_000_000
 
     /// Команды, состояние которых машина отдаёт обратно.
     private static let signalBacked: Set<Int> = Set([
@@ -164,26 +166,26 @@ final class CarViewModel: ObservableObject {
         connectTask = Task { [weak self] in
             guard let self else { return }
             defer { self.connecting = false }
-            self.connectStatus = ConnectStatus(phase: .sending)
-
-            // Время — от нажатия. Даже если пробуждение не прошло, машину ждём
-            // wakeWaitSec: голова часто подключается сама, а запасные кнопки сразу
-            // после нажатия сбивали с толку.
+            // Отсчёт 0…wakeWaitSec идёт от нажатия, а побудка — параллельно с опросом.
+            // Раньше ждали ответа /wake (сервер держит его до 30 с, пока голова не выйдет
+            // на связь), и только потом начинался отсчёт. Машина ответила раньше —
+            // открываемся сразу. Даже если пробуждение не прошло, ждём до конца отсчёта.
             let startedAt = Date()
             func waited() -> Int { Int(Date().timeIntervalSince(startedAt)) }
+            self.connectStatus = ConnectStatus(phase: .waiting, message: L("Подключение…"), waitedSec: 0)
 
-            let how: String
-            var failure: String? = nil
-            switch await self.repo.wake() {
-            case .sent(let h): how = L("Разбудили {0}", h)
-            case .failed(let reason):
-                how = L("Подключение…")
-                failure = scrubAddresses(reason) ?? L("Не удалось разбудить машину")
-            case .noServer:
-                how = L("Подключение…")
-                failure = L("Будить нечем: нет входа на сервер")
+            // Ответ побудки — в переменную (главный поток): ждать его на выходе не надо.
+            var wakeDone = false
+            var wakeFailure: String? = nil
+            let wakeTask = Task { @MainActor [repo = self.repo] in
+                switch await repo.wake() {
+                case .sent: wakeFailure = nil
+                case .failed(let reason): wakeFailure = scrubAddresses(reason) ?? L("Не удалось разбудить машину")
+                case .noServer: wakeFailure = L("Будить нечем: нет входа на сервер")
+                }
+                wakeDone = true
             }
-            self.connectStatus = ConnectStatus(phase: .waiting, message: how, waitedSec: 0)
+            defer { wakeTask.cancel() }
 
             // Отдельный тикер рисует секунды ровно, не дожидаясь опроса.
             let ticker = Task { [weak self] in
@@ -208,6 +210,8 @@ final class CarViewModel: ObservableObject {
                 try? await Task.sleep(nanoseconds: Self.probeStepNs)
             }
             if Task.isCancelled { return }
+            // Ошибку побудки показываем, только если её ответ уже пришёл.
+            let failure: String? = wakeDone ? wakeFailure : nil
             if let failure {
                 self.connectStatus = ConnectStatus(phase: .error, message: failure, waitedSec: waited())
             } else {

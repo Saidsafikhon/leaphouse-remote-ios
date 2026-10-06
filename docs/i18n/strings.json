@@ -414,7 +414,9 @@
     "Наши продукты": "Our products",
     "Нет связи — список продуктов не загрузился": "No connection — the product list did not load",
     "Нет связи — показан сохранённый список": "No connection — showing the saved list",
-    "Список продуктов пока пуст.": "The product list is empty for now."
+    "Список продуктов пока пуст.": "The product list is empty for now.",
+    "{0} / {1} с": "{0} / {1} s",
+    "Обычно 10–20 секунд": "Usually 10–20 seconds"
   },
   "uz": {
     " · не прочитано": " · o‘qilmagan",
@@ -830,6 +832,8 @@
     "Наши продукты": "Bizning mahsulotlarimiz",
     "Нет связи — список продуктов не загрузился": "Aloqa yo‘q — mahsulotlar ro‘yxati yuklanmadi",
     "Нет связи — показан сохранённый список": "Aloqa yo‘q — saqlangan ro‘yxat ko‘rsatilmoqda",
-    "Список продуктов пока пуст.": "Mahsulotlar ro‘yxati hozircha bo‘sh."
+    "Список продуктов пока пуст.": "Mahsulotlar ro‘yxati hozircha bo‘sh.",
+    "{0} / {1} с": "{0} / {1} s",
+    "Обычно 10–20 секунд": "Odatda 10–20 soniya"
   }
 }
