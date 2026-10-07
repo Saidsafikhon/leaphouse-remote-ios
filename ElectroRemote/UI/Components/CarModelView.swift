@@ -47,9 +47,17 @@ final class CarSceneCache {
     var root: SCNNode?
 }
 
+/// Что открыто на машине — 3D-модель открывает эти детали на петлях (зеркало BodyPose.kt).
+struct BodyPose: Equatable {
+    var doorFL = false, doorFR = false, doorRL = false, doorRR = false
+    var trunk = false, hood = false
+    var anyOpen: Bool { doorFL || doorFR || doorRL || doorRR || trunk || hood }
+}
+
 struct CarModelView: View {
     let model: String?
     let paint: Color
+    var body3d = BodyPose()
     var onReady: (Bool) -> Void = { _ in }
 
     @State private var scene: SCNScene? = nil
@@ -60,7 +68,7 @@ struct CarModelView: View {
     var body: some View {
         Group {
             if let s = scene {
-                CarSceneView(scene: s, paint: UIColor(paint), yaw: yaw, pitch: pitch)
+                CarSceneView(scene: s, paint: UIColor(paint), yaw: yaw, pitch: pitch, pose: body3d)
                     .highPriorityGesture(
                         DragGesture(minimumDistance: 4)
                             .onChanged { g in
@@ -102,6 +110,7 @@ struct CarSceneView: UIViewRepresentable {
     let paint: UIColor
     let yaw: Float
     let pitch: Float
+    var pose = BodyPose()
 
     /// Камера — как на Android: цель в центре модели (единичный куб), чистый вид сбоку, нос влево, чуть сверху.
     static let eye = SCNVector3(0, 0.3, 2.0)
@@ -121,6 +130,7 @@ struct CarSceneView: UIViewRepresentable {
         let s = size > 0 ? 1 / size : 1
         content.scale = SCNVector3(s, s, s)
         content.position = SCNVector3(-(mn.x + mx.x) / 2 * s, -(mn.y + mx.y) / 2 * s, -(mn.z + mx.z) / 2 * s)
+        buildHinges(content)
         let yawNode = SCNNode(); yawNode.name = "yaw"; yawNode.addChildNode(content)
         let pitchNode = SCNNode(); pitchNode.name = "pitch"; pitchNode.addChildNode(yawNode)
         scene.rootNode.addChildNode(pitchNode)
@@ -137,6 +147,68 @@ struct CarSceneView: UIViewRepresentable {
         cam.camera!.zNear = 0.05; cam.camera!.zFar = 50; cam.camera!.wantsHDR = false
         cam.position = eye; cam.look(at: SCNVector3Zero)
         scene.rootNode.addChildNode(cam)
+    }
+
+    /// Группа деталей по имени узла. C16/C11/C01: Door_LF_…, Body_M_Bonnet, Body_M_Trunk…;
+    /// C10: l_frontdoor…, bonnet, trunk. Ось у всех моделей: нос −X, верх +Y, левый борт +Z.
+    static func group(_ name: String) -> String? {
+        let n = name.lowercased()
+        if n.hasPrefix("door_lf") || n.hasPrefix("interactive_lf") || n.hasPrefix("l_frontdoor") { return "fl" }
+        if n.hasPrefix("door_rf") || n.hasPrefix("interactive_rf") || n.hasPrefix("r_frontdoor") || n.hasPrefix("door_front_r") { return "fr" }
+        if n.hasPrefix("door_lr") || n.hasPrefix("interactive_lr") || n.hasPrefix("l_reardoor") { return "rl" }
+        if n.hasPrefix("door_rr") || n.hasPrefix("interactive_rr") || n.hasPrefix("r_reardoor") { return "rr" }
+        if n.contains("bonnet") { return "hood" }
+        if n.hasPrefix("body_m_trunk") || n.hasPrefix("trunk") { return "trunk" }
+        return nil
+    }
+
+    /// Петель в GLB нет (иерархия плоская) — каждую группу кладём в узел «hinge_<группа>»,
+    /// стоящий в точке петли, посчитанной по габаритам группы. Открытие = поворот этого узла.
+    static func buildHinges(_ content: SCNNode) {
+        var groups: [String: [SCNNode]] = [:]
+        content.enumerateHierarchy { n, stop in
+            guard let name = n.name, let g = group(name) else { return }
+            // узел, чей предок уже в группе, не берём — он поедет вместе с предком
+            var p = n.parent; while let q = p, q !== content { if let qn = q.name, group(qn) != nil { return }; p = q.parent }
+            groups[g, default: []].append(n)
+        }
+        for (g, nodes) in groups {
+            var lo = SCNVector3(1e9, 1e9, 1e9), hi = SCNVector3(-1e9, -1e9, -1e9)
+            for n in nodes {
+                let (a, b) = n.boundingBox
+                for c in [content.convertPosition(a, from: n), content.convertPosition(b, from: n)] {
+                    lo = SCNVector3(min(lo.x, c.x), min(lo.y, c.y), min(lo.z, c.z))
+                    hi = SCNVector3(max(hi.x, c.x), max(hi.y, c.y), max(hi.z, c.z))
+                }
+            }
+            let midY = (lo.y + hi.y) / 2
+            let pivot: SCNVector3
+            switch g {
+            case "fl", "rl": pivot = SCNVector3(lo.x, midY, hi.z)   // передний край, наружная сторона
+            case "fr", "rr": pivot = SCNVector3(lo.x, midY, lo.z)
+            case "hood": pivot = SCNVector3(hi.x, hi.y, 0)           // у лобового стекла
+            default: pivot = SCNVector3(lo.x, hi.y, 0)               // багажник: сверху у крыши
+            }
+            let hinge = SCNNode(); hinge.name = "hinge_" + g; hinge.position = pivot
+            content.addChildNode(hinge)
+            for n in nodes {
+                let t = content.convertTransform(n.transform, from: n.parent)
+                n.removeFromParentNode()
+                hinge.addChildNode(n)
+                n.transform = hinge.convertTransform(t, from: content)
+            }
+        }
+    }
+
+    /// Угол открытия группы, радианы: двери наружу 55°, капот вверх 40°, багажник вверх 65°.
+    static func openAngles(_ g: String) -> SCNVector3 {
+        let d: Float = .pi / 180
+        switch g {
+        case "fl", "rl": return SCNVector3(0, -55 * d, 0)
+        case "fr", "rr": return SCNVector3(0, 55 * d, 0)
+        case "hood": return SCNVector3(0, 0, -40 * d)
+        default: return SCNVector3(0, 0, 65 * d)
+        }
     }
 
     /// Мягкая студия: светлое небо, серый пол — равномерные блики на металлике.
@@ -173,6 +245,17 @@ struct CarSceneView: UIViewRepresentable {
         yawNode.eulerAngles.y = yaw
         let a = Self.rightAxis
         pitchNode.rotation = SCNVector4(a.x, a.y, a.z, pitch)
+        // двери/капот/багажник — плавно, 0,6 с
+        let open: [String: Bool] = ["fl": pose.doorFL, "fr": pose.doorFR, "rl": pose.doorRL,
+                                    "rr": pose.doorRR, "trunk": pose.trunk, "hood": pose.hood]
+        SCNTransaction.begin(); SCNTransaction.animationDuration = 0.6
+        SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        for (g, isOpen) in open {
+            guard let h = yawNode.childNode(withName: "hinge_" + g, recursively: true) else { continue }
+            let target = isOpen ? Self.openAngles(g) : SCNVector3Zero
+            if h.eulerAngles.x != target.x || h.eulerAngles.y != target.y || h.eulerAngles.z != target.z { h.eulerAngles = target }
+        }
+        SCNTransaction.commit()
         scene.rootNode.enumerateChildNodes { n, _ in
             for m in n.geometry?.materials ?? [] where m.name == "M_Paint" || m.name == "M_CarPaint" {
                 m.diffuse.contents = paint

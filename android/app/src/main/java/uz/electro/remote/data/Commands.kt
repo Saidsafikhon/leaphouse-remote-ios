@@ -25,6 +25,10 @@ object Cmd {
     // климат
     const val AC = 65537              // 1 / 0
     const val AC_MAX_COOL = 65540
+    /** AUTO климата: на голове 4.65+ → audioControl(1405, 1) (C16 2024/2025, C10). */
+    const val CLIMATE_AUTO = 65550
+    /** Обогрев руля 1/0: на голове 4.66+ → audioControl(1214). */
+    const val STEER_HEAT = 65551
     const val DEFROST_FRONT = 65541   // 2 = макс, 0 = выкл
     const val DEFROST_REAR = 65542
     const val RECIRC = 65545
@@ -79,6 +83,7 @@ object Cmd {
         SEAT_VENT_REAR_R -> "seat_vent_rr"
         MASSAGE_DRIVER -> "massage_drv"
         MASSAGE_PASSENGER -> "massage_pas"
+        STEER_HEAT -> "steer_heat"       // 2024: 1 = вкл, 2026: 2 = вкл
         else -> null
     }
 

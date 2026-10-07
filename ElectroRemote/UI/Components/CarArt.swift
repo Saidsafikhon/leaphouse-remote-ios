@@ -69,6 +69,28 @@ enum CarArt {
     }
 
     /// Имя ассета модели в выбранном цвете; нет такого — жемчужно-белый или первый.
+    /// Маски готовых рендеров с открытыми деталями (бит0 ПЛ, 1 ПП, 2 ЗЛ, 3 ЗП, 4 капот, 5 багажник).
+    private static let openMasks = [1, 2, 4, 8, 16, 32, 3, 5, 15, 48, 63]
+    private static let openModels: Set<String> = ["C16", "C10", "C11", "C01"]
+
+    /// Готовый рендер (OpenArt/…webp в бандле) машины в выбранном цвете с открытыми деталями —
+    /// для режима «картинка». Точного сочетания нет — ближайшее: важнее показать всё открытое,
+    /// чем лишнее. nil — для модели рендеров нет (тогда 3D, как раньше).
+    static func openImage(_ model: String?, _ paint: String?, _ b: BodyPose) -> UIImage? {
+        let k = key(model)
+        guard openModels.contains(k), (model ?? "").uppercased().contains(k) else { return nil }
+        let a = (b.doorFL ? 1 : 0) | (b.doorFR ? 2 : 0) | (b.doorRL ? 4 : 0) | (b.doorRR ? 8 : 0)
+            | (b.hood ? 16 : 0) | (b.trunk ? 32 : 0)
+        guard a != 0 else { return nil }
+        let m = openMasks.max { x, y in
+            (3 * (a & x).nonzeroBitCount - (x & ~a).nonzeroBitCount) < (3 * (a & y).nonzeroBitCount - (y & ~a).nonzeroBitCount)
+        } ?? 63
+        let colors = art[k] ?? ["pearl-white"]
+        let c = (paint.flatMap { colors.contains($0) ? $0 : nil }) ?? (colors.contains("pearl-white") ? "pearl-white" : colors[0])
+        guard let path = Bundle.main.path(forResource: "open_\(k.lowercased())_\(c)_\(m)", ofType: "webp") else { return nil }
+        return UIImage(contentsOfFile: path)
+    }
+
     static func imageName(_ model: String?, _ paint: String?) -> String {
         let k = key(model)
         let colors = art[k] ?? ["pearl-white"]

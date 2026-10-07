@@ -18,6 +18,20 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.ui.unit.dp
 import uz.electro.remote.ui.theme.*
 
@@ -47,8 +61,19 @@ fun ControlTile(
     compact: Boolean = false,
     /** Цвет значка в обычном состоянии (например, зелёный у «открыть/включить»). */
     iconTint: Color? = null,
+    /**
+     * Срабатывать только после удержания столько миллисекунд (0 — обычное нажатие).
+     * Пока держат, плитка заливается снизу вверх; отпустили раньше — ничего не
+     * отправляется и на секунду появляется подсказка «Удерживайте».
+     */
+    holdMs: Int = 0,
     onClick: () -> Unit,
 ) {
+    val enabled = state != ControlState.Disabled && state != ControlState.Pending
+    val progress = remember { Animatable(0f) }
+    var hint by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val haptics = LocalHapticFeedback.current
     val ink = when (state) {
         ControlState.Active -> ElectroColors.Accent
         ControlState.Pending -> ElectroColors.TextSecondary
@@ -72,12 +97,42 @@ fun ControlTile(
         shape = Radius.Md,
         modifier = modifier
             .height(if (compact) ControlSize.TileCompact else ControlSize.Tile)
-            .border(1.dp, borderColor, Radius.Md)
-            .clickable(
-                enabled = state != ControlState.Disabled && state != ControlState.Pending,
-                onClick = onClick,
+            .border(1.dp, if (progress.value > 0f) ElectroColors.Accent else borderColor, Radius.Md)
+            .then(
+                if (holdMs <= 0) Modifier.clickable(enabled = enabled, onClick = onClick)
+                else Modifier.pointerInput(enabled, holdMs) {
+                    if (!enabled) return@pointerInput
+                    detectTapGestures(onPress = {
+                        hint = false
+                        var fired = false
+                        // срабатывает ровно по истечении удержания, палец ещё на кнопке
+                        val fill = scope.launch {
+                            progress.snapTo(0f)
+                            progress.animateTo(1f, tween(holdMs, easing = LinearEasing))
+                            fired = true
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onClick()
+                            // сработало — плитка снова пустая, даже если палец ещё на ней
+                            progress.snapTo(0f)
+                        }
+                        val released = tryAwaitRelease()
+                        if (!fired) {
+                            fill.cancel()
+                            if (released) {
+                                hint = true
+                                scope.launch { delay(1200); hint = false }
+                            }
+                        }
+                        scope.launch { progress.animateTo(0f, tween(180)) }
+                    })
+                },
             ),
     ) {
+        // заливка удержания: снизу вверх, цветом действия
+        if (progress.value > 0f) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
+            Box(Modifier.fillMaxWidth().fillMaxHeight(progress.value)
+                .background(ElectroColors.Accent.copy(alpha = 0.28f)))
+        }
         Column(
             Modifier.fillMaxSize().padding(horizontal = Space.x1, vertical = if (compact) Space.x2 else Space.x3),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -94,9 +149,9 @@ fun ControlTile(
             }
             Spacer(Modifier.height(if (compact) 6.dp else Space.x2))
             Text(
-                label,
+                if (hint) S("Удерживайте") else label,
                 style = ElectroType.Label,
-                color = textColor,
+                color = if (hint) ElectroColors.Accent else textColor,
                 textAlign = TextAlign.Center,
                 maxLines = 2,
             )

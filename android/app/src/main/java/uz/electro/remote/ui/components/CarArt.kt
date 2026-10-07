@@ -126,6 +126,27 @@ object CarArt {
     fun paints(model: String?): List<Paint> =
         ART.getValue(key(model)).keys.mapNotNull { PAINTS[it] }
 
+    /** Маски готовых рендеров с открытыми деталями (бит0 ПЛ, 1 ПП, 2 ЗЛ, 3 ЗП, 4 капот, 5 багажник). */
+    private val OPEN_MASKS = intArrayOf(1, 2, 4, 8, 16, 32, 3, 5, 15, 48, 63)
+    private val OPEN_MODELS = setOf("C16", "C10", "C11", "C01")
+
+    /**
+     * Готовый рендер (assets/open/…) машины в выбранном цвете с открытыми деталями — для
+     * режима «картинка». Точного сочетания нет — берём ближайшее: важнее показать всё,
+     * что открыто, чем лишнее. null — для модели рендеров нет (тогда 3D, как раньше).
+     */
+    fun openAsset(model: String?, paint: String?, body: BodyPose): String? {
+        val k = key(model)
+        if (k !in OPEN_MODELS || !(model ?: "").uppercase().contains(k)) return null
+        val a = (if (body.doorFL) 1 else 0) or (if (body.doorFR) 2 else 0) or (if (body.doorRL) 4 else 0) or
+            (if (body.doorRR) 8 else 0) or (if (body.hood) 16 else 0) or (if (body.trunk) 32 else 0)
+        if (a == 0) return null
+        val m = OPEN_MASKS.maxByOrNull { c -> 3 * Integer.bitCount(a and c) - Integer.bitCount(c and a.inv()) } ?: return null
+        val colors = ART.getValue(k)
+        val code = paint?.takeIf { it in colors } ?: "pearl-white".takeIf { it in colors } ?: colors.keys.first()
+        return "open/${k.lowercase()}_${code}_$m.webp"
+    }
+
     /** Рендер модели в выбранном цвете; нет такого цвета — первый доступный. */
     fun image(model: String?, paint: String?): Int {
         val colors = ART.getValue(key(model))

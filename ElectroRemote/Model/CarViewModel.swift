@@ -91,7 +91,7 @@ final class CarViewModel: ObservableObject {
         Cmd.AC, Cmd.TEMP_L, Cmd.TEMP_R, Cmd.FAN, Cmd.TRUNK,
         Cmd.RECIRC, Cmd.DEFROST_FRONT, Cmd.DEFROST_REAR, Cmd.MIRROR_HEAT,
         Cmd.SEAT_VENT_REAR_L, Cmd.SEAT_VENT_REAR_R,
-        Cmd.MASSAGE_DRIVER, Cmd.MASSAGE_PASSENGER,
+        Cmd.MASSAGE_DRIVER, Cmd.MASSAGE_PASSENGER, Cmd.STEER_HEAT,
     ] + Cmd.WINDOWS)
 
     init() {
@@ -221,7 +221,24 @@ final class CarViewModel: ObservableObject {
     }
 
     /// Отпустить машину в сон и вернуться на экран подключения.
+    /// Машина не на паркинге — показываем ошибку и ничего не шлём (голова 4.75 тоже откажет).
+    private func gearBlocked() -> Bool {
+        guard car.notInPark else { return false }
+        emit(.failed, L("Управление недоступно"),
+             L("Передача не P. Пока машина не на паркинге, управление с телефона отключено."))
+        return true
+    }
+
     func disconnect() {
+        if gearBlocked() { return }
+        // Не отпускаем в сон машину с открытой дверью или багажником (просьба
+        // 08.10.2026). Старая голова дверей не шлёт (bodyKnown = false) — не мешаем.
+        if car.bodyKnown && car.doorOrTrunkOpen {
+            let open = car.openParts().filter { $0 != L("капот") }
+            emit(.failed, L("Нельзя отключиться"),
+                 L("Не закрыто: {0}. Закройте и попробуйте снова.", open.joined(separator: ", ")))
+            return
+        }
         Task {
             busy = true
             let result = await repo.sleep()
@@ -270,7 +287,7 @@ final class CarViewModel: ObservableObject {
         pollTask = Task { [weak self] in
             while !Task.isCancelled {
                 guard let self else { return }
-                let state = await self.repo.refresh()
+                let state = self.keepLastPlace(await self.repo.refresh())
                 if Task.isCancelled { return }
                 self.car = state
                 try? await Task.sleep(nanoseconds: state.link == .cloud ? Self.pollCloudNs : Self.pollOfflineNs)
@@ -283,10 +300,17 @@ final class CarViewModel: ObservableObject {
         pollTask = nil
     }
 
-    func refreshNow() { Task { car = await repo.refresh() } }
+    func refreshNow() { Task { car = keepLastPlace(await repo.refresh(force: true)) } }
+
+    /// Ответ без точки (сбой связи) не стирает с карты последнее известное место.
+    private func keepLastPlace(_ next: CarState) -> CarState {
+        guard next.location == nil, let last = car.location else { return next }
+        var s = next; s.location = last; return s
+    }
 
     /// Включить климат с таймером авто-выключения (мин); nil — умолчание сервера.
     func climateOn(runMinutes: Int?) {
+        if gearBlocked() { return }
         Task {
             optimistic[Cmd.AC] = "1"
             hold([Cmd.AC])
@@ -368,6 +392,7 @@ final class CarViewModel: ObservableObject {
     }
 
     func runVoice(_ intent: VoiceIntentDto) {
+        if gearBlocked() { return }
         Task {
             switch await repo.runVoice(intent.intent) {
             case .ok: emit(.success, intent.phrases.first ?? intent.intent, L("Выполнено"))
@@ -414,6 +439,7 @@ final class CarViewModel: ObservableObject {
 
     func send(_ cmds: [VehicleCommand], label: String = "") {
         guard !cmds.isEmpty else { return }
+        if gearBlocked() { return }
         Task {
             let previous = optimistic
             let types = Set(cmds.map { $0.type })
@@ -506,6 +532,7 @@ final class CarViewModel: ObservableObject {
     /// Включить климат по профилю: сначала уставка, потом кондиционер с таймером.
     /// Без профиля — как раньше: только кондиционер, температура машины как есть.
     func climateStart() {
+        if gearBlocked() { return }
         let p = climateProfile()
         let temps: [VehicleCommand] = p.temp > 0
             ? [VehicleCommand(type: Cmd.TEMP_L, value: String(p.temp)), VehicleCommand(type: Cmd.TEMP_R, value: String(p.temp))]

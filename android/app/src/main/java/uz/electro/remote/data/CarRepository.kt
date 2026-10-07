@@ -39,12 +39,17 @@ class CarRepository(private val settings: Settings) {
 
     private val cloud = CloudClient(settings)
 
-    /** Снять состояние с сервера: он спрашивает машину сам. */
-    suspend fun refresh(): CarState = withContext(Dispatchers.IO) {
+    /**
+     * Состояние с сервера. Голова сама шлёт его серверу раз в 10 с и сразу при
+     * изменениях (двери, замок), вместе с последней точкой — поэтому обычный опрос
+     * берёт то, что уже на сервере ([force] = false). Спрашивать машину напрямую
+     * (force) — только по ручному «Обновить»: это будит канал до головы.
+     */
+    suspend fun refresh(force: Boolean = false): CarState = withContext(Dispatchers.IO) {
         val now = System.currentTimeMillis()
         if (!settings.cloudEnabled) return@withContext CarState(updatedAt = now)
         val id = resolveVehicleId() ?: return@withContext CarState(updatedAt = now)
-        runCatching { cloud.api.status(id) }
+        runCatching { cloud.api.status(id, forceRefresh = force) }
             .map { CarState.fromCloud(it, now) }
             .getOrElse { CarState(updatedAt = now) }
     }

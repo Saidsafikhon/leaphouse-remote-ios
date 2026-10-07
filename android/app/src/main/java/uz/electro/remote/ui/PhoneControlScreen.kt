@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -249,8 +250,11 @@ private fun HomeTab(
         HeaderLockup(car, model, unreadNews,
             onHelp = { showHelp = true }, onNews = { onOpen("news") }, onShop = { onOpen("shop") },
             onRefresh = onRefresh, onDisconnect = onDisconnect)
-        Hero(model, paint)
+        Hero(model, paint, car)
         CarStatusStrip(car)
+        // замок и кузов: что заперто, что открыто — живой статус с головы 4.61+
+        if (car.online && car.notInPark) GearLockBanner()
+        if (car.online && (car.bodyKnown || car.locked != null)) BodyStatusCard(car)
 
         QuickRow(
             controls, stateOf, onSendAll,
@@ -443,7 +447,7 @@ private fun HeaderLockup(
                 ShopFab(onShop)
                 NewsBell(unread, onNews)
                 HelpFab(onHelp)
-                DisconnectFab(onDisconnect)
+                DisconnectFab(onDisconnect, blocked = car.bodyKnown && car.doorOrTrunkOpen)
             }
         }
         Spacer(Modifier.height(Space.x1))
@@ -467,14 +471,17 @@ private fun HeaderLockup(
  * кнопок управления. Подпись — в описании для озвучки.
  */
 @Composable
-private fun DisconnectFab(onDisconnect: () -> Unit) {
+private fun DisconnectFab(onDisconnect: () -> Unit, blocked: Boolean = false) {
+    // Открыта дверь или багажник — кнопка серая; нажатие не теряется: модель
+    // покажет ошибку со списком того, что не закрыто, и в сон машину не отпустит.
+    val tint = if (blocked) ElectroColors.TextDisabled else ElectroColors.Danger
     Surface(
         onClick = onDisconnect, shape = androidx.compose.foundation.shape.CircleShape, color = ElectroColors.SurfaceElevated,
-        border = androidx.compose.foundation.BorderStroke(1.dp, ElectroColors.Danger.copy(alpha = 0.6f)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, tint.copy(alpha = 0.6f)),
         modifier = Modifier.size(44.dp),
     ) {
         Box(contentAlignment = Alignment.Center) {
-            Icon(Lx.PowerSettingsNew, S("Отключиться"), tint = ElectroColors.Danger, modifier = Modifier.size(20.dp))
+            Icon(Lx.PowerSettingsNew, S("Отключиться"), tint = tint, modifier = Modifier.size(20.dp))
         }
     }
 }
@@ -486,23 +493,41 @@ private fun updatedText(car: CarState): String = when {
 }
 
 @Composable
-private fun Hero(model: String?, paint: String?) {
+private fun Hero(model: String?, paint: String?, car: CarState) {
     // 3D-машина (крутится пальцем), пока модель не скачалась — студийный рендер.
     var ready by remember { mutableStateOf(false) }
     val swatch = CarArt.paints(model).firstOrNull { it.code == paint }?.swatch
         ?: CarArt.paints(model).firstOrNull()?.swatch ?: androidx.compose.ui.graphics.Color(0xFFE9EAEC)
-    // «3D» или «картинка» — выбор человека в настройках (CarViewPref)
-    val want3d = uz.electro.remote.ui.theme.CarViewPref.mode.value == "3d"
+    // что открыто — 3D-модель открывает эти детали на петлях
+    val body = uz.electro.remote.ui.components.BodyPose(
+        doorFL = car.doors.frontLeft, doorFR = car.doors.frontRight,
+        doorRL = car.doors.rearLeft, doorRR = car.doors.rearRight,
+        trunk = car.trunkOpen == true, hood = car.hoodOpen,
+    )
+    // «3D» или «картинка» — выбор человека в настройках (CarViewPref). В «картинке»
+    // открытое показываем готовым рендером (assets/open, tools/render_open); нет
+    // рендера для модели — 3D, на ней видно, что именно открыто.
+    val pref3d = uz.electro.remote.ui.theme.CarViewPref.mode.value == "3d"
+    val openArt = if (!pref3d && body.anyOpen) CarArt.openAsset(model, paint, body) else null
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val openBmp = remember(openArt) {
+        openArt?.let { p -> runCatching { ctx.assets.open(p).use { android.graphics.BitmapFactory.decodeStream(it) }?.asImageBitmap() }.getOrNull() }
+    }
+    val want3d = pref3d || (body.anyOpen && openBmp == null)
     // 170 dp и камера ближе: машина крупнее, пустого поля вокруг почти нет,
     // а восемь кнопок панели и начало карточек помещаются без прокрутки
     Box(Modifier.fillMaxWidth().height(170.dp)) {
-        if (!ready || !want3d) Image(
+        if (openBmp != null && !want3d) Image(
+            openBmp, null,
+            modifier = Modifier.fillMaxWidth().height(160.dp).align(Alignment.Center),
+            contentScale = ContentScale.Fit,
+        ) else if (!ready || !want3d) Image(
             painterResource(CarArt.image(model, paint)), null,
             modifier = Modifier.fillMaxWidth().height(160.dp).align(Alignment.Center),
             contentScale = ContentScale.Fit,
         )
         if (want3d) uz.electro.remote.ui.components.CarModelView(
-            model = model, paint = swatch,
+            model = model, paint = swatch, body = body,
             modifier = Modifier.fillMaxSize().then(if (ready) Modifier else Modifier.alpha(0f)),
             onReady = { ready = it },
         )
@@ -510,9 +535,10 @@ private fun Hero(model: String?, paint: String?) {
 }
 
 /**
- * Полоса под машиной: запас хода и заряд. Охрану и замки («снят с охраны»,
- * «двери отперты») на главной не показываем — по просьбе владельца. Остаются
- * только предупреждения: нет связи и открыта дверь/багажник/капот.
+ * Полоса под машиной: запас хода и заряд. Охрану на главной не показываем —
+ * по просьбе владельца; замок и кузов — отдельной карточкой [BodyStatusCard]
+ * (просьба 08.10.2026). Здесь остаются предупреждения: нет связи и открыта
+ * дверь/багажник/капот (с перечнем, что именно).
  */
 @Composable
 private fun CarStatusStrip(car: CarState) {
@@ -526,10 +552,17 @@ private fun CarStatusStrip(car: CarState) {
             icon = Lx.CloudOff, title = S("Нет связи с машиной"), subtitle = S("Показаны последние данные"),
             accent = ElectroColors.TextMuted, accentTint = ElectroColors.SurfaceElevated, metrics = metrics,
         )
-        open -> StatusStrip(
-            icon = Lx.Warning, title = S("Автомобиль открыт"), subtitle = openDetail(car),
-            accent = ElectroColors.Danger, accentTint = ElectroColors.DangerTint, metrics = metrics,
-        )
+        // открыто и заряжается одновременно — показываем обе полосы (просьба 08.10.2026)
+        open || car.charging -> Column(verticalArrangement = Arrangement.spacedBy(Space.x3)) {
+            if (open) StatusStrip(
+                icon = Lx.Warning, title = S("Автомобиль открыт"), subtitle = openDetail(car),
+                accent = ElectroColors.Danger, accentTint = ElectroColors.DangerTint, metrics = metrics,
+            )
+            if (car.charging) StatusStrip(
+                icon = Icons.Outlined.BatteryChargingFull, title = S("Заряжается"), subtitle = chargeEta(car),
+                accent = ElectroColors.Ok, accentTint = ElectroColors.OkTint, metrics = if (open) emptyList() else metrics,
+            )
+        }
         metrics.isNotEmpty() -> MetricsStrip(listOfNotNull(
             car.rangeKm?.let { Metric("$it", S("км"), caption = S("запас хода")) },
             car.soc?.let { Metric("$it", "%", caption = S("заряд")) },
@@ -540,11 +573,20 @@ private fun CarStatusStrip(car: CarState) {
     }
 }
 
-private fun openDetail(car: CarState): String = listOfNotNull(
-    if (car.hoodOpen) S("капот") else null,
-    if (car.trunkOpen == true) S("багажник") else null,
-    if (car.doors.anyOpen) S("дверь") else null,
-).joinToString(", ").replaceFirstChar { it.uppercase() }.ifBlank { S("Проверьте автомобиль") }
+/** «До полной: 1 ч 25 мин» — время от машины; нет времени — так и говорим. */
+private fun chargeEta(car: CarState): String {
+    val m = car.chargeMinutes ?: return S("Время до полной зарядки уточняется")
+    val h = m / 60; val min = m % 60
+    val t = when {
+        h > 0 && min > 0 -> S("{0} ч {1} мин", h, min)
+        h > 0 -> S("{0} ч", h)
+        else -> S("{0} мин", min)
+    }
+    return S("До полной: {0}", t)
+}
+
+private fun openDetail(car: CarState): String =
+    car.openParts().joinToString(", ").replaceFirstChar { it.uppercase() }.ifBlank { S("Проверьте автомобиль") }
 
 /**
  * Четыре действия, ради которых открывают приложение: замки, багажник,
@@ -554,6 +596,13 @@ private fun openDetail(car: CarState): String = listOfNotNull(
  * команду. Подсветки состояния нет; крутилка — только на нажатой кнопке,
  * пока команда идёт в машину.
  */
+/**
+ * Кнопки главного экрана срабатывают только после удержания (просьба 08.10.2026):
+ * случайное касание в кармане или при прокрутке не откроет машину. Удержание
+ * заменяет и прежние диалоги «Открыть двери? / багажник?» — двойное подтверждение.
+ */
+private const val HOLD_MS = 700
+
 @Composable
 private fun QuickRow(
     controls: Map<Int, String>,
@@ -580,57 +629,47 @@ private fun QuickRow(
                 "lock" -> Pair({
                     ControlTile(
                         S("Открыть двери"), Lx.LockOpen,
-                        state(Cmd.LOCK, true), Modifier.weight(1f), compact = true, iconTint = ElectroColors.Accent,
-                    ) {
-                        onConfirm(HomeConfirm(
-                            S("Открыть двери?"), S("Автомобиль будет разблокирован."), S("Открыть"),
-                            listOf(VehicleCommand(Cmd.LOCK, "1")), S("Открыть двери"),
-                        ))
-                    }
+                        state(Cmd.LOCK, true), Modifier.weight(1f), compact = true, holdMs = HOLD_MS, iconTint = ElectroColors.Accent,
+                    ) { onSendAll(listOf(VehicleCommand(Cmd.LOCK, "1")), S("Открыть двери")) }
                 }, {
                     ControlTile(
                         S("Закрыть двери"), Lx.Lock,
-                        state(Cmd.LOCK, false), Modifier.weight(1f), compact = true,
+                        state(Cmd.LOCK, false), Modifier.weight(1f), compact = true, holdMs = HOLD_MS,
                     ) { onSendAll(listOf(VehicleCommand(Cmd.LOCK, "0")), S("Закрыть двери")) }
                 })
                 "trunk" -> Pair({
                     ControlTile(
                         S("Открыть багажник"), Lx.Trunk,
-                        state(Cmd.TRUNK, true), Modifier.weight(1f), compact = true, iconTint = ElectroColors.Accent,
-                    ) {
-                        onConfirm(HomeConfirm(
-                            S("Открыть багажник?"), S("Багажник будет разблокирован."), S("Открыть"),
-                            listOf(VehicleCommand(Cmd.TRUNK, "1")), S("Открыть багажник"),
-                        ))
-                    }
+                        state(Cmd.TRUNK, true), Modifier.weight(1f), compact = true, holdMs = HOLD_MS, iconTint = ElectroColors.Accent,
+                    ) { onSendAll(listOf(VehicleCommand(Cmd.TRUNK, "1")), S("Открыть багажник")) }
                 }, {
                     ControlTile(
                         S("Закрыть багажник"), Lx.TrunkClosed,
-                        state(Cmd.TRUNK, false), Modifier.weight(1f), compact = true,
+                        state(Cmd.TRUNK, false), Modifier.weight(1f), compact = true, holdMs = HOLD_MS,
                     ) { onSendAll(listOf(VehicleCommand(Cmd.TRUNK, "0")), S("Закрыть багажник")) }
                 })
                 "climate" -> Pair({
                     ControlTile(
                         S("Включить климат"), Lx.AcUnit,
-                        state(Cmd.AC, true), Modifier.weight(1f), compact = true, iconTint = ElectroColors.Accent, onClick = onClimateOn,
+                        state(Cmd.AC, true), Modifier.weight(1f), compact = true, holdMs = HOLD_MS, iconTint = ElectroColors.Accent, onClick = onClimateOn,
                     )
                 }, {
                     ControlTile(
                         S("Выключить климат"), Lx.PowerSettingsNew,
-                        state(Cmd.AC, false), Modifier.weight(1f), compact = true, onClick = onClimateOff,
+                        state(Cmd.AC, false), Modifier.weight(1f), compact = true, holdMs = HOLD_MS, onClick = onClimateOff,
                     )
                 })
                 "windows" -> Pair({
                     ControlTile(
                         S("Открыть окна"), IconWindowDown,
-                        state(Cmd.WINDOW_FL, true), Modifier.weight(1f), compact = true, iconTint = ElectroColors.Accent,
+                        state(Cmd.WINDOW_FL, true), Modifier.weight(1f), compact = true, holdMs = HOLD_MS, iconTint = ElectroColors.Accent,
                     ) {
                         onSendAll(Cmd.WINDOWS.map { VehicleCommand(it, "100") }, S("Открыть все окна"))
                     }
                 }, {
                     ControlTile(
                         S("Закрыть окна"), IconWindowUp,
-                        state(Cmd.WINDOW_FL, false), Modifier.weight(1f), compact = true,
+                        state(Cmd.WINDOW_FL, false), Modifier.weight(1f), compact = true, holdMs = HOLD_MS,
                     ) {
                         onSendAll(Cmd.WINDOWS.map { VehicleCommand(it, "0") }, S("Закрыть все окна"))
                     }
@@ -779,10 +818,19 @@ private fun GwmClimateCard(
                 )
             }
             Spacer(Modifier.weight(1f))
-            Text(Cmd.tempLabel(temp), style = ElectroType.Display, color = ElectroColors.TextPrimary)
+            // Как у «Сидений»: блок значков той же высоты (66 dp = два ряда кресел)
+            // и одна строка подписи — карточки рядом одинаковые по размеру и виду.
+            Row(Modifier.height(66.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Lx.AcUnit, null, tint = if (on) ElectroColors.Accent else ElectroColors.TextDisabled,
+                    modifier = Modifier.size(30.dp))
+                Spacer(Modifier.width(Space.x2))
+                Text(Cmd.tempLabel(temp), style = ElectroType.Title,
+                    color = if (on) ElectroColors.TextPrimary else ElectroColors.TextMuted)
+            }
+            Spacer(Modifier.height(Space.x2))
             Text(
-                car.cabinTemp?.let { S("в салоне {0}°", it.asTemp()) } ?: S("уставка"),
-                style = ElectroType.Caption, color = ElectroColors.TextMuted,
+                car.cabinTemp?.let { S("в салоне {0}°", it.asTemp()) } ?: if (on) S("включён") else S("выключен"),
+                style = ElectroType.Caption, color = ElectroColors.TextMuted, maxLines = 1,
             )
         }
     }

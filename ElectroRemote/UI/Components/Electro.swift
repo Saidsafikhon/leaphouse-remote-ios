@@ -28,7 +28,14 @@ struct ControlTile: View {
     var compact: Bool = false
     /// Цвет значка в обычном состоянии (например, зелёный у «открыть/включить»).
     var iconTint: Color? = nil
+    /// Срабатывать только после удержания столько секунд (0 — обычное нажатие).
+    /// Пока держат, плитка заливается снизу вверх; отпустили раньше — ничего не
+    /// отправляется и на секунду появляется подсказка «Удерживайте».
+    var holdSeconds: Double = 0
     let action: () -> Void
+    @State private var progress: CGFloat = 0
+    @State private var hint = false
+    @State private var fired = false
 
     var body: some View {
         let ink: Color = {
@@ -53,17 +60,16 @@ struct ControlTile: View {
             default: return .clear
             }
         }()
-        Button(action: action) {
-            VStack(spacing: compact ? 6 : Space.x2) {
+        let tile = VStack(spacing: compact ? 6 : Space.x2) {
                 if state == .pending {
                     ProgressView().tint(ink).frame(width: compact ? 20 : 24, height: compact ? 20 : 24)
                 } else {
                     Image(systemName: icon).font(.system(size: compact ? 18 : 20, weight: .regular)).foregroundStyle(ink)
                         .frame(width: compact ? 20 : 24, height: compact ? 20 : 24)
                 }
-                Text(label)
+                Text(hint ? L("Удерживайте") : label)
                     .font(ElectroType.label)
-                    .foregroundStyle(textColor)
+                    .foregroundStyle(hint ? p.accent : textColor)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
                     .minimumScaleFactor(0.85)
@@ -72,12 +78,50 @@ struct ControlTile: View {
             .padding(.vertical, compact ? Space.x2 : Space.x3)
             .frame(maxWidth: .infinity)
             .frame(height: compact ? ControlSize.tileCompact : ControlSize.tile)
-            .background(state == .disabled ? p.surface : p.surfaceElevated)
+            .background(alignment: .bottom) {
+                ZStack(alignment: .bottom) {
+                    state == .disabled ? p.surface : p.surfaceElevated
+                    // заливка удержания: снизу вверх, цветом действия
+                    GeometryReader { g in
+                        p.accent.opacity(0.28).frame(height: g.size.height * progress)
+                            .frame(maxHeight: .infinity, alignment: .bottom)
+                    }
+                }
+            }
             .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).stroke(border, lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
+                .stroke(progress > 0 ? p.accent : border, lineWidth: 1))
+        let enabled = state != .disabled && state != .pending
+        if holdSeconds > 0 {
+            tile
+                .contentShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
+                .onLongPressGesture(minimumDuration: holdSeconds, maximumDistance: 40, perform: {
+                    guard enabled else { return }
+                    fired = true
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    action()
+                    // сработало — плитка снова пустая, даже если палец ещё на ней
+                    var t = Transaction(); t.disablesAnimations = true
+                    withTransaction(t) { progress = 0 }
+                }, onPressingChanged: { pressing in
+                    guard enabled else { return }
+                    if pressing {
+                        fired = false; hint = false
+                        withAnimation(.linear(duration: holdSeconds)) { progress = 1 }
+                    } else {
+                        withAnimation(.easeOut(duration: 0.18)) { progress = 0 }
+                        if !fired {
+                            hint = true
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { hint = false }
+                        }
+                    }
+                })
+                .opacity(enabled ? 1 : 0.6)
+        } else {
+            Button(action: action) { tile }
+                .buttonStyle(.plain)
+                .disabled(!enabled)
         }
-        .buttonStyle(.plain)
-        .disabled(state == .disabled || state == .pending)
     }
 }
 

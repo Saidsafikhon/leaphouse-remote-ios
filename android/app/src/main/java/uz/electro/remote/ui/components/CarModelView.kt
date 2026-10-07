@@ -100,8 +100,20 @@ private object CarViewCache {
     }
 }
 
+/** Что открыто на машине — 3D-модель открывает эти детали на петлях. */
+data class BodyPose(
+    val doorFL: Boolean = false, val doorFR: Boolean = false,
+    val doorRL: Boolean = false, val doorRR: Boolean = false,
+    val trunk: Boolean = false, val hood: Boolean = false,
+) {
+    val anyOpen: Boolean get() = doorFL || doorFR || doorRL || doorRR || trunk || hood
+}
+
 @Composable
-fun CarModelView(model: String?, paint: Color, modifier: Modifier = Modifier, onReady: (Boolean) -> Unit = {}) {
+fun CarModelView(
+    model: String?, paint: Color, modifier: Modifier = Modifier,
+    body: BodyPose = BodyPose(), onReady: (Boolean) -> Unit = {},
+) {
     if (!CarModels.supported) return
     val name = CarModels.fileFor(model) ?: return
     var files by remember(name) { mutableStateOf<Pair<File, File>?>(null) }
@@ -122,7 +134,7 @@ fun CarModelView(model: String?, paint: Color, modifier: Modifier = Modifier, on
                     if (v.hasRendered) onReady(true)
                 }
             },
-            update = { it.setPaint(paint) },
+            update = { it.setPaint(paint); it.setBody(body) },
             onRelease = { it.onFirstFrame = null },
         )
     }
@@ -192,6 +204,8 @@ class FilamentCarView(ctx: Context) : SurfaceView(ctx) {
         viewer.loadModelGlb(ByteBuffer.wrap(glb.readBytes()))
         viewer.transformToUnitCube()
         pendingPaint?.let { applyPaint(it) }
+        parts = null
+        applyBody(snap = true)
         renderUntil = System.nanoTime() + 3_000_000_000L
         ensureLoop()
     }
@@ -207,6 +221,7 @@ class FilamentCarView(ctx: Context) : SurfaceView(ctx) {
             override fun doFrame(t: Long) {
                 val v = viewer ?: return
                 if (!isAttachedToWindow) { frameCallback = null; return }
+                stepParts(v, t)
                 v.render(t)
                 framesDone++
                 if (!hasRendered && v.progress >= 1f && framesDone > 2) { hasRendered = true; onFirstFrame?.invoke() }
@@ -233,6 +248,123 @@ class FilamentCarView(ctx: Context) : SurfaceView(ctx) {
             for (i in 0 until rm.getPrimitiveCount(inst)) {
                 val mi = rm.getMaterialInstanceAt(inst, i)
                 if (mi.name == "M_Paint" || mi.name == "M_CarPaint") mi.setParameter("baseColorFactor", c.red, c.green, c.blue, 1f)
+            }
+        }
+    }
+
+    // ---- двери, капот, багажник на петлях ----
+
+    /**
+     * Группа деталей, которая открывается как одно целое. Петли в GLB нет (иерархия
+     * плоская, геометрия в координатах модели), поэтому точку и ось петли считаем по
+     * габаритам группы. Ось у всех наших моделей одна: нос в −X, верх +Y, левый борт +Z.
+     */
+    private class Part(val entities: IntArray, val pivot: FloatArray, val axis: FloatArray, val maxDeg: Float) {
+        var t = 0f        // 0 — закрыто, 1 — открыто
+        var target = 0f
+    }
+
+    private var parts: Map<String, Part>? = null
+    private var pose = BodyPose()
+    private var animLast = 0L
+
+    /** Имя узла → группа. C16/C11/C01: Door_LF_…, Body_M_Bonnet, Body_M_Trunk…; C10: l_frontdoor…, bonnet, trunk. */
+    private fun groupOf(name: String): String? {
+        val n = name.lowercase()
+        return when {
+            n.startsWith("door_lf") || n.startsWith("interactive_lf") || n.startsWith("l_frontdoor") -> "fl"
+            n.startsWith("door_rf") || n.startsWith("interactive_rf") || n.startsWith("r_frontdoor") ||
+                n.startsWith("door_front_r") -> "fr"
+            n.startsWith("door_lr") || n.startsWith("interactive_lr") || n.startsWith("l_reardoor") -> "rl"
+            n.startsWith("door_rr") || n.startsWith("interactive_rr") || n.startsWith("r_reardoor") -> "rr"
+            n.contains("bonnet") -> "hood"
+            n.startsWith("body_m_trunk") || n.startsWith("trunk") -> "trunk"
+            else -> null
+        }
+    }
+
+    private fun buildParts(v: ModelViewer): Map<String, Part> {
+        val asset = v.asset ?: return emptyMap()
+        val rm = v.engine.renderableManager
+        val ents = HashMap<String, MutableList<Int>>()
+        val mn = HashMap<String, FloatArray>(); val mx = HashMap<String, FloatArray>()
+        val box = com.google.android.filament.Box()
+        for (e in asset.entities) {
+            val g = groupOf(asset.getName(e) ?: continue) ?: continue
+            ents.getOrPut(g) { mutableListOf() }.add(e)
+            if (!rm.hasComponent(e)) continue
+            rm.getAxisAlignedBoundingBox(rm.getInstance(e), box)
+            val c = box.center; val h = box.halfExtent
+            val lo = mn.getOrPut(g) { floatArrayOf(1e9f, 1e9f, 1e9f) }
+            val hi = mx.getOrPut(g) { floatArrayOf(-1e9f, -1e9f, -1e9f) }
+            for (k in 0..2) { lo[k] = minOf(lo[k], c[k] - h[k]); hi[k] = maxOf(hi[k], c[k] + h[k]) }
+        }
+        val out = HashMap<String, Part>()
+        for ((g, list) in ents) {
+            val lo = mn[g] ?: continue; val hi = mx[g] ?: continue
+            val midY = (lo[1] + hi[1]) / 2f
+            val part = when (g) {
+                // двери: петля на переднем крае, у наружной поверхности; поворот вокруг вертикали наружу
+                "fl", "rl" -> Part(list.toIntArray(), floatArrayOf(lo[0], midY, hi[2]), floatArrayOf(0f, 1f, 0f), -55f)
+                "fr", "rr" -> Part(list.toIntArray(), floatArrayOf(lo[0], midY, lo[2]), floatArrayOf(0f, 1f, 0f), 55f)
+                // капот: петля у лобового стекла (задний верхний край), передний край вверх
+                "hood" -> Part(list.toIntArray(), floatArrayOf(hi[0], hi[1], 0f), floatArrayOf(0f, 0f, 1f), -40f)
+                // багажник: петля сверху у крыши (передний верхний край), низ уходит вверх-назад
+                "trunk" -> Part(list.toIntArray(), floatArrayOf(lo[0], hi[1], 0f), floatArrayOf(0f, 0f, 1f), 65f)
+                else -> null
+            } ?: continue
+            out[g] = part
+        }
+        return out
+    }
+
+    fun setBody(b: BodyPose) { if (b == pose) return; pose = b; applyBody(snap = false) }
+
+    private fun applyBody(snap: Boolean) {
+        val v = viewer ?: return
+        val ps = parts ?: buildParts(v).also { parts = it }
+        ps["fl"]?.target = if (pose.doorFL) 1f else 0f
+        ps["fr"]?.target = if (pose.doorFR) 1f else 0f
+        ps["rl"]?.target = if (pose.doorRL) 1f else 0f
+        ps["rr"]?.target = if (pose.doorRR) 1f else 0f
+        ps["trunk"]?.target = if (pose.trunk) 1f else 0f
+        ps["hood"]?.target = if (pose.hood) 1f else 0f
+        if (snap) { ps.values.forEach { it.t = it.target }; placeParts(v, ps) }
+        animLast = 0L
+        wake(900)
+    }
+
+    /** Шаг анимации: ~0,6 с на полное открытие; зовётся из цикла кадров. */
+    private fun stepParts(v: ModelViewer, frameNanos: Long) {
+        val ps = parts ?: return
+        val dt = if (animLast == 0L) 0f else ((frameNanos - animLast) / 1e9f).coerceIn(0f, 0.1f)
+        animLast = frameNanos
+        var moving = false
+        for (p in ps.values) {
+            if (p.t == p.target) continue
+            val step = dt / 0.6f
+            p.t = if (p.target > p.t) minOf(p.target, p.t + step) else maxOf(p.target, p.t - step)
+            moving = true
+        }
+        if (moving) { placeParts(v, ps); wake(100) }
+    }
+
+    private fun placeParts(v: ModelViewer, ps: Map<String, Part>) {
+        val tm = v.engine.transformManager
+        val m = FloatArray(16); val r = FloatArray(16); val t1 = FloatArray(16); val tmp = FloatArray(16)
+        for (p in ps.values) {
+            // плавный разгон и торможение
+            val e = p.t * p.t * (3f - 2f * p.t)
+            android.opengl.Matrix.setIdentityM(t1, 0)
+            android.opengl.Matrix.translateM(t1, 0, p.pivot[0], p.pivot[1], p.pivot[2])
+            android.opengl.Matrix.setRotateM(r, 0, p.maxDeg * e, p.axis[0], p.axis[1], p.axis[2])
+            android.opengl.Matrix.multiplyMM(tmp, 0, t1, 0, r, 0)                     // T(p) · R
+            android.opengl.Matrix.setIdentityM(t1, 0)
+            android.opengl.Matrix.translateM(t1, 0, -p.pivot[0], -p.pivot[1], -p.pivot[2])
+            android.opengl.Matrix.multiplyMM(m, 0, tmp, 0, t1, 0)                      // · T(−p)
+            for (ent in p.entities) {
+                if (!tm.hasComponent(ent)) continue
+                tm.setTransform(tm.getInstance(ent), m)
             }
         }
     }

@@ -1,0 +1,36 @@
+{
+ "c16": {
+  "pearl-white": "E9EAEC",
+  "metallic-black": "1B1D21",
+  "canopy-gray": "8E9296",
+  "jade-green": "2E5B45",
+  "glacier-blue": "B6CDE0"
+ },
+ "c10": {
+  "pearl-white": "E9EAEC",
+  "metallic-black": "1B1D21",
+  "canopy-gray": "8E9296",
+  "tundra-grey": "C9C6C0",
+  "jade-green": "2E5B45"
+ },
+ "c11": {
+  "light-white": "F2F3F5",
+  "rime-beige": "E9E2D2",
+  "metallic-black": "1B1D21",
+  "canopy-gray": "8E9296",
+  "pine-grey": "9DA8AC",
+  "galaxy-silver": "B8BCC2",
+  "cloud-gold": "C9B99A",
+  "walden-green": "2F4A3C"
+ },
+ "c01": {
+  "light-white": "F2F3F5",
+  "metallic-black": "1B1D21",
+  "canopy-gray": "8E9296",
+  "galaxy-silver": "B8BCC2",
+  "oxygen-green": "9FA88A",
+  "night-blue": "1C2440",
+  "coral-orange": "E8452A",
+  "glacier-blue": "B6CDE0"
+ }
+}

@@ -237,6 +237,29 @@ private fun ClimateTab(
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(Space.x3)) {
+                    // AUTO: машина сама держит температуру, обдув и рециркуляцию.
+                    // Подсветка — по ответу машины (hvac_mode 1 = AUTO), не по нажатию.
+                    val autoOn = car.signal("hvac_mode")?.toFloatOrNull()?.toInt() == 1
+                    ClimateButton(S("Авто"), Lx.Air, autoOn, Modifier.weight(1f)) {
+                        send(Cmd.CLIMATE_AUTO, "1")
+                    }
+                    // посередине — климат целиком, тем же переключателем, что и тумблер ниже
+                    ClimateButton(S("Климат"), Lx.PowerSettingsNew, shownOn, Modifier.weight(1f)) {
+                        optimisticOn = !shownOn
+                        onToggle()
+                    }
+                    // обогрев руля: подсветка по ответу машины (steer_heat 1)
+                    // 2024: 1 = вкл; 2026: 2 = вкл (уровень от машины) — любое ≥1 значит включён
+                    // Через общую карту controls: сразу после нажатия — отправленное значение
+                    // (мгновенный отклик), потом — ответ машины. Раньше кнопка ждала статус
+                    // с сервера (до 20 с), и второе нажатие снова слало «включить».
+                    val steerOn = (controls[Cmd.STEER_HEAT]?.toFloatOrNull() ?: 0f) >= 1f
+                    // два положения: вкл и выкл (машины понимают лишь 1/0)
+                    ClimateButton(S("Обогрев руля"), IconSteeringWheel, steerOn, Modifier.weight(1f)) {
+                        send(Cmd.STEER_HEAT, if (steerOn) "0" else "1")
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(Space.x3)) {
                     ClimateButton(S("Циркуляция"), Lx.Loop, recircOn, Modifier.weight(1f)) {
                         val next = !recircOn; recircOn = next
                         prefs.edit().putBoolean("sceneRecirc", next).apply()
@@ -257,19 +280,9 @@ private fun ClimateTab(
         Surface(color = ElectroColors.Surface, shape = Radius.Lg, modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(Space.x4), verticalArrangement = Arrangement.spacedBy(Space.x4)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    // тумблер климата убран (просьба 08.10.2026) — вкл/выкл плиткой «Климат» в «Функциях»
                     Text(S("Температура (°C)"), style = ElectroType.Title, color = ElectroColors.TextPrimary,
                         modifier = Modifier.weight(1f))
-                    Switch(
-                        checked = shownOn,
-                        onCheckedChange = { desired ->
-                            optimisticOn = desired            // мгновенный отклик для клиента
-                            onToggle()                         // реальная команда — в фоне
-                        },
-                        colors = SwitchDefaults.colors(
-                            checkedTrackColor = ElectroColors.Accent,
-                            checkedThumbColor = ElectroColors.OnAccent,
-                        ),
-                    )
                 }
                 // Полоска температуры LO 18° … HI 32° с градиентом синий→оранжевый:
                 // тянется пальцем. Значение — профиль (setTemp): на машину уходит при
@@ -324,7 +337,8 @@ private fun ClimateButton(
         ) {
             Icon(icon, null, tint = fg, modifier = Modifier.size(24.dp))
             Spacer(Modifier.height(Space.x1))
-            Text(label, style = ElectroType.Caption, color = fg,
+            // у каждой плитки состояние словами: «Название: вкл / выкл» (просьба 08.10.2026)
+            Text("$label: " + if (active) S("вкл") else S("выкл"), style = ElectroType.Caption, color = fg,
                 textAlign = TextAlign.Center, maxLines = 2)
         }
     }

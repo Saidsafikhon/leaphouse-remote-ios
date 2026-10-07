@@ -33,6 +33,10 @@ enum Cmd {
     // климат
     static let AC = 65537              // 1 / 0
     static let AC_MAX_COOL = 65540
+    /// AUTO климата: на голове 4.65+ → audioControl(1405, 1) (C16 2024/2025, C10).
+    static let CLIMATE_AUTO = 65550
+    /// Обогрев руля 1/0: на голове 4.66+ → audioControl(1214).
+    static let STEER_HEAT = 65551
     static let DEFROST_FRONT = 65541   // 2 = макс, 0 = выкл
     static let DEFROST_REAR = 65542
     static let RECIRC = 65545
@@ -62,6 +66,7 @@ enum Cmd {
         case TEMP_R: return "temp_r"
         case FAN: return "fan"
         case TRUNK: return "trunk"
+        case STEER_HEAT: return "steer_heat"   // 2024: 1 = вкл, 2026: 2 = вкл
         case WINDOW_FL: return "window_fl"
         case WINDOW_FR: return "window_fr"
         case WINDOW_RL: return "window_rl"

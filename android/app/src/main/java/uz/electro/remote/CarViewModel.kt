@@ -321,7 +321,32 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
      * бодрствовать, но сеанс мы уже закончили — и делать вид, что связь жива,
      * значит показывать данные, за которыми никто не следит.
      */
+    /** Машина не на паркинге — показываем ошибку и ничего не шлём (голова 4.75 тоже откажет). */
+    private suspend fun gearBlocked(): Boolean {
+        if (!_car.value.notInPark) return false
+        _events.emit(CmdEvent(
+            S("Управление недоступно"),
+            S("Передача не P. Пока машина не на паркинге, управление с телефона отключено."),
+            EventKind.Failed,
+        ))
+        return true
+    }
+
     fun disconnect() = viewModelScope.launch {
+        if (gearBlocked()) return@launch
+        // Не отпускаем в сон машину с открытой дверью или багажником: потом её
+        // никто не закроет. Решаем по живому статусу; старая голова дверей не
+        // шлёт (bodyKnown = false) — тогда не мешаем, как и раньше.
+        val car = _car.value
+        if (car.bodyKnown && car.doorOrTrunkOpen) {
+            val open = car.openParts().filter { it != S("капот") }
+            _events.emit(CmdEvent(
+                S("Нельзя отключиться"),
+                S("Не закрыто: {0}. Закройте и попробуйте снова.", open.joinToString(", ")),
+                EventKind.Failed,
+            ))
+            return@launch
+        }
         _busy.value = true
         val result = try { repo.sleep() } finally { _busy.value = false }
         val note = when (result) {
@@ -372,10 +397,9 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
         if (pollJob?.isActive == true) return
         pollJob = viewModelScope.launch {
             while (true) {
-                val state = repo.refresh()
-                _car.value = state
+                _car.value = keepLastPlace(repo.refresh())
                 delay(
-                    when (state.link) {
+                    when (_car.value.link) {
                         Link.CLOUD -> POLL_CLOUD_MS
                         Link.NONE -> POLL_OFFLINE_MS
                     }
@@ -389,10 +413,15 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
         pollJob = null
     }
 
-    fun refreshNow() = viewModelScope.launch { _car.value = repo.refresh() }
+    fun refreshNow() = viewModelScope.launch { _car.value = keepLastPlace(repo.refresh(force = true)) }
+
+    /** Ответ без точки (сбой связи) не стирает с карты последнее известное место. */
+    private fun keepLastPlace(next: CarState): CarState =
+        if (next.location == null && _car.value.location != null) next.copy(location = _car.value.location) else next
 
     /** Включить климат с таймером авто-выключения (мин); null — умолчание сервера. */
     fun climateOn(runMinutes: Int?) = viewModelScope.launch {
+        if (gearBlocked()) return@launch
         _optimistic.update { it + (Cmd.AC to "1") }
         hold(listOf(Cmd.AC))
         _pending.update { it + Cmd.AC }
@@ -461,6 +490,7 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun runVoice(intent: VoiceIntentDto) = viewModelScope.launch {
+        if (gearBlocked()) return@launch
         when (val r = repo.runVoice(intent.intent)) {
             is CmdResult.Ok -> emit(EventKind.Success, intent.phrases.firstOrNull() ?: intent.intent, S("Выполнено"))
             is CmdResult.Failed -> emit(EventKind.Failed, intent.intent, r.reason)
@@ -493,6 +523,7 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
     /** Отправляет пачку команд как одно действие: одно уведомление на результат. */
     fun send(cmds: List<VehicleCommand>, label: String = "") = viewModelScope.launch {
         if (cmds.isEmpty()) return@launch
+        if (gearBlocked()) return@launch
         val previous = _optimistic.value
         val types = cmds.map { it.type }.toSet()
         // сразу показываем ожидаемое состояние, чтобы кнопка не «залипала»
@@ -678,6 +709,7 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
         // Таймер держит сервер (run_minutes), поэтому включение — его ручкой; уставку
         // шлём перед ней молча, чтобы на одно действие был один ответ.
         viewModelScope.launch {
+            if (gearBlocked()) return@launch
             if (temps.isNotEmpty()) {
                 _optimistic.update { it + temps.associate { c -> c.type to c.value } }
                 hold(temps.map { it.type })
@@ -946,7 +978,7 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
             Cmd.AC, Cmd.TEMP_L, Cmd.TEMP_R, Cmd.FAN, Cmd.TRUNK,
             Cmd.RECIRC, Cmd.DEFROST_FRONT, Cmd.DEFROST_REAR, Cmd.MIRROR_HEAT,
             Cmd.SEAT_VENT_REAR_L, Cmd.SEAT_VENT_REAR_R,
-            Cmd.MASSAGE_DRIVER, Cmd.MASSAGE_PASSENGER,
+            Cmd.MASSAGE_DRIVER, Cmd.MASSAGE_PASSENGER, Cmd.STEER_HEAT,
         ) + Cmd.WINDOWS
     }
 }

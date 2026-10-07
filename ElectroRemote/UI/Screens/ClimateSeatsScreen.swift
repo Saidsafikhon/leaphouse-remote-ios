@@ -142,6 +142,27 @@ private struct ClimateTab: View {
                         }
                     }
                     HStack(spacing: Space.x3) {
+                        // AUTO: машина сама держит температуру, обдув и рециркуляцию.
+                        // Подсветка — по ответу машины (hvac_mode 1 = AUTO), не по нажатию.
+                        ClimateButton(label: L("Авто"), icon: "wind",
+                                      active: car.signal("hvac_mode").flatMap { Double($0) }.map { Int($0) } == 1) {
+                            send(Cmd.CLIMATE_AUTO, "1")
+                        }
+                        // посередине — климат целиком, тем же переключателем, что и тумблер ниже
+                        ClimateButton(label: L("Климат"), icon: "power", active: shownOn) {
+                            setOptimistic(!shownOn)
+                            onToggle()
+                        }
+                        // обогрев руля: подсветка по ответу машины (steer_heat 1)
+                        // 2024: 1 = вкл; 2026: 2 = вкл (уровень от машины) — любое ≥1 значит включён
+                        // через общую карту controls: сразу — отправленное, потом — ответ машины
+                        let steerOn = (controls[Cmd.STEER_HEAT].flatMap { Double($0) } ?? 0) >= 1
+                        // два положения: вкл и выкл (машины понимают лишь 1/0)
+                        ClimateButton(label: L("Обогрев руля"), icon: "steeringwheel", active: steerOn) {
+                            send(Cmd.STEER_HEAT, steerOn ? "0" : "1")
+                        }
+                    }
+                    HStack(spacing: Space.x3) {
                         ClimateButton(label: L("Циркуляция"), icon: "arrow.triangle.2.circlepath", active: recircOn) {
                             let next = !recircOn
                             recircOn = next
@@ -167,12 +188,9 @@ private struct ClimateTab: View {
                 // нижняя карточка: заголовок с тумблером, полоска температуры, время работы
                 VStack(alignment: .leading, spacing: Space.x4) {
                     HStack {
+                        // тумблер климата убран (просьба 08.10.2026) — вкл/выкл плиткой «Климат» в «Функциях»
                         Text(L("Температура (°C)")).font(ElectroType.title).foregroundStyle(p.textPrimary)
                         Spacer()
-                        ElectroToggle(isOn: shownOn) { desired in
-                            setOptimistic(desired)
-                            onToggle()
-                        }
                     }
                     // Полоска LO 18° … HI 32°: тянется пальцем, уставка уйдёт при включении климата.
                     TemperatureBar(temp: setTemp, cabin: car.cabinTemp, locked: false) { v in setTemp = v }
@@ -245,7 +263,8 @@ private struct ClimateButton: View {
         Button(action: action) {
             VStack(spacing: Space.x1) {
                 Image(systemName: icon).font(.system(size: 20)).foregroundStyle(fg).frame(height: 24)
-                Text(label).font(ElectroType.caption).foregroundStyle(fg)
+                // у каждой плитки состояние словами: «Название: вкл / выкл» (просьба 08.10.2026)
+                Text(label + ": " + (active ? L("вкл") : L("выкл"))).font(ElectroType.caption).foregroundStyle(fg)
                     .multilineTextAlignment(.center).lineLimit(2).minimumScaleFactor(0.8)
             }
             .padding(.horizontal, Space.x2)

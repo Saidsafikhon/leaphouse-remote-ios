@@ -28,13 +28,15 @@ final class CarRepository {
         self.cloud = CloudClient(settings: settings)
     }
 
-    /// Снять состояние с сервера: он спрашивает машину сам.
-    func refresh() async -> CarState {
+    /// Состояние с сервера. Голова сама шлёт его раз в 10 с и сразу при изменениях,
+    /// с последней точкой, — обычный опрос берёт то, что уже на сервере; машину
+    /// напрямую (force) спрашиваем только по ручному «Обновить».
+    func refresh(force: Bool = false) async -> CarState {
         if Demo.enabled { return Demo.state() }
         let now = nowMillis()
         var empty = CarState(); empty.updatedAt = now
         guard settings.cloudEnabled, let id = await resolveVehicleId() else { return empty }
-        do { return CarState.fromCloud(try await cloud.status(id), now: now) } catch { return empty }
+        do { return CarState.fromCloud(try await cloud.status(id, force: force), now: now) } catch { return empty }
     }
 
     /// Отправить команду. Путь один — сервер.

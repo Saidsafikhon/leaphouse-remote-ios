@@ -182,8 +182,11 @@ private struct HomeTabView: View {
             VStack(alignment: .leading, spacing: Space.x5) {
                 HeaderLockup(car: car, model: model, unread: unreadNews, onHelp: { showHelp = true },
                              onNews: { onOpen(.news) }, onShop: { onOpen(.shop) }, onRefresh: onRefresh, onDisconnect: onDisconnect)
-                Hero(model: model, paint: paint)
+                Hero(model: model, paint: paint, car: car)
                 CarStatusStrip(car: car)
+                // замок и кузов: что заперто, что открыто — живой статус с головы 4.61+
+                if car.online && car.notInPark { GearLockBanner() }
+                if car.online && (car.bodyKnown || car.locked != nil) { BodyStatusCard(car: car) }
 
                 QuickRow(
                     controls: controls, stateOf: stateOf, onSendAll: onSendAll,
@@ -305,7 +308,7 @@ private struct HeaderLockup: View {
                 ShopFab(action: onShop)
                 NewsBell(unread: unread, action: onNews)
                 HelpFab(action: onHelp)
-                DisconnectFab(action: onDisconnect)
+                DisconnectFab(blocked: car.bodyKnown && car.doorOrTrunkOpen, action: onDisconnect)
             }
             Button(action: onRefresh) {
                 HStack(spacing: 6) {
@@ -348,14 +351,17 @@ struct NewsBell: View {
 /// и при этом взгляд не уходит с кнопок управления.
 private struct DisconnectFab: View {
     @Environment(\.palette) private var p
+    /// Открыта дверь или багажник — серая; нажатие показывает ошибку с перечнем.
+    var blocked = false
     let action: () -> Void
     var body: some View {
+        let tint = blocked ? p.textDisabled : p.danger
         Button(action: action) {
-            Image(systemName: "power").font(.system(size: 18, weight: .medium)).foregroundStyle(p.danger)
+            Image(systemName: "power").font(.system(size: 18, weight: .medium)).foregroundStyle(tint)
                 .frame(width: 44, height: 44)
                 .background(p.surfaceElevated)
                 .clipShape(Circle())
-                .overlay(Circle().stroke(p.danger.opacity(0.6), lineWidth: 1))
+                .overlay(Circle().stroke(tint.opacity(0.6), lineWidth: 1))
         }
         .buttonStyle(.plain)
         .accessibilityLabel(L("Отключиться"))
@@ -375,13 +381,25 @@ private func updatedText(_ car: CarState) -> String {
 private struct Hero: View {
     let model: String
     let paint: String?
+    let car: CarState
     @State private var ready = false
     /// «3D» или «картинка» — выбор человека в настройках
     @AppStorage("carView") private var carView = "3d"
     var body: some View {
+        // что открыто — 3D-модель открывает эти детали на петлях
+        let pose = BodyPose(doorFL: car.doors.frontLeft, doorFR: car.doors.frontRight,
+                            doorRL: car.doors.rearLeft, doorRR: car.doors.rearRight,
+                            trunk: car.trunkOpen == true, hood: car.hoodOpen)
+        // в «картинке» открытое — готовым рендером (tools/render_open); нет его — 3D
+        let openArt = carView != "3d" && pose.anyOpen ? CarArt.openImage(model, paint, pose) : nil
+        let show3d = carView == "3d" || (pose.anyOpen && openArt == nil)
         let swatch = CarArt.paints(model).first { $0.code == paint }?.swatch ?? CarArt.paints(model).first?.swatch ?? Color(hex: 0xE9EAEC)
         ZStack {
-            if !ready || carView != "3d" {
+            if let openArt, !show3d {
+                Image(uiImage: openArt)
+                    .resizable().scaledToFit()
+                    .frame(maxWidth: .infinity).frame(height: 160)
+            } else if !ready || !show3d {
                 Image(CarArt.imageName(model, paint))
                     .resizable().scaledToFit()
                     .frame(maxWidth: .infinity).frame(height: 160)
@@ -389,8 +407,8 @@ private struct Hero: View {
             // В режиме скриншотов (-screenshots) 3D не грузим: на сайте и в сторе машина
             // должна быть одинаковой плоской картинкой в обеих темах, а не зависеть от
             // того, успела ли скачаться модель.
-            if !Demo.enabled && carView == "3d" {
-                CarModelView(model: model, paint: swatch, onReady: { ready = $0 })
+            if !Demo.enabled && show3d {
+                CarModelView(model: model, paint: swatch, body3d: pose, onReady: { ready = $0 })
                     .opacity(ready ? 1 : 0)
             }
         }
@@ -415,9 +433,18 @@ private struct CarStatusStrip: View {
             if car.link == .none {
                 StatusStrip(icon: "icloud.slash", title: L("Нет связи с машиной"), subtitle: L("Показаны последние данные"),
                             accent: p.textMuted, accentTint: p.surfaceElevated, metrics: metrics)
-            } else if open {
-                StatusStrip(icon: "exclamationmark.triangle", title: L("Автомобиль открыт"), subtitle: openDetail(car),
-                            accent: p.danger, accentTint: p.dangerTint, metrics: metrics)
+            } else if open || car.charging {
+                // открыто и заряжается одновременно — показываем обе полосы (просьба 08.10.2026)
+                VStack(spacing: Space.x3) {
+                    if open {
+                        StatusStrip(icon: "exclamationmark.triangle", title: L("Автомобиль открыт"), subtitle: openDetail(car),
+                                    accent: p.danger, accentTint: p.dangerTint, metrics: metrics)
+                    }
+                    if car.charging {
+                        StatusStrip(icon: "bolt.fill", title: L("Заряжается"), subtitle: chargeEta(car),
+                                    accent: p.ok, accentTint: p.okTint, metrics: open ? [] : metrics)
+                    }
+                }
             } else if !metrics.isEmpty {
                 MetricsStrip(metrics: [
                     car.rangeKm.map { Metric(value: "\($0)", unit: L("км"), caption: L("запас хода")) },
@@ -431,12 +458,19 @@ private struct CarStatusStrip: View {
     }
 }
 
+/// «До полной: 1 ч 25 мин» — время от машины; нет времени — так и говорим.
+private func chargeEta(_ car: CarState) -> String {
+    guard let m = car.chargeMinutes else { return L("Время до полной зарядки уточняется") }
+    let h = m / 60, min = m % 60
+    let t: String
+    if h > 0 && min > 0 { t = L("{0} ч {1} мин", h, min) }
+    else if h > 0 { t = L("{0} ч", h) }
+    else { t = L("{0} мин", min) }
+    return L("До полной: {0}", t)
+}
+
 private func openDetail(_ car: CarState) -> String {
-    var parts: [String] = []
-    if car.hoodOpen { parts.append(L("капот")) }
-    if car.trunkOpen == true { parts.append(L("багажник")) }
-    if car.doors.anyOpen { parts.append(L("дверь")) }
-    let s = parts.joined(separator: ", ")
+    let s = car.openParts().joined(separator: ", ")
     return s.isEmpty ? L("Проверьте автомобиль") : s.prefix(1).uppercased() + s.dropFirst()
 }
 
@@ -444,6 +478,11 @@ private func openDetail(_ car: CarState) -> String {
 /// У каждого две отдельные кнопки: сверху «открыть/включить», под ней «закрыть/выключить».
 /// Один переключатель слал не ту команду, когда машина не успевала отдать статус.
 /// Подсветки состояния нет; крутилка — только на нажатой кнопке, пока команда идёт в машину.
+/// Кнопки главного экрана срабатывают только после удержания (просьба 08.10.2026):
+/// случайное касание не откроет машину. Удержание заменяет и прежние диалоги
+/// «Открыть двери? / багажник?» — двойное подтверждение.
+private let homeHoldSeconds: Double = 0.7
+
 private struct QuickRow: View {
     @Environment(\.palette) private var p
     let controls: [Int: String]
@@ -487,33 +526,31 @@ private struct QuickRow: View {
     private func tile(_ key: String, top: Bool) -> some View {
         switch (key, top) {
         case ("lock", true):
-            ControlTile(label: L("Открыть двери"), icon: "lock.open", state: state(Cmd.LOCK, open: true), compact: true, iconTint: p.accent) {
-                onConfirm(HomeConfirm(title: L("Открыть двери?"), msg: L("Автомобиль будет разблокирован."), action: L("Открыть"),
-                                      cmds: [VehicleCommand(type: Cmd.LOCK, value: "1")], label: L("Открыть двери")))
+            ControlTile(label: L("Открыть двери"), icon: "lock.open", state: state(Cmd.LOCK, open: true), compact: true, iconTint: p.accent, holdSeconds: homeHoldSeconds) {
+                onSendAll([VehicleCommand(type: Cmd.LOCK, value: "1")], L("Открыть двери"))
             }
         case ("lock", false):
-            ControlTile(label: L("Закрыть двери"), icon: "lock", state: state(Cmd.LOCK, open: false), compact: true) {
+            ControlTile(label: L("Закрыть двери"), icon: "lock", state: state(Cmd.LOCK, open: false), compact: true, holdSeconds: homeHoldSeconds) {
                 onSendAll([VehicleCommand(type: Cmd.LOCK, value: "0")], L("Закрыть двери"))
             }
         case ("trunk", true):
-            ControlTile(label: L("Открыть багажник"), icon: Sym.trunk, state: state(Cmd.TRUNK, open: true), compact: true, iconTint: p.accent) {
-                onConfirm(HomeConfirm(title: L("Открыть багажник?"), msg: L("Багажник будет разблокирован."), action: L("Открыть"),
-                                      cmds: [VehicleCommand(type: Cmd.TRUNK, value: "1")], label: L("Открыть багажник")))
+            ControlTile(label: L("Открыть багажник"), icon: Sym.trunk, state: state(Cmd.TRUNK, open: true), compact: true, iconTint: p.accent, holdSeconds: homeHoldSeconds) {
+                onSendAll([VehicleCommand(type: Cmd.TRUNK, value: "1")], L("Открыть багажник"))
             }
         case ("trunk", false):
-            ControlTile(label: L("Закрыть багажник"), icon: Sym.trunkClosed, state: state(Cmd.TRUNK, open: false), compact: true) {
+            ControlTile(label: L("Закрыть багажник"), icon: Sym.trunkClosed, state: state(Cmd.TRUNK, open: false), compact: true, holdSeconds: homeHoldSeconds) {
                 onSendAll([VehicleCommand(type: Cmd.TRUNK, value: "0")], L("Закрыть багажник"))
             }
         case ("climate", true):
-            ControlTile(label: L("Включить климат"), icon: "snowflake", state: state(Cmd.AC, open: true), compact: true, iconTint: p.accent, action: onClimateOn)
+            ControlTile(label: L("Включить климат"), icon: "snowflake", state: state(Cmd.AC, open: true), compact: true, iconTint: p.accent, holdSeconds: homeHoldSeconds, action: onClimateOn)
         case ("climate", false):
-            ControlTile(label: L("Выключить климат"), icon: "power", state: state(Cmd.AC, open: false), compact: true, action: onClimateOff)
+            ControlTile(label: L("Выключить климат"), icon: "power", state: state(Cmd.AC, open: false), compact: true, holdSeconds: homeHoldSeconds, action: onClimateOff)
         case ("windows", true):
-            ControlTile(label: L("Открыть окна"), icon: Sym.windowOpen, state: state(Cmd.WINDOW_FL, open: true), compact: true, iconTint: p.accent) {
+            ControlTile(label: L("Открыть окна"), icon: Sym.windowOpen, state: state(Cmd.WINDOW_FL, open: true), compact: true, iconTint: p.accent, holdSeconds: homeHoldSeconds) {
                 onSendAll(Cmd.WINDOWS.map { VehicleCommand(type: $0, value: "100") }, L("Открыть все окна"))
             }
         case ("windows", false):
-            ControlTile(label: L("Закрыть окна"), icon: Sym.windowClosed, state: state(Cmd.WINDOW_FL, open: false), compact: true) {
+            ControlTile(label: L("Закрыть окна"), icon: Sym.windowClosed, state: state(Cmd.WINDOW_FL, open: false), compact: true, holdSeconds: homeHoldSeconds) {
                 onSendAll(Cmd.WINDOWS.map { VehicleCommand(type: $0, value: "0") }, L("Закрыть все окна"))
             }
         default:
@@ -565,8 +602,17 @@ private struct GwmClimateCard: View {
                 ElectroToggle(isOn: on) { _ in onToggle() }
             }
             Spacer(minLength: Space.x3)
-            Text(Cmd.tempLabel(temp)).font(ElectroType.display).foregroundStyle(p.textPrimary)
-            Text(car.cabinTemp.map { L("в салоне {0}°", $0.asTemp) } ?? L("уставка")).font(ElectroType.caption).foregroundStyle(p.textMuted)
+            // Как у «Сидений»: блок значков той же высоты (66 = два ряда кресел)
+            // и одна строка подписи — карточки рядом одинаковые по размеру и виду.
+            HStack(spacing: Space.x2) {
+                Image(systemName: "snowflake").font(.system(size: 26, weight: .regular))
+                    .foregroundStyle(on ? p.accent : p.textDisabled)
+                Text(Cmd.tempLabel(temp)).font(ElectroType.title).foregroundStyle(on ? p.textPrimary : p.textMuted)
+            }
+            .frame(height: 66)
+            Spacer().frame(height: Space.x2)
+            Text(car.cabinTemp.map { L("в салоне {0}°", $0.asTemp) } ?? (on ? L("включён") : L("выключен")))
+                .font(ElectroType.caption).foregroundStyle(p.textMuted).lineLimit(1)
         }
         .padding(Space.x4)
         .frame(maxWidth: .infinity, minHeight: 132, maxHeight: .infinity, alignment: .leading)

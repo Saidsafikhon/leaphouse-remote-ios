@@ -458,7 +458,9 @@ final class CloudClient {
 
     // --- машины ---
     func vehicles() async throws -> [VehicleDto] { try await perform("GET", "api/v1/vehicles") }
-    func status(_ id: String) async throws -> StatusDto { try await perform("GET", "api/v1/vehicles/\(id)/status?force_refresh=true") }
+    func status(_ id: String, force: Bool = false) async throws -> StatusDto {
+        try await perform("GET", "api/v1/vehicles/\(id)/status?force_refresh=\(force)")
+    }
     func lock(_ id: String, _ b: CommandRequest = CommandRequest()) async throws -> CommandDto { try await perform("POST", "api/v1/vehicles/\(id)/lock", body: b) }
     func unlock(_ id: String, _ b: CommandRequest = CommandRequest()) async throws -> CommandDto { try await perform("POST", "api/v1/vehicles/\(id)/unlock", body: b) }
     func headControl(_ id: String, _ b: HeadControlRequest) async throws -> CommandDto { try await perform("POST", "api/v1/vehicles/\(id)/head/control", body: b) }

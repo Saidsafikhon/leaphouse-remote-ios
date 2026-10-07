@@ -125,3 +125,26 @@ val IconWindowUp: ImageVector by lazy {
         moveTo(12.9f, 11.1f); lineTo(15.5f, 8.5f); lineTo(18.1f, 11.1f)
     }
 }
+
+/**
+ * Обогрев РУЛЯ — руль сверху: обод, ступица и три спицы (как `steeringwheel`
+ * в SF Symbols на iPhone). Окружности — двумя дугами, чтобы путь был замкнут.
+ */
+val IconSteeringWheel: ImageVector by lazy {
+    autoGlyph("SteeringWheel") {
+        // обод r = 9
+        moveTo(3f, 12f)
+        arcTo(9f, 9f, 0f, isMoreThanHalf = true, isPositiveArc = true, x1 = 21f, y1 = 12f)
+        arcTo(9f, 9f, 0f, isMoreThanHalf = true, isPositiveArc = true, x1 = 3f, y1 = 12f)
+        close()
+        // ступица r = 2.4
+        moveTo(9.6f, 12f)
+        arcTo(2.4f, 2.4f, 0f, isMoreThanHalf = true, isPositiveArc = true, x1 = 14.4f, y1 = 12f)
+        arcTo(2.4f, 2.4f, 0f, isMoreThanHalf = true, isPositiveArc = true, x1 = 9.6f, y1 = 12f)
+        close()
+        // спицы: влево, вправо, вниз
+        moveTo(9.6f, 12f); lineTo(3f, 12f)
+        moveTo(14.4f, 12f); lineTo(21f, 12f)
+        moveTo(12f, 14.4f); lineTo(12f, 21f)
+    }
+}
