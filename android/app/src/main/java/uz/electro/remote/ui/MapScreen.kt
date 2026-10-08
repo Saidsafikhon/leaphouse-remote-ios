@@ -193,7 +193,9 @@ private fun CarMap(lat: Double, lon: Double, onMarkerTap: () -> Unit, modifier: 
     }
     val marker = com.google.maps.android.compose.rememberMarkerState(position = point)
     val ctx = LocalContext.current
-    val pin = remember {
+    // Значок готовим внутри карты: BitmapDescriptorFactory работает только после запуска
+    // Google Maps, а раньше он падал, и runCatching молча ставил стандартную красную метку.
+    val pinOf: () -> com.google.android.gms.maps.model.BitmapDescriptor? = {
         runCatching {
             val d = androidx.core.content.ContextCompat.getDrawable(ctx, uz.electro.remote.R.drawable.ic_map_pin)!!
             val w = d.intrinsicWidth.coerceAtLeast(1); val h = d.intrinsicHeight.coerceAtLeast(1)
@@ -212,6 +214,7 @@ private fun CarMap(lat: Double, lon: Double, onMarkerTap: () -> Unit, modifier: 
             mapToolbarEnabled = false, zoomControlsEnabled = false, myLocationButtonEnabled = false,
         ),
     ) {
+        val pin = remember { pinOf() }
         com.google.maps.android.compose.Marker(
             state = marker, icon = pin,
             anchor = androidx.compose.ui.geometry.Offset(0.5f, 1f),

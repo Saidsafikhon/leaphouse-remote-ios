@@ -329,7 +329,7 @@ private fun ClimateButton(
     val fg = if (active) ElectroColors.Accent else ElectroColors.TextSecondary
     // Фикс. высота — чтобы все плитки были одного размера независимо от того,
     // в одну или две строки легла подпись.
-    Surface(color = bg, shape = Radius.Md, modifier = modifier.height(88.dp).clickable(onClick = onClick)) {
+    Surface(color = bg, shape = Radius.Md, modifier = modifier.height(96.dp).clickable(onClick = onClick)) {
         Column(
             Modifier.padding(horizontal = Space.x2).fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -337,9 +337,12 @@ private fun ClimateButton(
         ) {
             Icon(icon, null, tint = fg, modifier = Modifier.size(24.dp))
             Spacer(Modifier.height(Space.x1))
-            // у каждой плитки состояние словами: «Название: вкл / выкл» (просьба 08.10.2026)
-            Text("$label: " + if (active) S("вкл") else S("выкл"), style = ElectroType.Caption, color = fg,
-                textAlign = TextAlign.Center, maxLines = 2)
+            // у каждой плитки состояние словами (просьба 08.10.2026): название до двух строк,
+            // «вкл / выкл» — всегда отдельной строкой снизу, чтобы длинное название его не съедало
+            Text(label, style = ElectroType.Caption, color = fg,
+                textAlign = TextAlign.Center, maxLines = 2, lineHeight = 15.sp)
+            Text(if (active) S("вкл") else S("выкл"), style = ElectroType.Caption, color = fg,
+                textAlign = TextAlign.Center, maxLines = 1, fontWeight = FontWeight.SemiBold)
         }
     }
 }

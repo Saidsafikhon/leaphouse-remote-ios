@@ -263,13 +263,16 @@ private struct ClimateButton: View {
         Button(action: action) {
             VStack(spacing: Space.x1) {
                 Image(systemName: icon).font(.system(size: 20)).foregroundStyle(fg).frame(height: 24)
-                // у каждой плитки состояние словами: «Название: вкл / выкл» (просьба 08.10.2026)
-                Text(label + ": " + (active ? L("вкл") : L("выкл"))).font(ElectroType.caption).foregroundStyle(fg)
+                // у каждой плитки состояние словами (просьба 08.10.2026): название до двух строк,
+                // «вкл / выкл» — всегда отдельной строкой снизу, чтобы длинное название его не съедало
+                Text(label).font(ElectroType.caption).foregroundStyle(fg)
                     .multilineTextAlignment(.center).lineLimit(2).minimumScaleFactor(0.8)
+                Text(active ? L("вкл") : L("выкл")).font(ElectroType.caption.weight(.semibold)).foregroundStyle(fg)
+                    .lineLimit(1)
             }
             .padding(.horizontal, Space.x2)
             .frame(maxWidth: .infinity)
-            .frame(height: 88)
+            .frame(height: 96)
             .background(bg)
             .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
         }
