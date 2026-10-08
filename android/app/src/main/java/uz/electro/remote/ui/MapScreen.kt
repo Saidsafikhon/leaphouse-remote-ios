@@ -124,7 +124,7 @@ fun MapScreen(loc: GeoPoint?) {
             }
             Spacer(Modifier.height(Space.x3))
 
-            // Живая карта: Mapbox — как MapKit на iOS. Тянется и зумится пальцем,
+            // Живая карта: Google Maps (на iOS — MapKit). Тянется и зумится пальцем,
             // метка — машина; тап по метке открывает маршрут.
             Box(
                 Modifier.fillMaxWidth().weight(1f).padding(horizontal = Space.x4)
@@ -180,55 +180,62 @@ private fun MapBtn(text: String, icon: ImageVector, mod: Modifier, onClick: () -
 }
 
 /**
- * Карта Mapbox: центр и метка — машина; при смене координат метка переезжает, камера
- * следует. Стиль — светлый или тёмный по теме. Ключ — строка mapbox_access_token
- * (из android/mapbox.properties); без ключа карта пустая, и мы говорим об этом.
+ * Карта Google: центр и метка — машина; при смене координат метка переезжает, камера
+ * следует. Тёмная тема — свой стиль (DARK_STYLE). Ключ — com.google.android.geo.API_KEY
+ * в манифесте (из android/maps.properties); без сервисов Google Play карта не покажется.
  */
 @Composable
 private fun CarMap(lat: Double, lon: Double, onMarkerTap: () -> Unit, modifier: Modifier = Modifier) {
-    val ctx = LocalContext.current
     val dark = isAppDarkTheme()   // стиль карты идёт за темой приложения, а не системы
-    val token = remember { ctx.getString(uz.electro.remote.R.string.mapbox_access_token) }
-    if (token.isBlank()) {
-        Box(modifier, contentAlignment = Alignment.Center) {
-            Text(S("Карта не настроена: нет ключа Mapbox"), style = ElectroType.Caption,
-                color = ElectroColors.TextMuted, textAlign = TextAlign.Center,
-                modifier = Modifier.padding(Space.x4))
-        }
-        return
+    val point = com.google.android.gms.maps.model.LatLng(lat, lon)
+    val camera = com.google.maps.android.compose.rememberCameraPositionState {
+        position = com.google.android.gms.maps.model.CameraPosition.fromLatLngZoom(point, 16f)
     }
-    remember(token) { com.mapbox.common.MapboxOptions.accessToken = token; true }
-    val point = com.mapbox.geojson.Point.fromLngLat(lon, lat)
-    val viewport = com.mapbox.maps.extension.compose.animation.viewport.rememberMapViewportState {
-        setCameraOptions { center(point); zoom(16.0); pitch(0.0); bearing(0.0) }
+    val marker = com.google.maps.android.compose.rememberMarkerState(position = point)
+    val ctx = LocalContext.current
+    val pin = remember {
+        runCatching {
+            val d = androidx.core.content.ContextCompat.getDrawable(ctx, uz.electro.remote.R.drawable.ic_map_pin)!!
+            val w = d.intrinsicWidth.coerceAtLeast(1); val h = d.intrinsicHeight.coerceAtLeast(1)
+            val bmp = android.graphics.Bitmap.createBitmap(w, h, android.graphics.Bitmap.Config.ARGB_8888)
+            d.setBounds(0, 0, w, h); d.draw(android.graphics.Canvas(bmp))
+            com.google.android.gms.maps.model.BitmapDescriptorFactory.fromBitmap(bmp)
+        }.getOrNull()
     }
-    com.mapbox.maps.extension.compose.MapboxMap(
+    com.google.maps.android.compose.GoogleMap(
         modifier = modifier,
-        mapViewportState = viewport,
-        style = {
-            com.mapbox.maps.extension.compose.style.MapStyle(
-                style = if (dark) com.mapbox.maps.Style.DARK else com.mapbox.maps.Style.STANDARD,
-            )
-        },
+        cameraPositionState = camera,
+        properties = com.google.maps.android.compose.MapProperties(
+            mapStyleOptions = if (dark) com.google.android.gms.maps.model.MapStyleOptions(DARK_STYLE) else null,
+        ),
+        uiSettings = com.google.maps.android.compose.MapUiSettings(
+            mapToolbarEnabled = false, zoomControlsEnabled = false, myLocationButtonEnabled = false,
+        ),
     ) {
-        val pin = com.mapbox.maps.extension.compose.annotation.rememberIconImage(
-            key = "car-pin", painter = androidx.compose.ui.res.painterResource(uz.electro.remote.R.drawable.ic_map_pin),
-        )
-        com.mapbox.maps.extension.compose.annotation.generated.PointAnnotation(
-            point = point,
+        com.google.maps.android.compose.Marker(
+            state = marker, icon = pin,
+            anchor = androidx.compose.ui.geometry.Offset(0.5f, 1f),
             onClick = { onMarkerTap(); true },
-        ) {
-            iconImage = pin
-            iconAnchor = com.mapbox.maps.extension.style.layers.properties.generated.IconAnchor.BOTTOM
-        }
+        )
     }
     LaunchedEffect(lat, lon) {
-        viewport.easeTo(
-            com.mapbox.maps.dsl.cameraOptions { center(point) },
-            com.mapbox.maps.plugin.animation.MapAnimationOptions.mapAnimationOptions { duration(600) },
-        )
+        marker.position = point
+        camera.animate(com.google.android.gms.maps.CameraUpdateFactory.newLatLng(point), 600)
     }
 }
+
+/** Тёмный стиль Google Maps (приглушённые дороги и подписи) — в тон тёмной теме приложения. */
+private const val DARK_STYLE = """[
+ {"elementType":"geometry","stylers":[{"color":"#1d2328"}]},
+ {"elementType":"labels.text.fill","stylers":[{"color":"#8a939b"}]},
+ {"elementType":"labels.text.stroke","stylers":[{"color":"#11161a"}]},
+ {"featureType":"poi","elementType":"geometry","stylers":[{"color":"#20282e"}]},
+ {"featureType":"poi.park","elementType":"geometry","stylers":[{"color":"#18261c"}]},
+ {"featureType":"road","elementType":"geometry","stylers":[{"color":"#2c353c"}]},
+ {"featureType":"road.highway","elementType":"geometry","stylers":[{"color":"#3a454d"}]},
+ {"featureType":"transit","elementType":"geometry","stylers":[{"color":"#232b31"}]},
+ {"featureType":"water","elementType":"geometry","stylers":[{"color":"#0e1a24"}]}
+]"""
 
 
 /** Навигаторы, которые умеем открывать на точке машины (пакеты объявлены в <queries> манифеста). */

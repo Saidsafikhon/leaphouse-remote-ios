@@ -508,10 +508,9 @@ private fun Hero(model: String?, paint: String?, car: CarState) {
     // открытое показываем готовым рендером (assets/open, tools/render_open); нет
     // рендера для модели — 3D, на ней видно, что именно открыто.
     val pref3d = uz.electro.remote.ui.theme.CarViewPref.mode.value == "3d"
-    val openArt = if (!pref3d && body.anyOpen) CarArt.openAsset(model, paint, body) else null
     val ctx = androidx.compose.ui.platform.LocalContext.current
-    val openBmp = remember(openArt) {
-        openArt?.let { p -> runCatching { ctx.assets.open(p).use { android.graphics.BitmapFactory.decodeStream(it) }?.asImageBitmap() }.getOrNull() }
+    val openBmp = remember(pref3d, model, paint, body) {
+        if (!pref3d && body.anyOpen) CarArt.openBitmap(ctx, model, paint, body) else null
     }
     val want3d = pref3d || (body.anyOpen && openBmp == null)
     // 170 dp и камера ближе: машина крупнее, пустого поля вокруг почти нет,

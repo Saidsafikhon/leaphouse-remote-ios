@@ -1,5 +1,8 @@
 package uz.electro.remote.ui.components
 
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+
 import uz.electro.remote.i18n.S
 import androidx.compose.ui.graphics.Color
 import uz.electro.remote.R
@@ -126,25 +129,37 @@ object CarArt {
     fun paints(model: String?): List<Paint> =
         ART.getValue(key(model)).keys.mapNotNull { PAINTS[it] }
 
-    /** Маски готовых рендеров с открытыми деталями (бит0 ПЛ, 1 ПП, 2 ЗЛ, 3 ЗП, 4 капот, 5 багажник). */
-    private val OPEN_MASKS = intArrayOf(1, 2, 4, 8, 16, 32, 3, 5, 15, 48, 63)
     private val OPEN_MODELS = setOf("C16", "C10", "C11", "C01")
+    /** Порядок склейки слоёв: от дальних деталей к ближним (ракурс спереди-слева). */
+    private val LAYER_ORDER = listOf("fr", "rr", "trunk", "rl", "hood", "fl")
+    private val openCache = android.util.LruCache<String, ImageBitmap>(4)
 
     /**
-     * Готовый рендер (assets/open/…) машины в выбранном цвете с открытыми деталями — для
-     * режима «картинка». Точного сочетания нет — берём ближайшее: важнее показать всё,
-     * что открыто, чем лишнее. null — для модели рендеров нет (тогда 3D, как раньше).
+     * Фотореалистичная картинка машины в выбранном цвете с открытыми деталями — для режима
+     * «картинка». Склеивается из слоёв (assets/open/<модель>_<цвет>_base.webp + по слою
+     * на каждую деталь: _<деталь>_o открыта / _c закрыта; tools/render_open/render2.py),
+     * поэтому верна для любого сочетания. null — для модели слоёв нет (тогда 3D, как раньше).
      */
-    fun openAsset(model: String?, paint: String?, body: BodyPose): String? {
+    fun openBitmap(ctx: android.content.Context, model: String?, paint: String?, body: BodyPose): ImageBitmap? {
         val k = key(model)
-        if (k !in OPEN_MODELS || !(model ?: "").uppercase().contains(k)) return null
-        val a = (if (body.doorFL) 1 else 0) or (if (body.doorFR) 2 else 0) or (if (body.doorRL) 4 else 0) or
-            (if (body.doorRR) 8 else 0) or (if (body.hood) 16 else 0) or (if (body.trunk) 32 else 0)
-        if (a == 0) return null
-        val m = OPEN_MASKS.maxByOrNull { c -> 3 * Integer.bitCount(a and c) - Integer.bitCount(c and a.inv()) } ?: return null
+        if (k !in OPEN_MODELS || !(model ?: "").uppercase().contains(k) || !body.anyOpen) return null
         val colors = ART.getValue(k)
         val code = paint?.takeIf { it in colors } ?: "pearl-white".takeIf { it in colors } ?: colors.keys.first()
-        return "open/${k.lowercase()}_${code}_$m.webp"
+        val open = mapOf("fl" to body.doorFL, "fr" to body.doorFR, "rl" to body.doorRL, "rr" to body.doorRR,
+            "hood" to body.hood, "trunk" to body.trunk)
+        val pre = "open/${k.lowercase()}_${code}"
+        val key = pre + open.values.joinToString("") { if (it) "1" else "0" }
+        openCache.get(key)?.let { return it }
+        fun load(p: String) = runCatching { ctx.assets.open(p).use { android.graphics.BitmapFactory.decodeStream(it) } }.getOrNull()
+        val base = load("${pre}_base.webp") ?: return null
+        val out = base.copy(android.graphics.Bitmap.Config.ARGB_8888, true)
+        val canvas = android.graphics.Canvas(out)
+        val paintObj = android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG)
+        for (g in LAYER_ORDER) {
+            val layer = load("${pre}_${g}_${if (open[g] == true) "o" else "c"}.webp") ?: continue
+            canvas.drawBitmap(layer, 0f, 0f, paintObj)
+        }
+        return out.asImageBitmap().also { openCache.put(key, it) }
     }
 
     /** Рендер модели в выбранном цвете; нет такого цвета — первый доступный. */

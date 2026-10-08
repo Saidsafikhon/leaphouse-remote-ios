@@ -4,13 +4,14 @@ plugins { id 'com.android.application'; id 'org.jetbrains.kotlin.android' }
 // Без флага — прежняя раздача файлом: подпись debug.keystore, отпечаток expectedSig.
 def isPlay = project.hasProperty("play")
 
-// Публичный ключ Mapbox (pk.…): android/mapbox.properties (в git не попадает) или
-// переменная MAPBOX_PUBLIC_TOKEN. Без ключа карта на вкладке «Карта» не грузит тайлы.
-def mapboxToken = System.getenv("MAPBOX_PUBLIC_TOKEN") ?: ""
-def mbFile = rootProject.file("mapbox.properties")
-if (mbFile.exists()) {
-    def mb = new Properties(); mbFile.withInputStream { mb.load(it) }
-    mapboxToken = (mb.getProperty("MAPBOX_PUBLIC_TOKEN") ?: mapboxToken).trim()
+// Ключ Google Maps SDK for Android (проект leapremote-5fe16): android/maps.properties (в git
+// не попадает) или переменная MAPS_API_KEY. Mapbox убран 08.10.2026 — он один весил ~17 МБ
+// нативных библиотек на архитектуру; Google Maps берёт движок из сервисов Google Play.
+def mapsKey = System.getenv("MAPS_API_KEY") ?: ""
+def mkFile = rootProject.file("maps.properties")
+if (mkFile.exists()) {
+    def mk = new Properties(); mkFile.withInputStream { mk.load(it) }
+    mapsKey = (mk.getProperty("MAPS_API_KEY") ?: mapsKey).trim()
 }
 def ksProps = new Properties()
 if (isPlay) {
@@ -68,8 +69,8 @@ android {
         // 0.51.1: «Помощь» показывает все номера поддержки.
         // 0.51.2: «Наши продукты» и контакты поддержки живут на устройстве: показ из кэша,
         //         сверка с сервером не чаще раза в сутки (If-None-Match/304), иконки — файлами.
-        versionCode 137; versionName "0.53.8"
-        resValue "string", "mapbox_access_token", mapboxToken
+        versionCode 139; versionName "0.54.0"
+        manifestPlaceholders = [mapsApiKey: mapsKey]
         // Адреса backend здесь больше нет: он правится в самом приложении
         // (Настройки → «Адрес сервера»), значение по умолчанию и подмена
         // устаревших адресов живут в data/Settings.kt. Зашитый на сборке адрес
@@ -147,8 +148,8 @@ dependencies {
     implementation 'com.google.android.filament:gltfio-android:1.56.0'
     implementation 'com.google.android.filament:filament-utils-android:1.56.0'
     implementation 'io.coil-kt:coil-compose:2.6.0'   // обложки новостей
-    implementation 'com.mapbox.maps:android:11.12.0'              // живая карта (Mapbox, ключ в mapbox.properties)
-    implementation 'com.mapbox.extension:maps-compose:11.12.0'
+    implementation 'com.google.maps.android:maps-compose:4.3.3'   // живая карта (Google Maps, ключ в maps.properties)
+    implementation 'com.google.android.gms:play-services-maps:18.2.0'
     implementation 'androidx.work:work-runtime-ktx:2.9.1'          // фоновая подкачка новостей
     implementation 'androidx.biometric:biometric:1.1.0'              // отпечаток / лицо на экране блокировки
     implementation 'androidx.fragment:fragment-ktx:1.6.2'            // BiometricPrompt требует FragmentActivity
