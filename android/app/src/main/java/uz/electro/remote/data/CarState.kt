@@ -65,6 +65,8 @@ data class CarState(
     val chargeMinutes: Int? = null,
     /** Голова запретила управление: передача не P (на 4.78+ только C16, флаг gear_lock). */
     val notInPark: Boolean = false,
+    /** Блок по стояночному тормозу (C11: отдельная кнопка P), а не по передаче. */
+    val parkByBrake: Boolean = false,
     /** Машина сейчас заряжается (по времени до полной или статусу зарядки). */
     val charging: Boolean = false,
     val location: GeoPoint? = null,
@@ -148,6 +150,9 @@ data class CarState(
                 // паркинге нет, управление не трогаем (12.10.2026): по сырому gear
                 // C10/C11 запирались и на стоянке.
                 notInPark = num("gear_lock")?.let { it != 0f } ?: false,
+                // Голова 4.80+ отдаёт gear только там, где блок по передаче (C16);
+                // на C11 вместо него стояночный тормоз epb.
+                parkByBrake = raw.sig("gear") == null && raw.sig("epb") != null,
                 chargeMinutes = num("charge_time")?.toInt()?.takeIf { it in 1..2880 },
                 // Заряжается: есть время до полной; или статус зарядки QNX (143, 0 — нет);
                 // или BMS_BATTCHARGERSTS на 2026 (1 на стоянке, 5 в движении).

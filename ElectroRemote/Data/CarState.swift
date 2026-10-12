@@ -48,6 +48,8 @@ struct CarState: Equatable {
     var chargeMinutes: Int? = nil
     /// Передача не P (gear ≠ 0): управление с телефона отключено, голова тоже не исполнит.
     var notInPark: Bool = false
+    /// Блок по стояночному тормозу (C11: отдельная кнопка P), а не по передаче.
+    var parkByBrake: Bool = false
     /// Машина сейчас заряжается (по времени до полной или статусу зарядки).
     var charging = false
     var location: GeoPoint? = nil
@@ -127,6 +129,9 @@ struct CarState: Equatable {
         // паркинге нет, управление не трогаем (12.10.2026): по сырому gear
         // C10/C11 запирались и на стоянке.
         s.notInPark = num("gear_lock").map { $0 != 0 } ?? false
+        // Голова 4.80+ отдаёт gear только там, где блок по передаче (C16);
+        // на C11 вместо него стояночный тормоз epb.
+        s.parkByBrake = raw.sig("gear") == nil && raw.sig("epb") != nil
         s.chargeMinutes = num("charge_time").map { Int($0) }.flatMap { (1...2880).contains($0) ? $0 : nil }
         // Заряжается: время до полной; или статус зарядки QNX (143, 0 — нет);
         // или BMS_BATTCHARGERSTS на 2026 (1 на стоянке, 5 в движении).

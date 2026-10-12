@@ -134,14 +134,15 @@ private fun DrawScope.door(x: Float, y: Float, len: Float, leftSide: Boolean, op
     }
 }
 
-/** Передача не P: красная плашка над управлением — команды с телефона отключены. */
+/** Машина не на паркинге: красная плашка над управлением — команды с телефона отключены. */
 @Composable
-fun GearLockBanner(modifier: Modifier = Modifier) {
+fun GearLockBanner(byBrake: Boolean, modifier: Modifier = Modifier) {
     Surface(color = ElectroColors.DangerTint, shape = Radius.Md, modifier = modifier.fillMaxWidth()) {
         Column(Modifier.padding(horizontal = Space.x4, vertical = Space.x3),
             verticalArrangement = Arrangement.spacedBy(Space.x1)) {
             Text(S("Машина не на паркинге"), style = ElectroType.Body, color = ElectroColors.Danger)
-            Text(S("Управление с телефона отключено, пока передача не P."),
+            Text(if (byBrake) S("Управление с телефона отключено, пока не включён стояночный тормоз.")
+                 else S("Управление с телефона отключено, пока передача не P."),
                 style = ElectroType.Caption, color = ElectroColors.TextSecondary)
         }
     }

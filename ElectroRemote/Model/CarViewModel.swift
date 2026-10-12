@@ -245,7 +245,9 @@ final class CarViewModel: ObservableObject {
     private func gearBlocked() -> Bool {
         guard car.notInPark else { return false }
         emit(.failed, L("Управление недоступно"),
-             L("Передача не P. Пока машина не на паркинге, управление с телефона отключено."))
+             car.parkByBrake
+                ? L("Стояночный тормоз не включён. Пока машина не на паркинге, управление с телефона отключено.")
+                : L("Передача не P. Пока машина не на паркинге, управление с телефона отключено."))
         return true
     }
 

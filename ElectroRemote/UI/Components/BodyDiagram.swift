@@ -123,14 +123,16 @@ struct CarTopView: View {
     }
 }
 
-/// Передача не P: красная плашка над управлением — команды с телефона отключены.
+/// Машина не на паркинге: красная плашка над управлением — команды с телефона отключены.
 struct GearLockBanner: View {
+    var byBrake = false
     @Environment(\.palette) private var p
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.x1) {
             Text(L("Машина не на паркинге")).font(ElectroType.body).foregroundStyle(p.danger)
-            Text(L("Управление с телефона отключено, пока передача не P."))
+            Text(byBrake ? L("Управление с телефона отключено, пока не включён стояночный тормоз.")
+                         : L("Управление с телефона отключено, пока передача не P."))
                 .font(ElectroType.caption).foregroundStyle(p.textSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

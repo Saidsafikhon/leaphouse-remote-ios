@@ -452,7 +452,9 @@
     "Машина не на паркинге": "Car is not in Park",
     "Управление с телефона отключено, пока передача не P.": "Phone control is disabled until the gear is P.",
     "Двери и багажник закрыты": "Doors and trunk are closed",
-    "Отправлена команда отключения": "Disconnect command sent"
+    "Отправлена команда отключения": "Disconnect command sent",
+    "Управление с телефона отключено, пока не включён стояночный тормоз.": "Phone control is disabled until the parking brake is on.",
+    "Стояночный тормоз не включён. Пока машина не на паркинге, управление с телефона отключено.": "The parking brake is off. Phone control is disabled until the car is parked."
   },
   "uz": {
     " · не прочитано": " · o‘qilmagan",
@@ -906,6 +908,8 @@
     "Машина не на паркинге": "Mashina parkovkada emas",
     "Управление с телефона отключено, пока передача не P.": "Uzatma P bo'lmaguncha telefondan boshqaruv o'chirilgan.",
     "Двери и багажник закрыты": "Eshiklar va yukxona yopiq",
-    "Отправлена команда отключения": "O'chirish buyrug'i yuborildi"
+    "Отправлена команда отключения": "O'chirish buyrug'i yuborildi",
+    "Управление с телефона отключено, пока не включён стояночный тормоз.": "Qo'l tormozi yoqilmaguncha telefondan boshqarish o'chirilgan.",
+    "Стояночный тормоз не включён. Пока машина не на паркинге, управление с телефона отключено.": "Qo'l tormozi yoqilmagan. Mashina to'xtash holatida bo'lmaguncha telefondan boshqarish o'chirilgan."
   }
 }

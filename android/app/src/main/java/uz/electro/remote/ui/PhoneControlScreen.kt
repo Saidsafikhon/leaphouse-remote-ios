@@ -253,7 +253,7 @@ private fun HomeTab(
         Hero(model, paint, car)
         CarStatusStrip(car)
         // замок и кузов: что заперто, что открыто — живой статус с головы 4.61+
-        if (car.online && car.notInPark) GearLockBanner()
+        if (car.online && car.notInPark) GearLockBanner(car.parkByBrake)
         if (car.online && (car.bodyKnown || car.locked != null)) BodyStatusCard(car)
 
         QuickRow(

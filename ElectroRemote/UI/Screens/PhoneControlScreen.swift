@@ -185,7 +185,7 @@ private struct HomeTabView: View {
                 Hero(model: model, paint: paint, car: car)
                 CarStatusStrip(car: car)
                 // замок и кузов: что заперто, что открыто — живой статус с головы 4.61+
-                if car.online && car.notInPark { GearLockBanner() }
+                if car.online && car.notInPark { GearLockBanner(byBrake: car.parkByBrake) }
                 if car.online && (car.bodyKnown || car.locked != nil) { BodyStatusCard(car: car) }
 
                 QuickRow(

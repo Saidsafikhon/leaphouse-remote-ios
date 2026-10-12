@@ -349,7 +349,8 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
         if (!_car.value.notInPark) return false
         _events.emit(CmdEvent(
             S("Управление недоступно"),
-            S("Передача не P. Пока машина не на паркинге, управление с телефона отключено."),
+            if (_car.value.parkByBrake) S("Стояночный тормоз не включён. Пока машина не на паркинге, управление с телефона отключено.")
+            else S("Передача не P. Пока машина не на паркинге, управление с телефона отключено."),
             EventKind.Failed,
         ))
         return true
