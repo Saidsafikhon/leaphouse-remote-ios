@@ -114,6 +114,7 @@ jobs:
       - name: Check secrets
         id: gate
         run: |
+          echo "started=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
           if [ -z "$ASC_KEY_ID" ] || [ -z "$ASC_ISSUER_ID" ] || [ -z "$ASC_KEY_P8" ] || [ -z "$APPLE_TEAM_ID" ]; then
             echo "Секреты ASC_* / APPLE_TEAM_ID не заданы — TestFlight пропускаем."; echo "go=no" >> "$GITHUB_OUTPUT"
           else echo "go=yes" >> "$GITHUB_OUTPUT"; fi
@@ -192,6 +193,18 @@ jobs:
             TAIL=$(tail -c 3000 "$f" | grep -v '^$' | awk '{printf "%s%%0A", $0}')
             echo "::error::TAIL $f%0A$TAIL"
           done
+
+      # Каждая новая машина CI выпускает свой сертификат Apple Development, а лимит
+      # аккаунта — 10: на десятом сборка падает (146, 12.10.2026). Отзываем свой
+      # всегда, даже после ошибки; подробности в скрипте.
+      - name: Revoke this run's development certificate
+        if: always() && steps.gate.outputs.go == 'yes'
+        env:
+          RUN_STARTED: ${{ steps.gate.outputs.started }}
+        run: |
+          [ -f AuthKey.p8 ] || { echo "ключа нет — отзывать нечем"; exit 0; }
+          python3 -m venv /tmp/asc && /tmp/asc/bin/pip install --quiet pyjwt cryptography
+          /tmp/asc/bin/python .github/scripts/revoke_run_cert.py || echo "::warning::сертификат не отозван"
 
   # ---- Скриншоты для App Store: демо-режим приложения + UI-тест на симуляторе.
   screenshots:
