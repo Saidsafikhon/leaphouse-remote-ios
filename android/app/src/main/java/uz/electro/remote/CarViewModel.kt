@@ -206,6 +206,8 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
 
     private var pollJob: Job? = null
     private var connectJob: Job? = null
+    /** Автоотключение после неудачного «Подключиться» — см. [autoSleepAfterNoAnswer]. */
+    private var autoSleepJob: Job? = null
 
     // Сохраняем оптимистичное состояние между запусками: вернувшись в приложение,
     // пользователь видит последнее включённое (климат/функции), а не «выкл» до
@@ -241,6 +243,7 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
      */
     fun connect() {
         if (connectJob?.isActive == true) return
+        autoSleepJob?.cancel()
         connectJob = viewModelScope.launch {
             // Время считаем по часам от нажатия: сам опрос головы занимает несколько
             // секунд, и счёт по количеству пауз растягивал таймаут в разы.
@@ -295,6 +298,26 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
                 S("Машина не ответила за {0} с", WAKE_WAIT_SEC),
                 waitedSec(),
             )
+            autoSleepAfterNoAnswer()
+        }
+    }
+
+    /**
+     * Голова не вышла на связь за отсчёт — сами шлём «Отключиться» (12.10.2026,
+     * просьба владельца): пробуждалка могла поднять T-BOX, и машина осталась бы
+     * бодрствовать и садить батарею, пока о ней никто не знает. Только в этом
+     * случае: ответила голова — сеанс идёт как обычно. Двери и передачу не
+     * проверяем — живого статуса нет. «Войти без машины» или новое «Подключиться»
+     * отменяют ожидание ответа.
+     */
+    private fun autoSleepAfterNoAnswer() {
+        autoSleepJob?.cancel()
+        autoSleepJob = viewModelScope.launch {
+            if (repo.sleep() !is WakeResult.Sent) return@launch
+            val c = _connect.value
+            if (c.phase == ConnectPhase.Timeout || c.phase == ConnectPhase.Error) {
+                _connect.value = c.copy(message = listOfNotNull(c.message, S("Отправлена команда отключения")).joinToString("\n"))
+            }
         }
     }
 
@@ -374,6 +397,7 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
     /** Войти, не дождавшись машины: данные будут последними известными. */
     fun enterAnyway() {
         connectJob?.cancel()
+        autoSleepJob?.cancel()
         _connect.value = ConnectStatus(ConnectPhase.Connected, degraded = true)
         startPolling()
     }

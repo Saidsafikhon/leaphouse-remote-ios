@@ -63,7 +63,7 @@ data class CarState(
     val speedKmh: Int? = null,
     /** Минут до полной зарядки; null — не заряжается или сигнала нет. */
     val chargeMinutes: Int? = null,
-    /** Передача не P (gear ≠ 0): управление с телефона отключено, голова тоже не исполнит. */
+    /** Голова запретила управление: передача не P (на 4.78+ только C16, флаг gear_lock). */
     val notInPark: Boolean = false,
     /** Машина сейчас заряжается (по времени до полной или статусу зарядки). */
     val charging: Boolean = false,
@@ -144,7 +144,10 @@ data class CarState(
                 fan = num("fan")?.toInt(),
                 speedKmh = num("speed")?.toInt(),
                 // без кабеля машина отдаёт «нет значения» 16777215 — больше двух суток не бывает
-                notInPark = num("gear")?.toInt()?.let { it != 0 } ?: false,
+                // Блок решает голова (4.78+: только C16) и шлёт gear_lock. Голова
+                // 4.75–4.77 флага не шлёт, но сама отказывает на любой модели при gear ≠ 0.
+                notInPark = num("gear_lock")?.let { it != 0f }
+                    ?: (num("gear")?.toInt()?.let { it != 0 } ?: false),
                 chargeMinutes = num("charge_time")?.toInt()?.takeIf { it in 1..2880 },
                 // Заряжается: есть время до полной; или статус зарядки QNX (143, 0 — нет);
                 // или BMS_BATTCHARGERSTS на 2026 (1 на стоянке, 5 в движении).

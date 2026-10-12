@@ -451,7 +451,8 @@
     "Передача не P. Пока машина не на паркинге, управление с телефона отключено.": "Gear is not P. Phone control is disabled until the car is in Park.",
     "Машина не на паркинге": "Car is not in Park",
     "Управление с телефона отключено, пока передача не P.": "Phone control is disabled until the gear is P.",
-    "Двери и багажник закрыты": "Doors and trunk are closed"
+    "Двери и багажник закрыты": "Doors and trunk are closed",
+    "Отправлена команда отключения": "Disconnect command sent"
   },
   "uz": {
     " · не прочитано": " · o‘qilmagan",
@@ -904,6 +905,7 @@
     "Передача не P. Пока машина не на паркинге, управление с телефона отключено.": "Uzatma P emas. Mashina parkovkada bo'lmaguncha telefondan boshqaruv o'chirilgan.",
     "Машина не на паркинге": "Mashina parkovkada emas",
     "Управление с телефона отключено, пока передача не P.": "Uzatma P bo'lmaguncha telefondan boshqaruv o'chirilgan.",
-    "Двери и багажник закрыты": "Eshiklar va yukxona yopiq"
+    "Двери и багажник закрыты": "Eshiklar va yukxona yopiq",
+    "Отправлена команда отключения": "O'chirish buyrug'i yuborildi"
   }
 }

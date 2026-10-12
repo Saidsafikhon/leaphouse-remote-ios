@@ -74,6 +74,8 @@ final class CarViewModel: ObservableObject {
 
     private var pollTask: Task<Void, Never>?
     private var connectTask: Task<Void, Never>?
+    /// Автоотключение после неудачного «Подключиться» — см. autoSleepAfterNoAnswer().
+    private var autoSleepTask: Task<Void, Never>?
     /// Идёт ли сейчас подключение — второй запуск поверх первого не нужен.
     private var connecting = false
     private var seatTimer: Task<Void, Never>?
@@ -163,6 +165,7 @@ final class CarViewModel: ObservableObject {
     func connect() {
         guard !connecting else { return }
         connecting = true
+        autoSleepTask?.cancel(); autoSleepTask = nil
         connectTask = Task { [weak self] in
             guard let self else { return }
             defer { self.connecting = false }
@@ -217,6 +220,23 @@ final class CarViewModel: ObservableObject {
             } else {
                 self.connectStatus = ConnectStatus(phase: .timeout, message: L("Машина не ответила за {0} с", Self.wakeWaitSec), waitedSec: waited())
             }
+            self.autoSleepAfterNoAnswer()
+        }
+    }
+
+    /// Голова не вышла на связь за отсчёт — сами шлём «Отключиться» (12.10.2026,
+    /// просьба владельца), чтобы разбуженная машина не осталась бодрствовать.
+    /// Только в этом случае; двери и передачу не проверяем — живого статуса нет.
+    /// «Войти без машины» или новое «Подключиться» отменяют ожидание ответа.
+    private func autoSleepAfterNoAnswer() {
+        autoSleepTask?.cancel()
+        autoSleepTask = Task { [weak self] in
+            guard let self else { return }
+            guard case .sent = await self.repo.sleep(), !Task.isCancelled else { return }
+            var c = self.connectStatus
+            guard c.phase == .timeout || c.phase == .error else { return }
+            c.message = [c.message, L("Отправлена команда отключения")].compactMap { $0 }.joined(separator: "\n")
+            self.connectStatus = c
         }
     }
 
@@ -267,6 +287,7 @@ final class CarViewModel: ObservableObject {
     /// Войти, не дождавшись машины: данные будут последними известными.
     func enterAnyway() {
         connectTask?.cancel(); connectTask = nil
+        autoSleepTask?.cancel(); autoSleepTask = nil
         connectStatus = ConnectStatus(phase: .connected, degraded: true)
         startPolling()
     }
