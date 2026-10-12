@@ -123,9 +123,10 @@ struct CarState: Equatable {
         s.fan = num("fan").map { Int($0) }
         s.speedKmh = num("speed").map { Int($0) }
         // без кабеля машина отдаёт «нет значения» 16777215 — больше двух суток не бывает
-        // Блок решает голова (4.78+: только C16) и шлёт gear_lock. Голова
-        // 4.75–4.77 флага не шлёт, но сама отказывает на любой модели при gear ≠ 0.
-        s.notInPark = num("gear_lock").map { $0 != 0 } ?? (num("gear").map { Int($0) != 0 } ?? false)
+        // Блок решает голова (4.78+) и шлёт gear_lock. Нет флага — данных о
+        // паркинге нет, управление не трогаем (12.10.2026): по сырому gear
+        // C10/C11 запирались и на стоянке.
+        s.notInPark = num("gear_lock").map { $0 != 0 } ?? false
         s.chargeMinutes = num("charge_time").map { Int($0) }.flatMap { (1...2880).contains($0) ? $0 : nil }
         // Заряжается: время до полной; или статус зарядки QNX (143, 0 — нет);
         // или BMS_BATTCHARGERSTS на 2026 (1 на стоянке, 5 в движении).
