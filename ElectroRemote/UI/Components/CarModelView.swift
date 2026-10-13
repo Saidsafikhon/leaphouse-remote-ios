@@ -39,12 +39,15 @@ enum CarModels {
     static func prefetch(_ model: String?) { if let n = fileFor(model) { Task { _ = await ensure(n) } } }
 }
 
-/// Загруженная сцена живёт в процессе — возврат на главную не перезагружает модель.
+/// Загруженные сцены живут в процессе — по одной на модель (их всего четыре).
+/// Сцену не выбрасываем никогда: при смене машины другой модели SceneKit, освобождая
+/// прежнюю сцену в момент показа новой, уходил в бесконечную рекурсию и ронял
+/// приложение (сборка 147, 13.10.2026: «после смены машины выкинуло»).
 final class CarSceneCache {
     static let shared = CarSceneCache()
-    var name: String?
-    var scene: SCNScene?
-    var root: SCNNode?
+    private var scenes: [String: SCNScene] = [:]
+    func scene(_ name: String) -> SCNScene? { scenes[name] }
+    func keep(_ name: String, _ scene: SCNScene) { scenes[name] = scene }
 }
 
 /// Что открыто на машине — 3D-модель открывает эти детали на петлях (зеркало BodyPose.kt).
@@ -85,7 +88,7 @@ struct CarModelView: View {
         }
         .task(id: CarModels.fileFor(model) ?? "") {
             guard let name = CarModels.fileFor(model) else { onReady(false); return }
-            if CarSceneCache.shared.name == name, let s = CarSceneCache.shared.scene { scene = s; onReady(true); return }
+            if let s = CarSceneCache.shared.scene(name) { scene = s; onReady(true); return }
             guard let url = await CarModels.ensure(name) else { onReady(false); return }
             let loaded: SCNScene? = await withCheckedContinuation { cont in
                 GLTFAsset.load(with: url, options: [:]) { _, status, asset, _, _ in
@@ -93,9 +96,10 @@ struct CarModelView: View {
                     else if status == .error { cont.resume(returning: nil) }
                 }
             }
-            guard let s = loaded else { onReady(false); return }
-            CarSceneView.prepare(s)
-            CarSceneCache.shared.name = name; CarSceneCache.shared.scene = s
+            guard let fresh = loaded else { onReady(false); return }
+            // Пока грузили, ту же модель мог загрузить соседний вид — берём его сцену.
+            let s = CarSceneCache.shared.scene(name) ?? fresh
+            if s === fresh { CarSceneView.prepare(s); CarSceneCache.shared.keep(name, s) }
             scene = s
             // кадр успевает отрисоваться — только потом убираем статичную картинку
             try? await Task.sleep(nanoseconds: 150_000_000)
@@ -123,6 +127,8 @@ struct CarSceneView: UIViewRepresentable {
 
     /// Один раз после загрузки: масштаб в единичный куб, центр в начале координат, окружение, узлы-повороты.
     static func prepare(_ scene: SCNScene) {
+        // Повторная подготовка вложила бы узлы ещё раз — только один раз на сцену.
+        if scene.rootNode.childNode(withName: "pitch", recursively: false) != nil { return }
         let content = SCNNode()
         for n in scene.rootNode.childNodes { n.removeFromParentNode(); content.addChildNode(n) }
         let (mn, mx) = content.boundingBox
@@ -237,7 +243,14 @@ struct CarSceneView: UIViewRepresentable {
         return v
     }
 
-    func updateUIView(_ v: SCNView, context: Context) { apply(v) }
+    func updateUIView(_ v: SCNView, context: Context) {
+        // Тот же вид, другая машина другой модели — переключаем сцену (обе живут в кэше).
+        if v.scene !== scene {
+            v.scene = scene
+            v.pointOfView = scene.rootNode.childNode(withName: "cam", recursively: false)
+        }
+        apply(v)
+    }
 
     private func apply(_ v: SCNView) {
         guard let pitchNode = scene.rootNode.childNode(withName: "pitch", recursively: false),
