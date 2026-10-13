@@ -310,8 +310,11 @@ final class CarViewModel: ObservableObject {
         pollTask = Task { [weak self] in
             while !Task.isCancelled {
                 guard let self else { return }
-                let state = self.keepLastPlace(await self.repo.refresh())
+                let asked = self.vehicleId
+                let fresh = await self.repo.refresh()
                 if Task.isCancelled { return }
+                // Пока шёл запрос, выбрали другую машину — ответ про прежнюю не показываем.
+                let state = asked == self.vehicleId ? self.keepLastPlace(fresh) : self.car
                 self.car = state
                 try? await Task.sleep(nanoseconds: state.link == .cloud ? Self.pollCloudNs : Self.pollOfflineNs)
             }
@@ -323,9 +326,16 @@ final class CarViewModel: ObservableObject {
         pollTask = nil
     }
 
-    func refreshNow() { Task { car = keepLastPlace(await repo.refresh(force: true)) } }
+    func refreshNow() {
+        Task {
+            let asked = vehicleId
+            let fresh = await repo.refresh(force: true)
+            if asked == vehicleId { car = keepLastPlace(fresh) }
+        }
+    }
 
     /// Ответ без точки (сбой связи) не стирает с карты последнее известное место.
+    /// Место — только своей машины: при смене машины car сбрасывается (selectVehicle).
     private func keepLastPlace(_ next: CarState) -> CarState {
         guard next.location == nil, let last = car.location else { return next }
         var s = next; s.location = last; return s
@@ -753,6 +763,9 @@ final class CarViewModel: ObservableObject {
 
     func selectVehicle(_ id: String) {
         repo.selectVehicle(id)
+        // Состояние прежней машины не переносим: иначе карта держала её точку
+        // (на iPhone после выбора своей машины показывалась демо-машина, 13.10.2026).
+        if vehicleId != id { car = CarState() }
         vehicleId = id
         paint = settings.vehiclePaint(id)
         refreshNow()

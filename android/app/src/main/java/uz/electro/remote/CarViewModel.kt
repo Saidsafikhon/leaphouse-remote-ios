@@ -422,7 +422,10 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
         if (pollJob?.isActive == true) return
         pollJob = viewModelScope.launch {
             while (true) {
-                _car.value = keepLastPlace(repo.refresh())
+                val asked = _vehicleId.value
+                val fresh = repo.refresh()
+                // Пока шёл запрос, выбрали другую машину — ответ про прежнюю не показываем.
+                if (asked == _vehicleId.value) _car.value = keepLastPlace(fresh)
                 delay(
                     when (_car.value.link) {
                         Link.CLOUD -> POLL_CLOUD_MS
@@ -438,9 +441,16 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
         pollJob = null
     }
 
-    fun refreshNow() = viewModelScope.launch { _car.value = keepLastPlace(repo.refresh(force = true)) }
+    fun refreshNow() = viewModelScope.launch {
+        val asked = _vehicleId.value
+        val fresh = repo.refresh(force = true)
+        if (asked == _vehicleId.value) _car.value = keepLastPlace(fresh)
+    }
 
-    /** Ответ без точки (сбой связи) не стирает с карты последнее известное место. */
+    /**
+     * Ответ без точки (сбой связи) не стирает с карты последнее известное место.
+     * Место — только своей машины: при смене машины _car сбрасывается (selectVehicle).
+     */
     private fun keepLastPlace(next: CarState): CarState =
         if (next.location == null && _car.value.location != null) next.copy(location = _car.value.location) else next
 
@@ -944,6 +954,9 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
     fun selectVehicle(vehicleId: String) {
         _paint.value = settings.vehiclePaint(vehicleId)
         repo.selectVehicle(vehicleId)
+        // Состояние прежней машины не переносим: иначе карта держала её точку
+        // (после выбора своей машины показывалась демо-машина, 13.10.2026).
+        if (_vehicleId.value != vehicleId) _car.value = CarState()
         _vehicleId.value = vehicleId
         refreshNow()
         // У новой машины может быть другая модель → другой набор кнопок. Без
